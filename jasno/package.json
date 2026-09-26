@@ -1,0 +1,44 @@
+{
+  "name": "jasno",
+  "version": "0.1.0-proto",
+  "description": "jasno runtime prototype: signals, typed tag functions, no bundler.",
+  "type": "module",
+  "engines": {
+    "node": "^24.12.0 || >=26.0.0"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": {
+      "development": "./src/testing.ts",
+      "default": "./src/testing-requires-dev.ts"
+    },
+    "./testing/happy-dom": "./src/happy-dom.ts"
+  },
+  "imports": {
+    "#dev": {
+      "development": "./src/dev-on.ts",
+      "default": "./src/dev-off.ts"
+    },
+    "#props": {
+      "development": "./src/props.ts",
+      "default": "./src/props-prod.ts"
+    }
+  },
+  "scripts": {
+    "test": "node --conditions=development --import ./src/happy-dom.ts --test --test-isolation=none \"test/**/*.test.ts\"",
+    "check": "tsc -p . && tsc -p tsconfig.test.json"
+  },
+  "peerDependencies": {
+    "happy-dom": "^20.14.5"
+  },
+  "peerDependenciesMeta": {
+    "happy-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.0",
+    "happy-dom": "20.14.5",
+    "typescript": "7.0.2"
+  }
+}

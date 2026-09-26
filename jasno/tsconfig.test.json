@@ -1,0 +1,6 @@
+{
+  // Runtime tests are typed by the public API (the design's ambient jasno.d.ts), not by the implementation.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "exactOptionalPropertyTypes": true },
+  "include": ["../design/jasno.d.ts", "test"]
+}

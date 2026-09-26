@@ -441,7 +441,7 @@ declare module 'jasno' {
     readonly node?: string | undefined;
     /** First user stack frame, e.g. "src/views/user.ts:42:17" (dev builds capture it lazily). */
     readonly loc?: string | undefined;
-    /** Occurrences of this (code, region, node, loc) so far. */
+    /** Occurrences so far: per (code, region, node, loc); EFFECT_WRITES_STATE per (effect, signal); FOCUS_LOST per (element, action, owner path, cause). */
     readonly count: number;
   }
   /** A node of the reactive graph as reported by __JASNO__.graph(). */
@@ -594,7 +594,7 @@ declare module 'jasno/testing' {
   export {};
 }
 
-/** Side-effect module for tests: registers happy-dom globals (node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**\/*.test.ts"). */
+/** Side-effect module for tests: registers happy-dom globals and adds the dialog focusing steps happy-dom lacks (showModal() focuses [autofocus], close() returns focus) (node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**\/*.test.ts"). */
 declare module 'jasno/testing/happy-dom' {}
 
 interface Window {

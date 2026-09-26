@@ -9,6 +9,7 @@ const ada: User = { id: '1', name: 'Ada Lovelace', email: 'ada@example.com', tea
 const alan: User = { id: '2', name: 'Alan Turing', email: 'alan@example.com', team: 'Codebreaking' };
 
 function type(input: HTMLInputElement, value: string): void {
+  input.focus(); // as a user would: focus left on a row that the filter removes is FOCUS_LOST
   input.value = value;
   input.dispatchEvent(new Event('input'));
   flush(); // apply DOM updates now instead of on the next microtask

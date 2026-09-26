@@ -7,5 +7,12 @@
       "development": "./example/src/api.mock.ts",
       "default": "./example/src/api.ts"
     }
+  },
+  "scripts": {
+    "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"example/src/**/*.test.ts\""
+  },
+  "devDependencies": {
+    "jasno": "file:../jasno",
+    "@types/node": "^24.12.0"
   }
 }

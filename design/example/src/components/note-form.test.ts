@@ -15,6 +15,7 @@ test('submits the trimmed draft, clears it and reports through the toast context
   const textarea = view.root.querySelector('textarea');
   const form = view.root.querySelector('form');
   assert.ok(textarea && form);
+  textarea.focus(); // type as a user would: focus first
   textarea.value = '  call back on Monday  ';
   textarea.dispatchEvent(new Event('input'));
   form.requestSubmit();
@@ -35,6 +36,7 @@ test('keeps text typed while the save is in flight', async (t) => {
   const textarea = view.root.querySelector('textarea');
   const form = view.root.querySelector('form');
   assert.ok(textarea && form);
+  textarea.focus();
   textarea.value = 'first';
   textarea.dispatchEvent(new Event('input'));
   form.requestSubmit();

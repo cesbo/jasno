@@ -437,3 +437,29 @@ Every finding on design v2, with its outcome: two usability runs built from AGEN
 | V2-19 | consistency | minor | accepted | (1) Playwright's `webServer` is top-level, so per-project servers could not work: one server chosen by `JASNO_E2E` (template in (f)); (2) `jasno dist` step 2 names `dist/jasno/<file>.<hash>.js` for jasno's own files. |
 
 **AGENTS.md budget moves.** To fit the new rules within 8,192 bytes (now 8,166), v3 removed from AGENTS.md lines whose mistake tsc or a runtime check already reports with the fix: array mutation (type error naming `readonly`), `${}` in `css` (type error), `import type` (TS1484), route order (`ROUTE_SHADOWED` throws with the hint), `navigate()` result values (JSDoc), "callbacks are plain functions" (the example shows it), "late writes are harmless" (kept in RECIPES; it answered U-C11), the `svg` icon hint (the `svg` JSDoc and RECIPES; `innerHTML` is message-typed) and the setup-listener table row (the rule stays in "Context, cleanup, state"; `LEAK_IN_SETUP` reports it).
+
+## Runtime prototype conformance review (2026-09-26)
+
+Seven agents wrote conformance tests for the M1 runtime prototype (`../jasno`), one per area (core, ownership, resource, lists, elements, dev/testing, recipes): 538 tests, kept in `../jasno/test/spec/`. 71 findings; the runtime bugs among them are fixed in the prototype (not listed). The spec and doc outcomes, decided with the owner:
+
+| ID | Source | Severity | Outcome | What changed / why not |
+|---|---|---|---|---|
+| RP-01 | ownership probe | ambiguity | accepted | B8.1 holds while the computed has observers; without observers B1.3 wins (recompute, no links), so a pure computation throws an equal error, not the same object. |
+| RP-02 | lists probe | ambiguity | accepted | New B21.4: a write re-reads the selector source at once (a derivation the write pulls; B3.2 is about consumers), keeping `isSelected()` and computations over it read-your-writes; source errors are routed in the next flush. Lazy evaluation was rejected: computeds over `isSelected()` would read stale until the flush (model C, ADR-10). The Terms list the selector source as a derivation. |
+| RP-03 | ownership, devtest, recipes probes | ambiguity | accepted | B8.5 and B20.3: a `catchError` swap (either direction) focuses the first focusable element of the new content, else its first element (given `tabindex="-1"`, as the router in B17.8); text-only content reports `FOCUS_LOST` with a wrap hint. "Never report" is now "do not report when they restored focus". |
+| RP-04 | core probe | ambiguity | accepted | B5.4: `WRITE_IN_SETUP` also inside `untracked()` (it exempts reads, not writes; ADR-12 rejected it as a mute). |
+| RP-05 | elements probe | ambiguity | accepted | B15.5: a live update to `undefined` removes a reflected attribute the element did not have at creation (no `href=""`, as ADR-02 intended); `value`/`checked`/`selectedIndex` get their creation value back. |
+| RP-06 | elements, recipes probes | bug + ambiguity | accepted | B15.8: `UNKNOWN_PROP` checks jasno's closed prop table generated from `jasno.elements.d.ts` (the DOM-membership check missed `className`, `textContent` and misspelled `aria-*`, and fired on the typed `autofocus` in happy-dom); typed props the engine does not expose are set as attributes; `onClick`-style keys whose lowercase handler exists are reported. |
+| RP-07 | elements probe | ambiguity | accepted | B6.11 and the catalogue: `mount()` inside a derivation throws `OWNED_IN_DERIVATION` (its root is an owner). |
+| RP-08 | ownership probe | bug | accepted | B6.2: an owner created under a disposed or disposing owner is disposed at once (effects created after `stop()` in the same run, or in `onMount` after its owner was disposed, ran forever). |
+| RP-09 | core probe | ambiguity | accepted | B4.10: after the microtask guard trips, the queue is cleared and dropped consumers are re-armed, as in B4.6 (the app stalled). |
+| RP-10 | core probe | ambiguity | accepted | B5.3 and the catalogue: `EFFECT_WRITES_STATE` dedupes per (effect, signal) whatever the call site; `FOCUS_LOST` (no call site) per element, action, owner path and cause. |
+| RP-11 | resource probe | bug + ambiguity | accepted | B9.4: idle and throwing params forget the request, so the same params later start as `loading` (the old value flashed until the flush). |
+| RP-12 | lists probe | ambiguity | accepted | B10.6 covers `each` rows (B8.9 calls them builders). |
+| RP-13 | elements probe | bug + ambiguity | accepted | B14.1: a component called in an effect run is setup (B5.4), so writes to its own signals are silent and foreign writes are `WRITE_IN_SETUP`, not `EFFECT_WRITES_STATE`. |
+| RP-14 | devtest probe | ambiguity | accepted | B19.2: owners inside a module-level root are tagged `<module root>` even when created during the test. |
+| RP-15 | devtest probe | ambiguity | accepted | B19.5: module-level linkedSignals are reset too. |
+| RP-16 | resource, devtest, recipes probes | ambiguity | accepted | B19.6: a loader jasno aborted (superseded, `set()`, disposed) is no longer pending; a never-settling stub loader from one test made every later `settled()` time out. |
+| RP-17 | elements, recipes probes | doc | accepted | (g) Keys: dispatch `keydown` with `cancelable: true` and await a microtask before simulating the default action (the documented form reported correct handlers and ran the check too early). |
+| RP-18 | recipes probe | doc | accepted | (g) Dialogs: `jasno/testing/happy-dom` adds the dialog focusing steps happy-dom 20.14.5 lacks (showModal focuses `[autofocus]`, close returns focus), which the RECIPES dialog patterns need. |
+| RP-19 | example run | doc | accepted | (g) Events: focus a field before typing into it; `user-list.test.ts` typed with focus left on a row the filter removed and correctly got `FOCUS_LOST`. |
