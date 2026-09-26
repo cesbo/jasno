@@ -11,7 +11,7 @@ export const EmailForm = component(function EmailForm(p: { save: (email: string)
   const saving = signal(false);
   const plan = signal<'free' | 'pro'>('free');
   const save = async () => { if (saving()) return; saving.set(true); try { await p.save(email()); } finally { saving.set(false); } };
-  return h.form({ onsubmit: (e) => { e.preventDefault(); void save(); } },
+  return h.form({ onsubmit: (e) => { e.preventDefault(); return save(); } },
     h.label(null, 'Email ', h.input({ type: 'email', required: true, value: email,
       oninput: (e) => { email.set(e.currentTarget.value); emailOk.set(e.currentTarget.validity.valid); } })),
     h.label(null, h.input({ type: 'radio', name: 'plan', checked: () => plan() === 'pro', onchange: () => plan.set('pro') }), 'Pro'),
@@ -29,12 +29,12 @@ export const CardTitle = component(function CardTitle(p: { card: Read<Card>; onR
   let refocus = false;
   return h.div(null, show(editing, () => {
     const commit = (again: boolean) => { refocus = again; editing.set(false);
-      const title = input.value.trim(); if (title && title !== p.card().title) p.onRename(title); };
+      const title = input.value.trim(); if (title && title !== p.card().title) return p.onRename(title); };
     const input = h.input({ value: untracked(p.card).title, 'aria-label': 'Title',
       onkeydown: (e) => { if (e.key === 'Escape') { e.preventDefault(); refocus = true; editing.set(false); } },
       onblur: () => { if (editing()) commit(false); } });      // Chromium also fires blur when the input is removed
     onMount(() => { input.focus(); input.select(); });
-    return h.form({ onsubmit: (e) => { e.preventDefault(); commit(true); } }, input);
+    return h.form({ onsubmit: (e) => { e.preventDefault(); return commit(true); } }, input);
   }, () => {
     const title = h.button({ type: 'button', onclick: () => editing.set(true) }, () => p.card().title);
     if (refocus) { refocus = false; onMount(() => title.focus()); }
@@ -56,16 +56,22 @@ export const Notes = component(function Notes(p: ViewProps<'/users/:id'>): Node 
 
 declare function toast(message: string): void;
 export const cards = createRoot(() => resource({ loader: ({ abortSignal }) => listCards(abortSignal) }));
-let inFlight = 0;
-export async function rename(id: string, title: string): Promise<void> {
-  if (!cards.hasValue()) return;
-  const old = cards.value().find((c) => c.id === id)?.title ?? title;
-  const swap = (from: string, to: string) => { if (cards.hasValue())
-    cards.set(cards.value().map((c) => (c.id === id && c.title === from ? { ...c, title: to } : c))); };
-  swap(old, title); inFlight++;
-  try { await saveTitle(id, title, AbortSignal.timeout(10_000)); if (inFlight === 1) cards.reload(); }
-  catch { swap(title, old); toast('Not saved; your change was undone'); }
-  finally { inFlight--; }
+const confirmed = new Map<string, string>();     // last title the server accepted, while saves are queued
+const queue = new Map<string, Promise<void>>();  // the last queued save per card
+export function rename(id: string, title: string): Promise<void> {
+  if (!cards.hasValue()) return Promise.resolve();
+  const show = (to: string) => { if (cards.hasValue())
+    cards.set(cards.value().map((c) => (c.id === id ? { ...c, title: to } : c))); };
+  if (!confirmed.has(id)) confirmed.set(id, cards.value().find((c) => c.id === id)?.title ?? title);
+  show(title);
+  const run: Promise<void> = (queue.get(id) ?? Promise.resolve()).then(async () => {
+    const last = () => queue.get(id) === run;
+    try { await saveTitle(id, title, AbortSignal.timeout(10_000)); confirmed.set(id, title); if (last()) show(title); }
+    catch { if (last()) { show(confirmed.get(id) ?? title); toast('Not saved; your change was undone'); } }
+    finally { if (last()) { queue.delete(id); confirmed.delete(id); } }
+  });
+  queue.set(id, run);
+  return run;
 }
 export const newId = () => crypto.randomUUID();
 
@@ -73,7 +79,7 @@ export const newId = () => crypto.randomUUID();
 export const Danger = component(function Danger(p: { remove: () => Promise<void> }): Node {
   const remove = p.remove;
   const dialog = h.dialog({ 'aria-labelledby': 'del-title',
-    onclose: (e) => { if (e.currentTarget.returnValue === 'yes') void remove(); } },
+    onclose: (e) => { if (e.currentTarget.returnValue === 'yes') return remove(); } },
     h.form({ method: 'dialog' }, h.h2({ id: 'del-title' }, 'Delete this contact?'),
       h.button({ value: 'no', autofocus: true }, 'Cancel'), h.button({ value: 'yes' }, 'Delete')));
   const menu = h.div({ popover: 'auto', id: 'menu' }, 'Menu');

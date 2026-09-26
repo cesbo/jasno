@@ -1,17 +1,16 @@
-import { component, computed, h, linkedSignal, signal, useContext, type Read } from 'jasno';
+import { component, computed, h, signal, useContext } from 'jasno';
 import { ToastContext } from '../toast.ts';
 
 export interface NoteFormProps {
-  userId: Read<string>;
   onSave: (text: string) => Promise<void>;
 }
 
 const MAX = 280;
 
+// One form per person: UserView creates it inside match() on the id, so a draft or a save never crosses records.
 export const NoteForm = component(function NoteForm(p: NoteFormProps): Node {
   const toast = useContext(ToastContext); // read context in setup, keep the value
-  // The draft belongs to one person: it resets to '' whenever the userId value changes.
-  const text = linkedSignal({ source: p.userId, computation: () => '' });
+  const text = signal('');
   const saving = signal(false);
   const left = computed(() => MAX - text().length);
 
@@ -20,10 +19,11 @@ export const NoteForm = component(function NoteForm(p: NoteFormProps): Node {
     onsubmit: async (e) => {
       e.preventDefault();
       if (saving()) return; // the button stays focusable while saving; aria-disabled tells assistive tech
+      const sent = text();
       saving.set(true);
       try {
-        await p.onSave(text().trim());
-        text.set('');
+        await p.onSave(sent.trim());
+        if (text() === sent) text.set(''); // keep what was typed while the save was in flight
         toast('Note saved');
       } catch (err) {
         toast(`Could not save the note: ${err instanceof Error ? err.message : String(err)}`);

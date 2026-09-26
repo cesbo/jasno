@@ -1,5 +1,5 @@
-// Generates the closed element prop interfaces and the `H` tag table for jasno.d.ts from lib.dom.d.ts.
-// Usage: node tools/gen-elements.cjs jasno.d.ts   (rewrites the region between the <generated:elements> markers)
+// Generates the closed element prop interfaces and the `H` tag table for jasno.elements.d.ts from lib.dom.d.ts.
+// Usage: node tools/gen-elements.cjs jasno.elements.d.ts   (rewrites the region between the <generated:elements> markers)
 // Uses the TS 6 compiler API (TS 7.0 has no API) on TypeScript 7.0.2's own lib files; the two lib.dom.d.ts
 // files are byte-identical (checked with cmp), so the prop set matches what users compile against.
 // Re-run for every lib.dom update. Adapted from scratchpad/ts6/gen.cjs.

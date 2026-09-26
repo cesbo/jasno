@@ -1,4 +1,4 @@
-import { component, each, h, resource, show, svg } from 'jasno';
+import { component, each, h, match, resource, show, svg } from 'jasno';
 import type { ViewProps } from 'jasno/router';
 import { addNote, listNotes } from '#api';
 import type { User } from '../api.ts';
@@ -20,8 +20,7 @@ export default component(function UserView(p: ViewProps<'/users/:id', User>): No
   const status = h.p({ role: 'status', tabIndex: -1 }, () =>
     notes.status() === 'loading' ? 'Loading notes…' : notes.status() === 'error' ? 'Could not load notes.' : '');
 
-  async function save(text: string): Promise<void> {
-    const id = p.params().id; // capture before await: the view may show another person afterwards
+  async function save(id: string, text: string): Promise<void> {
     await addNote(id, text);
     if (p.params().id === id) notes.reload(); // reload() refetches the current params, so it cannot mix people up
   }
@@ -40,6 +39,7 @@ export default component(function UserView(p: ViewProps<'/users/:id', User>): No
         render: (note) => h.li(null, () => note().text, ' ',
           h.small(null, () => new Date(note().createdAt).toLocaleDateString())),
       })),
-    NoteForm({ userId: () => p.params().id, onSave: save }),
+    // A new :id disposes the old form with its draft and saving flag; a late save cannot touch the new one.
+    match(() => p.params().id, (id) => NoteForm({ onSave: (text) => save(id, text) })),
   );
 });
