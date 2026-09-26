@@ -1,0 +1,13 @@
+// jasno v3 test template. Your tsconfig.test.json:
+//   {
+//     "extends": "<path to design/v3>/tsconfig.app-test.json",
+//     "include": ["<path to design/v3>/jasno.d.ts", "src/**/*.test.ts"]
+//   }
+// @types/node resolves from design/v3/node_modules/@types (in a real project: npm i -D @types/node).
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
+  }
+}

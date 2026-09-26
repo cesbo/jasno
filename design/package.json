@@ -1,0 +1,11 @@
+{
+  "name": "jasno-design-v3",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#api": {
+      "development": "./example/src/api.mock.ts",
+      "default": "./example/src/api.ts"
+    }
+  }
+}

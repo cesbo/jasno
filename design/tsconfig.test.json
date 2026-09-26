@@ -1,0 +1,7 @@
+{
+  // Test program: node:test files with @types/node (node_modules/@types/node, copied from the scratchpad).
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["jasno.d.ts", "example/**/*.test.ts"],
+  "exclude": []
+}
