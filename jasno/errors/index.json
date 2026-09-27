@@ -860,8 +860,8 @@
         {
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
-          "tool": "dist",
-          "when": "browser code imports a module jasno dist does not publish (outside src/, or a *.test.ts file), src/, assets/ or public/ contains a symlink, or a public/ file takes a name dist generates"
+          "tool": "check, dist",
+          "when": "browser code imports a module jasno dist does not publish (outside src/, or a *.test.ts file; check reports it at the import); dist also when src/, assets/ or public/ contains a symlink, or a public/ file takes a name dist generates"
         }
       ]
     },
@@ -903,9 +903,9 @@
       "rows": [
         {
           "source": "jasno check, jasno dev, jasno dist",
-          "severity": "error",
+          "severity": "error / warn",
           "tool": "dist",
-          "when": "index.html carries its own CSP <meta> with 'strict-dynamic': combined with jasno's hash sources it blocks imports in Chromium and Firefox (§7)"
+          "when": "index.html carries its own CSP <meta>: with 'strict-dynamic' (error), combined with jasno's hash sources it blocks imports in Chromium and Firefox (§7); without it (warn), browsers enforce both policies and the stricter wins, so the app breaks only after deploy"
         }
       ]
     }

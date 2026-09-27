@@ -214,3 +214,13 @@ test('jasno preview serves dist/ as a static host: files, _headers, the _redirec
     await server.close();
   }
 });
+
+test('CSP_HASH_STRICT_DYNAMIC: a handwritten CSP <meta> with strict-dynamic fails; without it, a warning', async () => {
+  const meta = (policy: string) => INDEX.replace('<!--jasno:head-->', `<meta http-equiv="Content-Security-Policy" content="${policy}">\n  <!--jasno:head-->`);
+  const strict = await build({ ...FILES, 'index.html': meta("script-src 'strict-dynamic' 'sha256-x'") });
+  assert.equal(strict.code, 1);
+  assert.ok(strict.lines.some((l) => /^index\.html:\d+:\d+ CSP_HASH_STRICT_DYNAMIC/.test(l)), strict.lines.join('\n'));
+  const plain = await build({ ...FILES, 'index.html': meta("script-src 'self'") });
+  assert.equal(plain.code, 0, plain.lines.join('\n'));
+  assert.ok(plain.lines.some((l) => l.includes('CSP_HASH_STRICT_DYNAMIC') && l.includes('stricter of the two')), plain.lines.join('\n'));
+});

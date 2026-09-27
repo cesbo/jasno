@@ -265,3 +265,14 @@ test('TS7022 on the router export: COMPONENT_RETURN_TYPE findings print first, t
   assert.equal(codes[0], 'COMPONENT_RETURN_TYPE', r.lines.join('\n'));
   assert.ok(!r.lines.some((l) => l.startsWith('src/routes.ts') && l.includes('TS7006')), r.lines.join('\n'));
 });
+
+test('FILE_NOT_PUBLISHED at rung 1: browser code importing a module outside src/ or a test file', async () => {
+  const r = await run({
+    ...BASE,
+    'src/main.ts': "import { mount } from 'jasno';\nimport { secret } from '../server/env.ts';\nimport { fixture } from './helpers.test.ts';\nexport { mount, secret, fixture };\n",
+    'server/env.ts': "export const secret = 'x';\n",
+    'src/helpers.test.ts': 'export const fixture = 1;\n',
+  });
+  assert.ok(r.has('src/main.ts:2:24 FILE_NOT_PUBLISHED'), r.lines.join('\n'));
+  assert.ok(r.has('src/main.ts:3:25 FILE_NOT_PUBLISHED'), r.lines.join('\n'));
+});

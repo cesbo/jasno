@@ -181,6 +181,8 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   const csp = /<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>/i.exec(withoutComments(html));
   if (csp && /'strict-dynamic'/i.test(csp[0])) {
     problems.push({ code: 'CSP_HASH_STRICT_DYNAMIC', severity: 'error', message: "index.html carries its own CSP with 'strict-dynamic': combined with jasno's hash sources it blocks the imports (Chromium, Firefox).", hint: 'Delete the meta tag; jasno dist writes the policy. For a nonce policy, see jasno dist --nonce.', file: index, ...lineCol(html, csp.index) });
+  } else if (csp) {
+    problems.push({ code: 'CSP_HASH_STRICT_DYNAMIC', severity: 'warn', message: "index.html carries its own CSP <meta>: browsers enforce it together with jasno's policy, so the stricter of the two wins and the app can break only after deploy.", hint: 'Delete the meta tag; jasno dist writes the policy (a server can send more headers).', file: index, ...lineCol(html, csp.index) });
   }
   const entries = entryFiles(root, html);
   if (!entries.length && !problems.some((p) => p.file === index)) {

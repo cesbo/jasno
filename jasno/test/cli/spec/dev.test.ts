@@ -219,12 +219,12 @@ test('a package\'s own non-literal import() target is served (CL-05) and is not 
 // ---------------------------------------------------------------------------------------------------------------
 // Host (ADR-34: "answers 403 unless Host is a loopback name")
 
-test('Host variants: loopback names pass, everything else is 403', async () => {
+test('Host variants: loopback names and IP literals pass (rebinding needs a name), other names are 403', async () => {
   const p = main.port;
-  for (const host of [`LOCALHOST:${p}`, `127.0.0.1:${p}`, `127.8.9.10:${p}`, `[::1]:${p}`, `x.localhost:${p}`]) {
+  for (const host of [`LOCALHOST:${p}`, `127.0.0.1:${p}`, `127.8.9.10:${p}`, `[::1]:${p}`, `x.localhost:${p}`, `0.0.0.0:${p}`, `[::ffff:7f00:1]:${p}`]) {
     assert.equal((await get('/', { host })).status, 200, host);
   }
-  for (const host of [`0.0.0.0:${p}`, `127.1:${p}`, `evil.example:${p}`, `localhost.evil.example:${p}`, `127.0.0.1.nip.io:${p}`, `[::ffff:7f00:1]:${p}`, `localhost.:${p}`]) {
+  for (const host of [`127.1:${p}`, `evil.example:${p}`, `localhost.evil.example:${p}`, `127.0.0.1.nip.io:${p}`, `localhost.:${p}`]) {
     assert.equal((await get('/', { host })).status, 403, host);
   }
 });

@@ -4,6 +4,7 @@
 import { mkdirSync, readFileSync, realpathSync, rmSync, statSync, watch, writeFileSync, type FSWatcher } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { hostname } from 'node:os';
 import { extname, join, sep } from 'node:path';
 import {
   importMapIndex, injectHead, isRelative, productionCsp, ready, scanFile, scriptJson, walk, type Graph, type Mod,
@@ -54,15 +55,20 @@ const prefixOf = (pkg: Pkg): string => (pkg.json.name === 'jasno' ? '/@jasno/' :
 const hostnameOf = (host: string): string => (host.startsWith('[') ? host.slice(0, host.indexOf(']') + 1) : host.replace(/:\d+$/, '')).toLowerCase();
 
 /**
- * A loopback Host header (DNS rebinding protection, ADR-34). With --host the server is deliberately reachable
- * from other machines, which reach it by whatever name or address they use, so every Host is accepted.
+ * DNS rebinding protection (ADR-34): rebinding needs a domain name, so loopback names, *.localhost and any IP
+ * literal are accepted; with --host also this machine's own name (a LAN client may use it). Every other name gets
+ * 403, with --host too: a rebound domain resolving to the LAN address still sends its own name.
  */
 export function allowedHost(host: string | undefined, hostOptIn?: string): boolean {
-  if (hostOptIn) return true;
   if (!host) return false;
-  if (/^\[::1\](:\d+)?$/.test(host)) return true;
+  const bracketed = /^\[([0-9a-f:.]+)\](:\d+)?$/i.exec(host);
+  if (bracketed) return true; // an IPv6 literal
+  if (host.includes('[') || host.includes(']')) return false;
   const n = hostnameOf(host);
-  return !n.startsWith('[') && (n === 'localhost' || /^[a-z0-9-]+(\.[a-z0-9-]+)*\.localhost$/.test(n) || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(n));
+  if (n === 'localhost' || /^[a-z0-9-]+(\.[a-z0-9-]+)*\.localhost$/.test(n) || /^\d{1,3}(\.\d{1,3}){3}$/.test(n)) return true;
+  if (!hostOptIn) return false;
+  const own = hostname().toLowerCase();
+  return n === own || n === `${own}.local`;
 }
 
 

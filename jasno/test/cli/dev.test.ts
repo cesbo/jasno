@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { dev, startDev, type DevServer } from '../../cli/dev.ts';
@@ -100,11 +101,17 @@ test('Host must be a loopback name (DNS rebinding): forged Host gets 403', async
   assert.equal((await get('/', { host: `app.localhost:${server.port}` })).status, 200);
 });
 
-test('--host opts into other interfaces: any Host is accepted (a LAN client uses the machine address)', async () => {
+test('Host: IP literals always pass (rebinding needs a name); --host adds the machine name, other names stay 403', async () => {
+  assert.equal((await get('/', { host: `192.168.1.20:${server.port}` })).status, 200);
+  assert.equal((await get('/', { host: `[fe80::1]:${server.port}` })).status, 200);
+  assert.equal((await get('/', { host: `${hostname()}:${server.port}` })).status, hostname() === 'localhost' ? 200 : 403);
   const other = project({ 'package.json': '{"type":"module"}', 'index.html': INDEX, 'src/main.ts': 'export {};\n' });
   const lan = await startDev(other.root, { port: 0, host: '127.0.0.1' }, reporter(other.root).reporter);
   try {
     assert.equal((await http(lan.url, { headers: { host: `192.168.1.20:${lan.port}` } })).status, 200);
+    assert.equal((await http(lan.url, { headers: { host: `${hostname()}:${lan.port}` } })).status, 200);
+    assert.equal((await http(lan.url, { headers: { host: `${hostname()}.local:${lan.port}` } })).status, 200);
+    assert.equal((await http(lan.url, { headers: { host: `evil.example:${lan.port}` } })).status, 403, 'a rebound domain is refused with --host too');
   } finally {
     await lan.close();
     other.remove();

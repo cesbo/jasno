@@ -7,7 +7,7 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Diagnostic, Program } from 'typescript/unstable/sync';
 import type { SourceFile } from 'typescript/unstable/ast';
-import { importMapIndex, isRelative, ready, scanFile, walk } from './modules.ts';
+import { importMapIndex, isRelative, ready, scanFile, walk, type Graph } from './modules.ts';
 import { browserModules, entryFiles, entryProblems, filesUnder, isTestFile, readIndex } from './project.ts';
 import { lineCol, type Problem, type Reporter } from './report.ts';
 import { DEV_CONDITIONS, prodConditions, readPackage, type PackageJson } from './resolve.ts';
@@ -200,6 +200,29 @@ function importRules(root: string, pkg: PackageJson, file: string, browser: bool
   return out;
 }
 
+// ------------------------------------------------ FILE_NOT_PUBLISHED at rung 1 (what jasno dist would refuse)
+
+/** Browser code that imports a module jasno dist does not publish: outside src/, or a test file. */
+function unpublished(root: string, graphs: readonly Graph[]): Problem[] {
+  const out: Problem[] = [];
+  const src = join(root, 'src') + sep;
+  for (const g of graphs) {
+    for (const mod of g.mods.values()) {
+      if (mod.owner.kind !== 'app') continue;
+      for (const e of mod.edges) {
+        const target = e.file && g.mods.get(e.file);
+        if (!target || target.owner.kind !== 'app' || (target.file.startsWith(src) && !isTestFile(target.file))) continue;
+        out.push({
+          code: 'FILE_NOT_PUBLISHED', severity: 'error', file: mod.file, ...lineCol(mod.scan.code, e.start),
+          message: `"${e.specifier}" is ${isTestFile(target.file) ? 'a test file' : 'outside src/'}; jasno dist does not publish it, so this import fails in production.`,
+          hint: 'Browser modules live under src/ and are not *.test.ts files.',
+        });
+      }
+    }
+  }
+  return out;
+}
+
 // ------------------------------------------------ TypeScript diagnostics
 
 function flatten(d: Diagnostic): string {
@@ -276,8 +299,9 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
 
   const entries = entryFiles(root, html);
   // Browser files (check 3): the index.html entry's closure (either condition set) plus every non-test file under src/.
-  const closure = [DEV_CONDITIONS, prodConditions()].flatMap((c) => [...walk(entries, root, c).mods.values()])
-    .filter((m) => m.owner.kind === 'app' && /\.m?ts$/.test(m.file) && !m.file.endsWith('.d.ts')).map((m) => m.file);
+  const graphs = [DEV_CONDITIONS, prodConditions()].map((c) => walk([...entries, ...browserModules(root)], root, c));
+  const closure = graphs.flatMap((g) => [...g.mods.values()])
+    .filter((m) => m.owner.kind === 'app' && /\.m?ts$/.test(m.file) && !m.file.endsWith('.d.ts') && !isTestFile(m.file)).map((m) => m.file);
   const browser = [...new Set([...browserModules(root), ...entries, ...closure])];
   const declarations = filesUnder(join(root, 'src')).filter((f) => f.endsWith('.d.ts'));
   const nodeFiles = [
@@ -290,7 +314,7 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
   if (mapAt >= 0) {
     problems.push({ code: 'IMPORT_MAP_HANDWRITTEN', severity: 'error', message: 'index.html contains a <script type="importmap">; jasno dev and jasno dist generate the import map.', hint: 'Delete it and keep the <!--jasno:head--> slot.', file: join(root, 'index.html'), ...lineCol(html, mapAt) });
   }
-  problems.push(...entryProblems(root, html));
+  problems.push(...entryProblems(root, html), ...unpublished(root, graphs));
   problems.push(...syntaxGate([...browser, ...nodeFiles]));
   const withAst = !!(ts.sync && ts.ast);
   const nodeSet = new Set(nodeFiles);

@@ -11,7 +11,7 @@ import { Reporter } from './report.ts';
 const USAGE = `usage: jasno <command> [options]
   check     type-check both programs and run jasno's rules   [--strict] [--json]
   dev       local dev server                                 [--port 5173] [--host <addr>] [--json]
-  dist      build dist/ (type erasure, hashed names)         [--list] [--keep N] [--condition <name>] [--nonce] [--blank-comments] [--json]
+  dist      build dist/ (type erasure, hashed names)         [--list] [--keep N] [--condition <name>] [--nonce] [--json]
   preview   serve dist/ as a static host would               [--port 4173] [--json]
   explain   print what a diagnostic code means               <CODE> | --list [--json]`;
 
@@ -19,7 +19,7 @@ const COMMON = { json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' 
 const OPTIONS = {
   check: { ...COMMON, strict: { type: 'boolean' } },
   dev: { ...COMMON, port: { type: 'string' }, host: { type: 'string' } },
-  dist: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' }, 'blank-comments': { type: 'boolean' } },
+  dist: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' } },
   preview: { ...COMMON, port: { type: 'string' } },
   explain: { ...COMMON, list: { type: 'boolean' } },
 } as const;
@@ -66,7 +66,6 @@ export async function main(argv: readonly string[], cwd = process.cwd()): Promis
       return dev(project.root, { port: p, host: v.host as string | undefined }, reporter);
     }
     case 'dist': {
-      if (v['blank-comments']) return fail('jasno dist: --blank-comments is not implemented in this prototype.');
       const keep = v.keep === undefined ? 0 : Number(v.keep);
       if (!Number.isInteger(keep) || keep < 0) return fail('jasno dist: --keep must be a whole number');
       return dist(project.root, { list: v.list === true, keep, conditions: (v.condition as string[] | undefined) ?? [], nonce: v.nonce === true }, reporter);
