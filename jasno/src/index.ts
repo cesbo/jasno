@@ -1,6 +1,6 @@
 // jasno: public runtime API (types: jasno.d.ts). Everything else is internal.
 import { DEV } from '#dev';
-import { findNode, liveNodes, nameOf, nodeOf, ownerPath, preview, whyOf, type RNode } from './core.ts';
+import { findNode, hooks, liveNodes, nameOf, nodeOf, ownerPath, preview, whyOf, type RNode } from './core.ts';
 import { clearDiagnostics, diagnostics } from './diag.ts';
 import { describeElement } from './dom.ts';
 
@@ -49,6 +49,6 @@ if (DEV && typeof globalThis === 'object') {
       const n = resolve(target);
       return n && whyOf(n);
     },
-    router: () => undefined,
+    router: () => hooks.routerInfo?.(),
   };
 }

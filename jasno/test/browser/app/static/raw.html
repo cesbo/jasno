@@ -1,0 +1,10 @@
+<!doctype html><title>Raw</title>
+<a id="dl" href="/static/plain.html" download="p.html">dl</a> <a id="hl" href="#sec">hash</a>
+<div style="height:3000px"></div><h2 id="sec">Sec</h2><div style="height:3000px"></div>
+<script>
+window.__ev = [];
+navigation.addEventListener('navigate', (e) => {
+  window.__ev.push({ url: e.destination.url.replace(location.origin, ''), dl: e.downloadRequest, hash: e.hashChange, type: e.navigationType });
+  if (window.__intercept && e.canIntercept && e.downloadRequest == null) e.intercept({ focusReset: 'manual', scroll: 'after-transition', handler: () => Promise.resolve() });
+});
+</script>

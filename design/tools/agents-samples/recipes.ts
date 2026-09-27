@@ -87,17 +87,19 @@ export const Danger = component(function Danger(p: { remove: () => Promise<void>
     h.button({ type: 'button', onclick: () => dialog.showModal() }, 'Delete'),
     h.button({ type: 'button', popoverTargetElement: menu }, 'More'));
 });
-const CardDialog = component(function CardDialog(p: { id: string }): Node {
+const CardDialog = component(function CardDialog(p: { id: string; heading: HTMLElement }): Node {
   const dialog = h.dialog({ 'aria-labelledby': 'card-title', onclose: () => {   // close also fires after Back removed it
+      if (dialog.contains(document.activeElement)) p.heading.focus();  // a deep link has no opener to return to
       if (router.url().searchParams.get('card') === p.id) void router.back(router.url().pathname); } },
     h.h2({ id: 'card-title' }, 'Card ', p.id), h.form({ method: 'dialog' }, h.button(null, 'Close')));
   onMount(() => { dialog.showModal(); return () => dialog.close(); });
   return dialog;
 });
 export const Board = component(function Board(): Node {
+  const heading = h.h1({ tabIndex: -1 }, 'Board');
   const cardId = computed(() => router.url().searchParams.get('card'));
-  return h.section(null, h.h1(null, 'Board'), h.a({ href: '?card=' + '7' }, 'Open'),
-    match(cardId, (id) => (id === null ? '' : CardDialog({ id }))));
+  return h.section(null, heading, h.a({ href: '?card=' + '7' }, 'Open'),
+    match(cardId, (id) => (id === null ? '' : CardDialog({ id, heading }))));
 });
 export const Toasts = component(function Toasts(p: { toasts: Read<readonly { id: number; text: string }[]>; dismiss: (id: number) => void }): Node {
   const toasts = p.toasts;

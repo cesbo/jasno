@@ -81,10 +81,12 @@
    drops focus, so a dialog that lives in a branch opens and closes itself: onMount(() => { d.showModal(); return () => d.close(); }).
    Detail over a list (a card, a message): put it on the list's route as a search param. The list stays mounted
    (scroll, focus, drafts), Back closes the detail and deep links work; a path route would rebuild the list:
+     const heading = h.h1({ tabIndex: -1 }, 'Board');                 // the list's h1, rendered by the list view
      const cardId = computed(() => router.url().searchParams.get('card'));
-     match(cardId, (id) => (id === null ? '' : CardDialog({ id })))      // open it with h.a({ href: '?card=' + id }, 'Open')
-     const CardDialog = component(function CardDialog(p: { id: string }): Node {
+     match(cardId, (id) => (id === null ? '' : CardDialog({ id, heading })))   // open it with h.a({ href: '?card=' + id }, 'Open')
+     const CardDialog = component(function CardDialog(p: { id: string; heading: HTMLElement }): Node {
        const dialog = h.dialog({ 'aria-labelledby': 'card-title', onclose: () => {   // close also fires after Back removed it
+           if (dialog.contains(document.activeElement)) p.heading.focus();  // a deep link has no opener to return to
            if (router.url().searchParams.get('card') === p.id) void router.back(router.url().pathname); } },
          h.h2({ id: 'card-title' }, 'Card ', p.id), h.form({ method: 'dialog' }, h.button(null, 'Close')));
        onMount(() => { dialog.showModal(); return () => dialog.close(); });
@@ -503,7 +505,7 @@ declare module 'jasno/router' {
     S extends `:${infer N}*` ? { [K in N]?: string } :
     S extends `:${infer N}` ? { [K in N]: string } : {};
   type Split<S extends string> = S extends `${infer H}/${infer T}` ? Segment<H> & Split<T> : Segment<S>;
-  type HrefParams<P extends string> = { [K in keyof Params<P>]: Params<P>[K] extends string ? (string extends Params<P>[K] ? string | number : Params<P>[K]) : Params<P>[K] };
+  type HrefParams<P extends string> = { [K in keyof Params<P>]: NonNullable<Params<P>[K]> extends string ? (string extends NonNullable<Params<P>[K]> ? Params<P>[K] | number : Params<P>[K]) : Params<P>[K] };
   type HrefArgs<P extends string> =
     keyof Params<P> extends never ? [] : {} extends Params<P> ? [params?: HrefParams<P>] : [params: HrefParams<P>];
 
@@ -559,7 +561,7 @@ declare module 'jasno/router' {
     /** True while a navigation is loading data or a view module. */
     readonly isLoading: Signal<boolean>;
   }
-  /** Creates the router from the route table (one per app, exported from src/routes.ts). Only same-origin links whose path matches a route are intercepted; others load normally. */
+  /** Creates the router from the route table (one per app, exported from src/routes.ts). Only same-origin links whose path matches a route are intercepted; others, links with a target, downloads and reloads load normally. */
   export function createRouter<const R extends readonly Route[]>(routes: R, options: RouterOptions): Router<R[number]['path']>;
   export {};
 }

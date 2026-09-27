@@ -314,7 +314,11 @@ export const hooks: {
   handlerPromise: ((p: Promise<unknown>, what: string) => void) | undefined;
   flushStart: (() => void) | undefined;
   flushEnd: (() => void) | undefined;
-} = { reporter: undefined, ownerCreated: undefined, pending: undefined, handlerPromise: undefined, flushStart: undefined, flushEnd: undefined };
+  /** jasno/router registers its state for __JASNO__.router(). */
+  routerInfo: (() => unknown) | undefined;
+  /** A router navigation that will move focus: the focus-loss check waits for it (B20.2). */
+  focusPending: (() => Promise<unknown> | undefined) | undefined;
+} = { reporter: undefined, ownerCreated: undefined, pending: undefined, handlerPromise: undefined, flushStart: undefined, flushEnd: undefined, routerInfo: undefined, focusPending: undefined };
 
 /** Boundary marker of a try region that its catchError is replacing: errors from inside are dropped (B8.5). */
 export const DROP = (): void => {};
@@ -948,6 +952,10 @@ function microFlush(): void {
   }
   try { runFlush(); } catch (e) { report(e); }
 }
+
+/** True while a flush runs (the router's outlet created in a flush is a late outlet, B17.3). */
+/** True while a flush runs (the router's late-outlet check, B17.3). */
+export const isFlushing = (): boolean => flushing;
 
 export function isIdle(): boolean {
   return !scheduled && !flushing && heap.length === 0 && queueB.length === 0 && deferred.length === 0;

@@ -218,7 +218,7 @@ function liveText(fn: () => unknown): Text {
   return t;
 }
 
-function fragmentOf(c: Child): DocumentFragment {
+export function fragmentOf(c: Child): DocumentFragment {
   const f = document.createDocumentFragment();
   append(f, c);
   return f;
@@ -227,7 +227,7 @@ function fragmentOf(c: Child): DocumentFragment {
 // ---------------------------------------------------------------- regions
 
 /** Content between two empty Text nodes (B10.4). */
-class Region {
+export class Region {
   start = document.createTextNode('');
   end = document.createTextNode('');
   /** Holds the markers (and the first content) until the region is inserted. */
@@ -281,6 +281,16 @@ function focusInto(nodes: Node[]): boolean {
 const focusHandled = new WeakSet<Element>();
 /** Focused elements a catchError swap could not restore (text-only content): FOCUS_LOST gets this hint. */
 const focusHint = new WeakMap<Element, string>();
+
+/** The focused element if it is inside the region (before a boundary swaps the content, B8.5). */
+export const focusedIn = (r: Region): Element | null => (hasFocus(r.nodes()) ? document.activeElement : null);
+
+/** After a boundary swap: focus into the new content, or leave FOCUS_LOST a hint (B8.5, B20.3). */
+export function restoreFocusIn(r: Region, focused: Element | null): void {
+  if (!focused) return;
+  if (focusInto(r.nodes())) focusHandled.add(focused);
+  else focusHint.set(focused, "The catchError content that replaced it is only text: wrap it in an element, h.p({ role: 'alert' }, '...'), and jasno focuses it (B8.5).");
+}
 
 function outsideCheck(result: unknown, o: Owner, parent: Owner | undefined, kind: string): void {
   if (result instanceof Element && elementOwner.has(result) && !isInside(elementOwner.get(result), o)) {
@@ -523,7 +533,7 @@ export function catchError(tryFn: () => Child, fallback: (error: unknown, reset:
 
   /** Removes the current content; returns the focused element if it was inside (B8.5). */
   const clear = (): Element | null => {
-    const focused = hasFocus(r.nodes()) ? document.activeElement : null;
+    const focused = focusedIn(r);
     if (current) {
       if (current.boundary) current.boundary = DROP; // errors from the subtree being replaced are dropped
       dispose(current);
@@ -533,11 +543,7 @@ export function catchError(tryFn: () => Child, fallback: (error: unknown, reset:
     r.clear();
     return focused;
   };
-  const restoreFocus = (focused: Element | null): void => {
-    if (!focused) return;
-    if (focusInto(r.nodes())) focusHandled.add(focused);
-    else focusHint.set(focused, "The catchError content that replaced it is only text: wrap it in an element, h.p({ role: 'alert' }, '...'), and jasno focuses it (B8.5).");
-  };
+  const restoreFocus = (focused: Element | null): void => restoreFocusIn(r, focused);
   const showFallback = (error: unknown): void => {
     const b = build(parent, 'catchError', () => fallback(error, reset));
     current = b.owner;
@@ -656,6 +662,8 @@ export function css(strings: TemplateStringsArray): CSSStyleSheet {
 // ---------------------------------------------------------------- dev checks after each flush (B15.10, B20)
 
 let focused: Element | null = null;
+/** The element focused in a mounted root when the running flush started (B17.3 late outlets, B20.2). */
+export const flushFocus = (): Element | null => focused;
 
 function lostBy(el: Element): string {
   if (!el.isConnected) return 'removed';
@@ -672,18 +680,18 @@ function lostBy(el: Element): string {
   return '';
 }
 
+hooks.flushStart = () => {
+  const a = typeof document === 'object' ? document.activeElement : null;
+  focused = a && a !== document.body && [...targets].some((t) => t.contains(a)) ? a : null;
+};
 if (DEV) {
-  hooks.flushStart = () => {
-    const a = typeof document === 'object' ? document.activeElement : null;
-    focused = a && a !== document.body && [...targets].some((t) => t.contains(a)) ? a : null;
-  };
   hooks.flushEnd = () => {
     checkNames();
     const el = focused;
     focused = null;
     if (!el) return;
     const cause = currentFlushCause();
-    queueMicrotask(() => {
+    const check = (): void => {
       const a = document.activeElement;
       if (a !== el && a !== document.body && a !== null) return;
       if (focusHandled.has(el)) return;
@@ -692,6 +700,11 @@ if (DEV) {
       warn('FOCUS_LOST', `Focus was on <${el.localName}> in ${pathOfNode(el)}, which this update ${action}; focus fell to <body>.`,
         focusHint.get(el) ?? "Keep the control enabled with 'aria-disabled', focus what replaced it in onMount, or focus something that stays before the change (a Retry inside show(): the status line).",
         { ownerPath: pathOfNode(el), node: cause, owner: elementOwner.get(el), key: `${el.localName}|${action}|${pathOfNode(el)}|${cause}` });
+    };
+    queueMicrotask(() => {
+      const wait = hooks.focusPending?.(); // the router is about to move focus (a late outlet's first render)
+      if (wait) void wait.then(check, check);
+      else check();
     });
   };
 }
