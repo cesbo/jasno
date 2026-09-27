@@ -137,6 +137,7 @@ export class ComputedNode implements RNode {
   equal: Equal;
   dead = false;
   usedUntracked = false;
+  total = 0;
   owner: Owner | undefined;
   /** linkedSignal: dev token of the creating setup (WRITE_IN_SETUP). */
   setupId = 0;
@@ -169,7 +170,7 @@ export class Binding implements RNode {
   owner: Owner | undefined;
   dead = false;
   usedUntracked = false;
-  epoch = 0; runs = 0;
+  epoch = 0; runs = 0; /** runs over its lifetime (__JASNO__ graph/inspect) */ total = 0;
   cause: WriteCause | undefined;
   constructor(fn: () => unknown, apply: (v: any) => void, o: BindingOptions | undefined) {
     this.fn = fn; this.apply = apply; this.skip = o?.skip ?? true; this.name = o?.name;
@@ -539,6 +540,7 @@ function updateComputed(c: ComputedNode): boolean {
   c.usedUntracked = false;
   const ctx = enter(c, undefined, c, undefined);
   ++cycle;
+  if (DEV) c.total++;
   let changed: boolean;
   try {
     const v = c.getter();
@@ -716,6 +718,7 @@ export function selector(source: () => unknown): (key: unknown) => boolean {
 export function bind(fn: () => unknown, apply: (v: any) => void, options?: BindingOptions): Binding {
   const b = new Binding(fn, apply, options);
   b.flags = Watching | RecursedCheck;
+  if (DEV) b.total = 1;
   const ctx = enter(b, undefined, b, undefined);
   ++cycle;
   let v: unknown;
@@ -773,7 +776,7 @@ export class EffectNode extends Owner implements RNode {
   run: Owner | undefined;
   first = true;
   running = false;
-  epoch = 0; runs = 0;
+  epoch = 0; runs = 0; /** runs over its lifetime (__JASNO__ graph/inspect) */ total = 0;
   cause: WriteCause | undefined;
   /** dev: where it was created (EFFECT_LOOP names it, B4.6). */
   created: Error | undefined;
@@ -977,6 +980,7 @@ export function flush(): void {
 }
 
 function count(c: Binding | EffectNode): void {
+  if (DEV) c.total++;
   if (c.epoch !== epoch) { c.epoch = epoch; c.runs = 0; ran.push(c); }
   if (++c.runs > CAP) throw loopError([c]);
 }

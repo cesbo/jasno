@@ -29,7 +29,7 @@ export const TodoList = component(function TodoList(p: TodoListProps): Node {
 - A function (signal, computed, `() => expr`) is **live**; any other value is **static**: `h.p(null, count)` updates, `h.p(null, count())` never does.
 - Setup (a component body; a `show`/`match`/`each`/`catchError` callback) runs **untracked**: read signals only inside functions you give to jasno. A setup read reports `STRICT_READ_UNTRACKED`: make it live (`untracked()` only for values that must never update).
 - `s.set(v)` is visible to `s()` at once; the DOM and effects update on the next microtask (`flush()`: now), and so do row `item`s, `show` values and router params.
-- Derive with `computed`; state that resets when an input changes is `linkedSignal({ source: p.userId, computation: () => '' })`. `effect` only syncs the outside world and never sets signals (subscriptions that set signals go in `onMount`); it runs in the first flush, then on each change.
+- Derive with `computed`; state that resets when an input changes is `linkedSignal({ source: p.userId, computation: () => '' })`. `effect` only syncs the outside world and never sets signals (subscriptions that set signals go in `onMount`).
 
 ## Components
 
@@ -107,7 +107,7 @@ test('filters', (t) => {
 });
 ```
 
-Warnings, uncaught effect errors and leaked effects fail the test: fix them. Module-level signals reset after each test.
+Warnings, uncaught effect errors and leaked effects fail the test: fix them. Module-level signals reset after each test. Compare nodes with `assert.ok(a === b)` (`assert.equal` prints both and runs out of memory).
 
 ## Verify in order (non-zero exit = fail)
 
@@ -115,7 +115,7 @@ Warnings, uncaught effect errors and leaked effects fail the test: fix them. Mod
 2. `npm test`: `node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**/*.test.ts"`.
 3. `npx playwright test` against `npm run dev`: `getByRole`, focus, keyboard.
 
-If a rung cannot run, say so; never claim it passed. Runtime state: `window.__JASNO__.diagnostics()`, `.why(name)`. Repair guide: `node_modules/jasno/errors/CODE.md`.
+If a rung cannot run, say so; never claim it passed. State: `window.__JASNO__.diagnostics()`; fixes: `npx jasno explain CODE`.
 
 ## Top mistakes (tsc accepts these)
 

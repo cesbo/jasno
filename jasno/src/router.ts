@@ -208,6 +208,8 @@ export function createRouter(routes: readonly RouteDef[], options: {
   /** Focus and announcement start after the outlet's first render, unless the outlet came late (B17.3, B17.8). */
   let hasRendered = false;
   let lateOutlet = false;
+  /** Set while navigate() hands a URL to the adapter: before the first render that is a redirect, and stays quiet. */
+  let byCode = false;
 
   const match = (pathname: string): Match | undefined => {
     const segs = segmentsOf(pathname);
@@ -366,7 +368,10 @@ export function createRouter(routes: readonly RouteDef[], options: {
     if (current) { current.ac.abort(abortReason()); finish(current, 'superseded'); }
     let resolve!: (r: NavigateResult) => void;
     const promise = new Promise<NavigateResult>((r) => { resolve = r; });
-    const nav: Nav = { url, ac: new AbortController(), resolve, done: false, rendered: false, promise, loud: hasRendered || lateOutlet };
+    const nav: Nav = { url, ac: new AbortController(), resolve, done: false, rendered: false, promise,
+      // A link click or Back before the first render is the user's and moves focus; the initial navigation and a
+      // navigate() before the first render (a loader redirect, a guard) stay quiet (B17.3, B17.8).
+      loud: hasRendered || lateOutlet || !(how.initial || byCode) };
     current = nav;
     if (how.commit && adapter instanceof HistoryAdapter) adapter.commit(url, how.commit === 'replace');
     writeRaw(loading, true);
@@ -375,7 +380,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
   };
 
   const pipeline = async (nav: Nav, m: Match | undefined, how: How): Promise<void> => {
-    const quiet = !hasRendered && !lateOutlet; // the outlet's first render moves focus only as a late outlet (B17.3, B17.8)
+    const quiet = !nav.loud;
     const after = (announceMatch: Match | undefined, data: unknown): void => {
       nav.rendered = true;
       flush(); // the new view's onMount callbacks and first effect runs (B17.5)
@@ -612,7 +617,10 @@ export function createRouter(routes: readonly RouteDef[], options: {
     if (!started) throw notStarted('navigate', to);
     const url = new URL(to, location.href);
     if (url.origin !== location.origin) { fullNavigation(url.href); return Promise.resolve('done'); }
-    return track(adapter!.go(url, !!opts?.replace || url.href === location.href), `navigation to ${url.pathname}${url.search}`);
+    byCode = true;
+    try {
+      return track(adapter!.go(url, !!opts?.replace || url.href === location.href), `navigation to ${url.pathname}${url.search}`);
+    } finally { byCode = false; }
   };
 
   const back = (fallback: string): Promise<NavigateResult> => {

@@ -521,6 +521,15 @@ test('B19.4 expect: a listed code that occurs is accepted; one that never occurs
     && /^\[EXPECTED_DIAGNOSTIC_MISSING\] Expected diagnostic FOCUS_LOST did not occur\./.test((e as Error).message));
 });
 
+test('B19.4 dispose() right after the update that dropped focus still fails with FOCUS_LOST (pilot wizard B2)', () => {
+  const on = signal(true);
+  const view = mountTest(fakeT(), () => h.div(null, show(on, () => h.button({ type: 'button' }, 'Next'))));
+  view.root.querySelector('button')!.focus();
+  on.set(false);
+  flush();
+  assert.throws(() => view.dispose(), (e) => codeOf(e) === 'FOCUS_LOST');
+});
+
 test('B19.4 EFFECT_LEAKED counts ownerless effects created after await; stopped effects and detached roots are not counted', async () => {
   const s = signal(0);
   const view = mountTest(fakeT(), () => h.p(null, 'x'));
@@ -1058,6 +1067,21 @@ test('(d) diagnostics(filter) returns deduplicated events with count; clearDiagn
   assert.doesNotThrow(() => JSON.stringify(j.diagnostics()));
   j.clearDiagnostics();
   assert.equal(j.diagnostics().length, 0);
+});
+
+test('(d) runs counts every run over the node\'s lifetime, across flushes (pilot dashboard B1)', (t) => {
+  const j = J();
+  const a = signal(0);
+  const b = computed(() => a() * 2, { debugName: 'jr_b' });
+  mountTest(t, () => {
+    effect(() => { b(); }, { debugName: 'jr_eff' });
+    return h.p(null, () => String(b()));
+  });
+  for (let i = 1; i <= 3; i++) { a.set(i); flush(); }
+  assert.equal(j.inspect('jr_eff').runs, 4);
+  assert.equal(j.inspect('jr_b').runs, 4);
+  const binding = j.graph().nodes.find((n: any) => n.kind === 'binding' && j.inspect(n.id).sources.includes('jr_b'));
+  assert.equal(binding.runs, 4);
 });
 
 test('(d) graph(), inspect() and why(): basic shape, names from debugName, JSON-serializable', (t) => {

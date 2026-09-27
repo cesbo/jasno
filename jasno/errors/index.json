@@ -751,7 +751,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "warn",
           "tool": "check (type-aware)",
-          "when": "x() of a signal passed where MaybeRead<T> is accepted in setup"
+          "when": "x() of a signal passed in setup where MaybeRead<T> is accepted or as an h child (h.p(null, count()))"
         }
       ]
     },

@@ -84,12 +84,13 @@ export const Danger = component(function Danger(p: { remove: () => Promise<void>
       h.button({ value: 'no', autofocus: true }, 'Cancel'), h.button({ value: 'yes' }, 'Delete')));
   const menu = h.div({ popover: 'auto', id: 'menu' }, 'Menu');
   return h.div(null, dialog, menu,
-    h.button({ type: 'button', onclick: () => dialog.showModal() }, 'Delete'),
+    h.button({ type: 'button', onclick: () => { dialog.returnValue = ''; dialog.showModal(); } }, 'Delete'),
     h.button({ type: 'button', popoverTargetElement: menu }, 'More'));
 });
 const CardDialog = component(function CardDialog(p: { id: string; heading: HTMLElement }): Node {
   const dialog = h.dialog({ 'aria-labelledby': 'card-title', onclose: () => {   // close also fires after Back removed it
-      if (dialog.contains(document.activeElement)) p.heading.focus();  // a deep link has no opener to return to
+      const a = document.activeElement;  // a deep link has no opener: focus is still inside, or on body (WebKit)
+      if (!a || a === document.body || dialog.contains(a)) p.heading.focus();
       if (router.url().searchParams.get('card') === p.id) void router.back(router.url().pathname); } },
     h.h2({ id: 'card-title' }, 'Card ', p.id), h.form({ method: 'dialog' }, h.button(null, 'Close')));
   onMount(() => { dialog.showModal(); return () => dialog.close(); });

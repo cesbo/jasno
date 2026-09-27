@@ -417,6 +417,15 @@ test('B15.4 value, checked and selectedIndex are assigned only when they differ 
   assert.deepEqual([wv.writes, wc.writes, ws.writes], [['new'], [true], [0]]);
 });
 
+test('B15.4 value is assigned at creation even when it reads the same: an option with value \'\' keeps it (pilot wizard B1)', (t) => {
+  const view = mountTest(t, () => h.label(null, 'Country',
+    h.select({ required: true }, h.option({ value: '' }, 'Choose'), h.option({ value: 'nl' }, 'Netherlands'))));
+  const select = view.root.querySelector('select')!;
+  assert.equal(select.options[0]!.getAttribute('value'), '');
+  assert.equal(select.value, '');
+  assert.equal(select.validity.valueMissing, true);
+});
+
 // ================================================================ B15.5 undefined
 
 test('B15.5 undefined is skipped at creation; a later live undefined restores the creation value', (t) => {

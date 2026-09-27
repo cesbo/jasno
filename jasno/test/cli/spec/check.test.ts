@@ -333,6 +333,10 @@ const FN: Record<string, string> = {
     '  const n = signal(1);',
     "  return h.div({ title: `t: ${p.title}` }, h.input({ value: name() }), h.p(null, () => n + '!'), h.p(null, () => String(p.title)));",
     '});',
+    'export const Child = component(function Child(): Node {',
+    "  const notice = signal('');",
+    '  return h.p({ role: \'status\' }, notice());',
+    '});',
     '',
   ].join('\n'),
   'src/styles.ts': [
@@ -448,6 +452,7 @@ test('type-aware: SIGNAL_IN_TEMPLATE on a Read prop, SIGNAL_COERCED on signal + 
   has(fn, 'src/comp.ts:8:61 SNAPSHOT_TO_ACCESSOR');
   has(fn, 'src/comp.ts:8:88 SIGNAL_COERCED');
   has(fn, 'src/comp.ts:8:121 SIGNAL_COERCED');
+  has(fn, 'src/comp.ts:12:34 SNAPSHOT_TO_ACCESSOR'); // a child: h.p(null, count()), top mistake #1 (pilot kanban G6)
 });
 
 test('FOCUS_STYLE_REMOVED: all: unset/initial/revert, outline: 0/0px/none !important on tags, [tabindex], [contenteditable], *, :focus-within, :focus, nested a, a class on h.a', () => {

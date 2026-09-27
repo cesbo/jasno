@@ -17,7 +17,7 @@ if (DEV && typeof globalThis === 'object') {
   const graphNode = (n: RNode) => {
     const owner = (n as { owner?: unknown; parent?: unknown }).owner ?? (n as { parent?: unknown }).parent;
     const value = 'value' in n && n.kind !== 'binding' ? preview((n as { value: unknown }).value) : undefined;
-    return { id: n.id, kind: n.kind, name: nameOf(n), ownerPath: ownerPath(owner as never), value, runs: (n as { runs?: number }).runs };
+    return { id: n.id, kind: n.kind, name: nameOf(n), ownerPath: ownerPath(owner as never), value, runs: (n as { total?: number }).total };
   };
   const edgesOf = (n: RNode, dir: 'deps' | 'subs') => {
     const out: RNode[] = [];

@@ -793,6 +793,23 @@ test('B17.8/B17.3 a loader redirect of the start URL is still the first render: 
   assert.equal(document.querySelector('body > [aria-live=polite]')?.textContent, prev, 'no announcement');
 });
 
+test('B17.8 a link click that supersedes the initial navigation before the first render moves focus (pilots contacts B1, dashboard B2)', async (t) => {
+  const slow = deferred<null>();
+  setup(t, [
+    route('/', { view: probe('home').view, loader: () => slow.promise }),
+    route('/about', { view: probe('about').view }),
+  ]);
+  const link = h.a({ href: '/about' }, 'About');
+  document.body.append(link);
+  t.after(() => link.remove());
+  link.focus();
+  link.click();
+  await settled();
+  assert.equal(document.querySelector('main h1')?.textContent, 'about');
+  same(document.activeElement, document.querySelector('main h1'), 'focus moves to the new view');
+  slow.resolve(null);
+});
+
 test('RECIPES Redirect: a loader redirect to a search-only URL of the rendered view keeps it and replaces the guarded entry', async (t) => {
   const home = probe('home');
   let router!: ReturnType<typeof setup>['router'];

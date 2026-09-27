@@ -2,16 +2,17 @@
 // Usage: node tools/gen-elements.cjs jasno.elements.d.ts   (rewrites the region between the <generated:elements> markers)
 // Uses the TS 6 compiler API (TS 7.0 has no API) on TypeScript 7.0.2's own lib files; the two lib.dom.d.ts
 // files are byte-identical (checked with cmp), so the prop set matches what users compile against.
-// Re-run for every lib.dom update. Adapted from scratchpad/ts6/gen.cjs.
+// Re-run for every lib.dom update. TS 6 is the typescript6 alias in design/package.json; the lib files come from
+// jasno's TypeScript 7 install.
 // v2 changes: live props may return undefined (MaybeRead<X | undefined>); aria-* keys are a closed set derived
 // from lib.dom's ARIAMixin (a typo is TS2353; tsc offers no 'Did you mean' for quoted, hyphenated keys); void
 // elements and textarea take no children; dialog.open is message-typed (it makes a NON-modal dialog; modals use
 // showModal()).
-const ts = require('../../../ts6/node_modules/typescript');
+const ts = require('typescript6');
 const fs = require('fs');
 const path = require('path');
 
-const LIB_DIR = path.resolve(__dirname, '../../../node_modules/@typescript/typescript-linux-x64/lib');
+const LIB_DIR = path.resolve(__dirname, `../../jasno/node_modules/@typescript/typescript-${process.platform}-${process.arch}/lib`);
 const LIBS = ['lib.es2025.d.ts', 'lib.dom.d.ts'];
 const host = ts.createCompilerHost({ strict: true });
 host.getDefaultLibLocation = () => LIB_DIR;

@@ -141,13 +141,16 @@ function setter(el: HTMLElement, key: string): (v: unknown) => void {
   const keepCaret = prop === 'value' || prop === 'checked' || prop === 'selectedIndex';
   let first = true;
   return (v) => {
+    const creating = first;
+    first = false;
     if (v === undefined) {
-      if (first) { first = false; return; } // skipped at creation (B15.5)
+      if (creating) return; // skipped at creation (B15.5)
       if (!keepCaret && !hadAttr && el.hasAttribute(attr)) { el.removeAttribute(attr); return; } // back to no attribute: no href=""
       v = initial;
     }
-    first = false;
-    if (!keepCaret || target[prop] !== v) target[prop] = v;
+    // Always at creation: before its text is appended an option's value reads '', so value: '' looked unchanged
+    // and the placeholder option took its text as value (a required select never reported valueMissing).
+    if (creating || !keepCaret || target[prop] !== v) target[prop] = v;
   };
 }
 
@@ -684,6 +687,9 @@ hooks.flushStart = () => {
   const a = typeof document === 'object' ? document.activeElement : null;
   focused = a && a !== document.body && [...targets].some((t) => t.contains(a)) ? a : null;
 };
+/** Focus-loss checks queued for a microtask; mountTest's dispose() runs them first, so an update right before it counts. */
+const focusChecks = new Set<() => void>();
+export function runFocusChecks(): void { for (const c of [...focusChecks]) c(); }
 if (DEV) {
   hooks.flushEnd = () => {
     checkNames();
@@ -701,11 +707,14 @@ if (DEV) {
         focusHint.get(el) ?? "Keep the control enabled with 'aria-disabled', focus what replaced it in onMount, or focus something that stays before the change (a Retry inside show(): the status line).",
         { ownerPath: pathOfNode(el), node: cause, owner: elementOwner.get(el), key: `${el.localName}|${action}|${pathOfNode(el)}|${cause}` });
     };
-    queueMicrotask(() => {
+    const run = (): void => {
+      if (!focusChecks.delete(run)) return;
       const wait = hooks.focusPending?.(); // the router is about to move focus (a late outlet's first render)
       if (wait) void wait.then(check, check);
       else check();
-    });
+    };
+    focusChecks.add(run);
+    queueMicrotask(run);
   };
 }
 

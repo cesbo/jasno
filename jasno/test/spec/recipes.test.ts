@@ -515,7 +515,7 @@ function deleteDialog(autofocus: boolean) {
       onclose: (e) => { if (e.currentTarget.returnValue === 'yes') return remove(); } },
       h.form({ method: 'dialog' }, h.h2({ id: 'del-title' }, 'Delete this contact?'),
         h.button(autofocus ? { value: 'no', autofocus: true } : { value: 'no' }, 'Cancel'), h.button({ value: 'yes' }, 'Delete')));
-    return h.div(null, h.button({ type: 'button', onclick: () => dialog.showModal() }, 'Delete'), dialog);
+    return h.div(null, h.button({ type: 'button', onclick: () => { dialog.returnValue = ''; dialog.showModal(); } }, 'Delete'), dialog);
   });
   return { Contact, removed, d };
 }
@@ -552,6 +552,21 @@ test('Modal dialog: showModal from a button, form method=dialog, onclose reads r
   assert.equal(done, false, 'settled() waits for remove() returned by onclose');
   d.resolve();
   await s;
+  assert.deepEqual(removed, ['c1']);
+});
+
+test('Modal dialog: reopened after a confirmed delete, Escape (close() with no value) does not delete again (pilot contacts G2)', async (t) => {
+  const { Contact, removed, d } = deleteDialog(false);
+  d.resolve();
+  const view = mountTest(t, () => Contact());
+  const [open, , yes] = [...view.root.querySelectorAll('button')] as HTMLButtonElement[];
+  const dialog = view.root.querySelector('dialog')!;
+  press(open!);
+  press(yes!);
+  await settled();
+  press(open!);
+  dialog.close(); // Escape: Firefox and WebKit keep the last returnValue ('yes'), so the recipe resets it on open
+  await settled();
   assert.deepEqual(removed, ['c1']);
 });
 

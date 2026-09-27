@@ -1,0 +1,28 @@
+{
+  "name": "wizard",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#api": {
+      "development": "./src/api.mock.ts",
+      "default": "./src/api.ts"
+    }
+  },
+  "scripts": {
+    "check": "jasno check",
+    "dev": "jasno dev --port 5304",
+    "dist": "jasno dist",
+    "preview": "jasno preview --port 4304",
+    "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "jasno": "file:../../jasno"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "happy-dom": "20.14.5",
+    "@types/node": "^24.12.0",
+    "@playwright/test": "1.63.0"
+  }
+}

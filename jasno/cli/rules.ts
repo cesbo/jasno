@@ -338,7 +338,8 @@ export function typeRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
     const t = types[template.length + coerced.length + i];
     if (!t || !callable(t) || !/\b(Signal|WritableSignal|Read)</.test(checker.typeToString(t))) return;
     const ctxType = checker.getContextualType(call as Parameters<Checker['getContextualType']>[0]);
-    if (ctxType && /MaybeRead</.test(checker.typeToString(ctxType))) {
+    // MaybeRead<T> (props) or Child (h children: a function child is live text, h.p(null, count()) never updates)
+    if (ctxType && /MaybeRead<|^Child$/.test(checker.typeToString(ctxType))) {
       at(call, 'SNAPSHOT_TO_ACCESSOR', 'warn', `\`${call.getText(sf)}\` passes a snapshot where a live value is accepted: it never updates.`, `Pass ${call.expression.getText(sf)} itself (or () => ...).`);
     }
   });

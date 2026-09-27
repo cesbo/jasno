@@ -1,7 +1,7 @@
 // jasno/testing: mountTest and settled (design.md B19). Development build only.
 import { Owner, flush, hooks, isIdle, ownerPath, report, resetOutsideSignals } from './core.ts';
 import { JasnoError, diagHooks, type Diagnostic } from './diag.ts';
-import { mount } from './dom.ts';
+import { mount, runFocusChecks } from './dom.ts';
 
 // Real timers, captured at import: mock.timers cannot hang settled().
 const realSetTimeout = globalThis.setTimeout;
@@ -122,6 +122,7 @@ export function mountTest(t: TestContextLike, view: () => Node, options: { expec
     dispose(): void {
       if (disposed) return;
       disposed = true;
+      runFocusChecks();
       unmount();
       root.remove();
       const list = problems(test);

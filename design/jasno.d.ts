@@ -76,9 +76,10 @@
        onclose: (e) => { if (e.currentTarget.returnValue === 'yes') return remove(); } },
        h.form({ method: 'dialog' }, h.h2({ id: 'del-title' }, 'Delete this contact?'),
          h.button({ value: 'no', autofocus: true }, 'Cancel'), h.button({ value: 'yes' }, 'Delete')));
-     h.button({ type: 'button', onclick: () => dialog.showModal() }, 'Delete')
-   close() returns focus to the element that opened the dialog. Removing an open dialog fires no close event and
-   drops focus, so a dialog that lives in a branch opens and closes itself: onMount(() => { d.showModal(); return () => d.close(); }).
+     h.button({ type: 'button', onclick: () => { dialog.returnValue = ''; dialog.showModal(); } }, 'Delete')
+   close() returns focus to the element that opened the dialog; Escape keeps the last returnValue (Firefox,
+   WebKit), hence the reset. Removing an open dialog fires no close event and drops focus, so a dialog that lives
+   in a branch opens and closes itself: onMount(() => { d.showModal(); return () => d.close(); }).
    Detail over a list (a card, a message): put it on the list's route as a search param. The list stays mounted
    (scroll, focus, drafts), Back closes the detail and deep links work; a path route would rebuild the list:
      const heading = h.h1({ tabIndex: -1 }, 'Board');                 // the list's h1, rendered by the list view
@@ -86,7 +87,8 @@
      match(cardId, (id) => (id === null ? '' : CardDialog({ id, heading })))   // open it with h.a({ href: '?card=' + id }, 'Open')
      const CardDialog = component(function CardDialog(p: { id: string; heading: HTMLElement }): Node {
        const dialog = h.dialog({ 'aria-labelledby': 'card-title', onclose: () => {   // close also fires after Back removed it
-           if (dialog.contains(document.activeElement)) p.heading.focus();  // a deep link has no opener to return to
+           const a = document.activeElement;  // a deep link has no opener: focus is still inside, or on body (WebKit)
+           if (!a || a === document.body || dialog.contains(a)) p.heading.focus();
            if (router.url().searchParams.get('card') === p.id) void router.back(router.url().pathname); } },
          h.h2({ id: 'card-title' }, 'Card ', p.id), h.form({ method: 'dialog' }, h.button(null, 'Close')));
        onMount(() => { dialog.showModal(); return () => dialog.close(); });
@@ -158,8 +160,8 @@
    run is tracked by that effect and reported (EFFECT_WRITES_STATE). State that must survive a switch (a draft per
    room) lives in a parent Map signal keyed by the param; match bodies and linkedSignal discard theirs.
    Unsaved changes: a window 'beforeunload' listener in onMount covers tab close; in-app leave guards are not in v1.
-   Route tests: history.replaceState(null, '', '/users/1') before mountTest(t, () => App()), then
-   await router.navigate(url); tests are the only place that touches history.
+   Route tests: history.replaceState(null, '', '/users/1') before mountTest(t, () => App()), await settled() (the
+   lazy view), then await router.navigate(url); tests are the only place that touches history.
    Lazy component inside a view:
      const mod = resource({ loader: () => import('./chart.ts') });
      match(() => (mod.hasValue() ? mod.value().Chart : null), (Chart) => (Chart ? Chart({ data }) : 'Loading'))
@@ -454,6 +456,7 @@ declare module 'jasno' {
     readonly ownerPath: string;
     /** Short preview of the current value (JSON, truncated to 80 chars). */
     readonly value?: string | undefined;
+    /** How often it ran over its lifetime (computeds, effects, bindings). */
     readonly runs?: number | undefined;
     readonly loc?: string | undefined;
   }
@@ -465,6 +468,7 @@ declare module 'jasno' {
     readonly value?: string | undefined;
     readonly sources: readonly string[];
     readonly observers: readonly string[];
+    /** How often it ran over its lifetime (computeds, effects, bindings). */
     readonly runs?: number | undefined;
     readonly loc?: string | undefined;
     /** For an element: its live bindings as "prop ← node" strings. */
@@ -473,8 +477,10 @@ declare module 'jasno' {
   /** window.__JASNO__ in dev builds (undefined in production): the stable text interface for agents and Playwright scripts. */
   export interface FFDevtools {
     readonly version: string;
+    /** Dev warnings since load or clearDiagnostics() (error codes throw instead, so a Playwright afterEach also fails on page errors); code and severity match exactly. */
     diagnostics(filter?: { readonly code?: DiagnosticCode | undefined; readonly severity?: Diagnostic['severity'] | undefined }): readonly Diagnostic[];
     clearDiagnostics(): void;
+    /** ownerPath matches a prefix from the root ('<App> › <Board>'); name matches a debugName exactly. */
     graph(filter?: { readonly ownerPath?: string | undefined; readonly name?: string | undefined }): {
       readonly nodes: readonly GraphNode[];
       readonly edges: readonly { readonly consumer: number; readonly producer: number }[];
@@ -524,7 +530,7 @@ declare module 'jasno/router' {
   type LoaderOption<P extends string, D> = [D] extends [undefined]
     ? { readonly loader?: ((ctx: LoaderContext<P>) => Promise<unknown>) | undefined }
     : { readonly loader: (ctx: LoaderContext<P>) => Promise<NoInfer<D>> };
-  /** Route definition: lazy view module (default export; a component without props works too), eager loader, optional title (a live binding; without it the router restores index.html's title and the view may set its own). The view's ViewProps<P, D> decides D: if D is not undefined, loader is required and must resolve to D. */
+  /** Route definition: lazy view module (default export; a component without props works too), eager loader (once per navigation, untracked: a signal it reads, such as a guard's session(), is a snapshot), optional title (a live binding; without it the router restores index.html's title and the view may set its own). The view's ViewProps<P, D> decides D: if D is not undefined, loader is required and must resolve to D. */
   export type RouteOptions<P extends string, D> = {
     readonly view: () => Promise<{ readonly default: (props: ViewProps<P, D>) => Node }>;
     readonly title?: string | ((data: NoInfer<D>) => string) | undefined;
@@ -596,7 +602,7 @@ declare module 'jasno/testing' {
   export {};
 }
 
-/** Side-effect module for tests: registers happy-dom globals and adds the dialog focusing steps happy-dom lacks (showModal() focuses [autofocus], close() returns focus) (node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**\/*.test.ts"). */
+/** Side-effect module for tests: registers happy-dom globals and adds the dialog focusing steps happy-dom lacks (showModal() focuses [autofocus], close() returns focus before the close event and keeps returnValue); AbortSignal.timeout() does not keep node alive (node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**\/*.test.ts"). */
 declare module 'jasno/testing/happy-dom' {}
 
 interface Window {

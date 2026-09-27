@@ -1,0 +1,22 @@
+{
+  "name": "todo-timers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "jasno check",
+    "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
+    "e2e": "playwright test",
+    "dev": "jasno dev --port 5302",
+    "dist": "jasno dist",
+    "preview": "jasno preview --port 4302"
+  },
+  "dependencies": {
+    "jasno": "file:../../jasno"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "happy-dom": "20.14.5",
+    "@types/node": "^24.12.0",
+    "@playwright/test": "1.63.0"
+  }
+}

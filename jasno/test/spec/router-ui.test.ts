@@ -616,6 +616,29 @@ test('B17.18 two back() calls before the first traversal arrives both settle (th
   assert.notEqual(first, 'pending', 'first back() never settles: its resolver in pendingBack was overwritten');
 });
 
+test('RR-10: two back() calls before the traversal arrives take one step, not two', () => {
+  const out = isolated(`
+    import { component, h, mount } from 'jasno';
+    import { createRouter, route } from 'jasno/router';
+    const view = (name) => async () => ({ default: component(function V() { return h.h1(null, name); }) });
+    const router = createRouter([route('/', { view: view('home') }), route('/b', { view: view('b') }), route('/c', { view: view('c') })],
+      { error: () => h.p(null, 'error'), notFound: () => h.p(null, 'not found') });
+    history.replaceState(null, '', '/');
+    const target = document.body.appendChild(document.createElement('div'));
+    mount(() => h.main(null, router.outlet()), target);
+    await new Promise((r) => setTimeout(r, 5));
+    await router.navigate('/b');
+    await router.navigate('/c');
+    const realBack = History.prototype.back;
+    history.back = function () { setTimeout(() => realBack.call(history), 0); };
+    await Promise.all([router.back('/'), router.back('/')]);
+    await new Promise((r) => setTimeout(r, 20));
+    console.log(location.pathname);
+    process.exit(0);
+  `);
+  assert.equal(out, '/b');
+});
+
 test('B17.18 back() with a cross-origin fallback behaves as navigate(fallback, { replace: true }) (a full navigation)', async (t) => {
   const assigned: string[] = [];
   t.mock.method(location, 'assign', (u: string) => { assigned.push(u); });
