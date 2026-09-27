@@ -2,14 +2,8 @@
   "name": "jasno-design-v3",
   "private": true,
   "type": "module",
-  "imports": {
-    "#api": {
-      "development": "./example/src/api.mock.ts",
-      "default": "./example/src/api.ts"
-    }
-  },
   "scripts": {
-    "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"example/src/**/*.test.ts\""
+    "test": "npm test --prefix example"
   },
   "devDependencies": {
     "jasno": "file:../jasno",

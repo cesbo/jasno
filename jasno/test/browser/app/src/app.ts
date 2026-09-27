@@ -12,7 +12,7 @@ export const App = component(function App(): Node {
       h.a({ href: '/guard', id: 'nav-guard' }, 'Guard'), ' ',
       h.a({ href: '/slow', id: 'nav-slow' }, 'Slow'), ' ',
       h.a({ href: '/broken', id: 'nav-broken' }, 'Broken'), ' ', h.a({ href: '/probe', id: 'nav-probe' }, 'Probe'), ' ', h.a({ href: '/gated', id: 'nav-gated' }, 'Gated'), ' ', h.a({ href: '/nohead', id: 'nav-nohead' }, 'NoHead'), ' ',
-      h.a({ href: '/static/plain.html', id: 'nav-plain' }, 'Plain'), ' ',
+      h.a({ href: '/assets/plain.html', id: 'nav-plain' }, 'Plain'), ' ',
       h.a({ href: '/nope', id: 'nav-nope' }, 'Nope'), ' ',
       h.a({ href: '/a', download: 'a.html', id: 'nav-download' }, 'Download'), ' ',
       h.a({ href: '/a', target: '_self', id: 'nav-self' }, 'Self'),

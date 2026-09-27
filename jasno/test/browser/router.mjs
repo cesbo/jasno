@@ -1,13 +1,17 @@
 // Probes the jasno router's Navigation API adapter in Chromium and Firefox (design.md B17).
 // Usage: npm run test:browser (or node test/browser/router.mjs [scenarioFilter]); Chromium and Firefox.
 import { spawn } from 'node:child_process';
+import { mkdirSync, symlinkSync } from 'node:fs';
 import { chromium, firefox } from 'playwright';
 
 const PORT = 5211;
 const base = `http://127.0.0.1:${PORT}`;
 const APP = new URL('./app', import.meta.url).pathname;
-const server = spawn('node', [new URL('../../tools/serve.mjs', import.meta.url).pathname, APP, String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
+mkdirSync(APP + '/node_modules', { recursive: true });
+try { symlinkSync('../../../..', APP + '/node_modules/jasno'); } catch { /* exists */ }
+const server = spawn('node', [new URL('../../bin/jasno.js', import.meta.url).pathname, 'dev', '--port', String(PORT)], { cwd: APP, stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise((r) => server.stdout.once('data', r));
+server.stdout.on('data', (d) => process.stdout.write('  [jasno dev] ' + d));
 
 const only = process.argv[2];
 const frames = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));
@@ -239,13 +243,15 @@ const scenarios = {
 
   async postForm(page, ok) {
     await mark(page);
-    const req = page.waitForRequest((r) => r.method() === 'POST');
+    const res = page.waitForResponse((r) => r.request().method() === 'POST');
     await page.click('#postgo');
-    await req;
+    const status = (await res).status();
     await page.waitForLoadState('load');
-    await settle(page);
     ok(!(await marked(page)), 'POST form left to the browser (document loaded)');
-    ok(path(page) === '/a' && await h1(page) === 'Page A', `POST target rendered (${path(page)})`);
+    // jasno dev, like a static host, answers only GET (its SPA fallback is GET-only): the POST reaches the server.
+    ok(path(page) === '/a' && status === 405, `POST sent to the server (${path(page)}, ${status})`);
+    await page.goBack();
+    await settle(page);
   },
 
   async download(page, ok) {
@@ -261,7 +267,7 @@ const scenarios = {
     await mark(page);
     await page.click('#nav-plain');
     await page.waitForSelector('h1:text("Plain page")');
-    ok(!(await marked(page)) && path(page) === '/static/plain.html', 'unmatched static link loads normally');
+    ok(!(await marked(page)) && path(page) === '/assets/plain.html', 'unmatched static link loads normally');
     await page.goBack();
     await settle(page);
     ok(await h1(page) === 'List', `back from the static page renders the app (${await h1(page)})`);

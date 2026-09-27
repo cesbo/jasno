@@ -1,0 +1,22 @@
+{
+  "name": "jasno-example",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "^24.12.0 || >=26.0.0" },
+  "imports": {
+    "#api": { "development": "./src/api.mock.ts", "default": "./src/api.ts" }
+  },
+  "scripts": {
+    "check": "jasno check",
+    "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
+    "dev": "jasno dev",
+    "dist": "jasno dist",
+    "preview": "jasno preview"
+  },
+  "dependencies": { "jasno": "file:../../jasno" },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "happy-dom": "20.14.5",
+    "@types/node": "^24.12.0"
+  }
+}

@@ -1,9 +1,20 @@
-// The design example in real browsers (Navigation API adapter): node test/browser/example.mjs
-import { spawn } from 'node:child_process';
+// The design example in real browsers (Navigation API adapter): node test/browser/example.mjs [preview]
+// dev: under jasno dev. preview: jasno dist (with the mock API: --condition development) served by jasno preview,
+// the CI rung that exercises the shipped artifact (hashed files, integrity, CSP, _headers, SPA fallback).
+import { spawn, spawnSync } from 'node:child_process';
 import { chromium, firefox } from 'playwright';
-const base = 'http://127.0.0.1:5199';
-const server = spawn('node', [new URL('../../tools/serve.mjs', import.meta.url).pathname, new URL('../../../design/example', import.meta.url).pathname, '5199'], { stdio: ['ignore', 'pipe', 'inherit'] });
+const preview = process.argv[2] === 'preview';
+const PORT = preview ? 5198 : 5199;
+const base = `http://127.0.0.1:${PORT}`;
+const jasno = new URL('../../bin/jasno.js', import.meta.url).pathname;
+const cwd = new URL('../../../design/example', import.meta.url).pathname;
+if (preview) {
+  const built = spawnSync('node', [jasno, 'dist', '--condition', 'development'], { cwd, stdio: 'inherit' });
+  if (built.status !== 0) process.exit(1);
+}
+const server = spawn('node', [jasno, preview ? 'preview' : 'dev', '--port', String(PORT)], { cwd, stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise((r) => server.stdout.once('data', r));
+server.stdout.on('data', (d) => process.stdout.write('  [jasno dev] ' + d));
 let failed = 0;
 const results = {};
 for (const [name, type] of [['chromium', chromium], ['firefox', firefox]]) {
@@ -54,10 +65,17 @@ for (const [name, type] of [['chromium', chromium], ['firefox', firefox]]) {
     await page.click('button:text("Try again")');
     await page.waitForSelector('h1:text("Something went wrong")');
     ok(true, 'retry re-runs the navigation');
-    const diags = await page.evaluate(() => window.__JASNO__?.diagnostics().map((d) => d.message));
-    ok(Array.isArray(diags) && diags.length === 0, `__JASNO__.diagnostics() empty (${JSON.stringify(diags)})`);
-    const info = await page.evaluate(() => window.__JASNO__?.router());
-    ok(info?.route === undefined && info?.error, `__JASNO__.router() ${JSON.stringify(info)}`);
+    if (preview) {
+      ok(await page.evaluate(() => window.__JASNO__ === undefined), 'production build: no __JASNO__');
+      const hashed = await page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname).filter((p) => /\.[0-9a-f]{10}\.js$/.test(p)));
+      ok(hashed.some((p) => p.startsWith('/src/views/user.')) && hashed.some((p) => p.startsWith('/jasno/src/')), `modules load from hashed URLs (${hashed.length})`);
+      ok(!(await page.evaluate(() => performance.getEntriesByType('resource').some((e) => new URL(e.name).pathname.endsWith('.ts')))), 'no .ts request');
+    } else {
+      const diags = await page.evaluate(() => window.__JASNO__?.diagnostics().map((d) => d.message));
+      ok(Array.isArray(diags) && diags.length === 0, `__JASNO__.diagnostics() empty (${JSON.stringify(diags)})`);
+      const info = await page.evaluate(() => window.__JASNO__?.router());
+      ok(info?.route === undefined && info?.error, `__JASNO__.router() ${JSON.stringify(info)}`);
+    }
     ok(errors.length === 0, `no console errors/warnings (${JSON.stringify(errors.slice(0, 3))})`);
   } catch (e) {
     failed++;

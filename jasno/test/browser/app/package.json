@@ -1,0 +1,6 @@
+{
+  "name": "jasno-router-probe",
+  "private": true,
+  "type": "module",
+  "dependencies": { "jasno": "file:../../.." }
+}

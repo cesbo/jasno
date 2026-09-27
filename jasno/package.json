@@ -15,6 +15,9 @@
     },
     "./testing/happy-dom": "./src/happy-dom.ts"
   },
+  "bin": {
+    "jasno": "./bin/jasno.js"
+  },
   "imports": {
     "#dev": {
       "development": "./src/dev-on.ts",
@@ -26,9 +29,9 @@
     }
   },
   "scripts": {
-    "test": "node --conditions=development --import ./src/happy-dom.ts --test --test-isolation=none \"test/**/*.test.ts\"",
+    "test": "node --conditions=development --import ./src/happy-dom.ts --test --test-isolation=none \"test/*.test.ts\" \"test/spec/*.test.ts\" && node --test \"test/cli/*.test.ts\" \"test/cli/spec/*.test.ts\"",
     "check": "tsc -p . && tsc -p tsconfig.test.json",
-    "test:browser": "node test/browser/example.mjs && node test/browser/router.mjs"
+    "test:browser": "node test/browser/example.mjs && node test/browser/example.mjs preview && node test/browser/router.mjs && node test/cli/spec/dist-browser.mjs"
   },
   "peerDependencies": {
     "happy-dom": "^20.14.5"
@@ -43,5 +46,9 @@
     "happy-dom": "20.14.5",
     "playwright": "1.63.0",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "amaro": "1.2.1",
+    "es-module-lexer": "3.0.2"
   }
 }
