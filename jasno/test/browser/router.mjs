@@ -2,7 +2,7 @@
 // Usage: npm run test:browser (or node test/browser/router.mjs [scenarioFilter]); Chromium and Firefox.
 import { spawn } from 'node:child_process';
 import { mkdirSync, symlinkSync } from 'node:fs';
-import { chromium, firefox } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 
 const PORT = 5211;
 const base = `http://127.0.0.1:${PORT}`;
@@ -38,6 +38,10 @@ const spyNotify = () => {
     p.ariaNotify = function (s, o) { window.__notes.push(s); return orig.call(this, s, o); };
     return;
   }
+  // No ariaNotify (WebKit 26): jasno announces through its live region; record each text it writes there.
+  new MutationObserver((records) => {
+    for (const r of records) if (r.target.nodeType === 1 && r.target.matches('[aria-live=polite]')) window.__notes.push(r.target.textContent);
+  }).observe(document, { subtree: true, childList: true });
 };
 const dropNotify = () => {
   for (const root of [Element.prototype, Document.prototype]) {
@@ -440,7 +444,7 @@ const scenarios = {
 const starts = { deepLinkBack: '/?card=5' };
 const results = {};
 let browserName;
-for (const [bname, type] of [['chromium', chromium], ['firefox', firefox]]) {
+for (const [bname, type] of [['chromium', chromium], ['firefox', firefox], ['webkit', webkit]]) {
   const browser = await type.launch();
   browserName = bname;
   const log = [];

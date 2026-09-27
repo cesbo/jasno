@@ -5,7 +5,7 @@
 // Every check is a conformance check ("ok"/"FAIL"); all passed in Chromium and Firefox on 2026-09-27.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium, firefox } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { dist } from '../../../cli/dist.ts';
 import { startPreview } from '../../../cli/preview.ts';
 import { INDEX, project, reporter } from '../fixture.ts';
@@ -62,7 +62,7 @@ async function open(browser) {
 const lazyResult = (page) => page.evaluate(() => globalThis.loadLazy().then((v) => v, (e) => `rejected: ${String(e).split('\n')[0]}`));
 
 try {
-  for (const [name, type] of [['chromium', chromium], ['firefox', firefox]]) {
+  for (const [name, type] of [['chromium', chromium], ['firefox', firefox], ['webkit', webkit]]) {
     out.push(`== ${name}`);
     const browser = await type.launch();
     try {

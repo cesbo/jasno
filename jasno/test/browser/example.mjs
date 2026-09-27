@@ -1,10 +1,12 @@
-// The design example in real browsers (Navigation API adapter): node test/browser/example.mjs [preview]
-// dev: under jasno dev. preview: jasno dist (with the mock API: --condition development) served by jasno preview,
-// the CI rung that exercises the shipped artifact (hashed files, integrity, CSP, _headers, SPA fallback).
+// The design example in Chromium, Firefox and WebKit: node test/browser/example.mjs [preview | history]
+// dev: under jasno dev (Navigation API adapter). history: the same with the Navigation API hidden, so the router
+// runs its History adapter. preview: jasno dist (with the mock API: --condition development) served by jasno
+// preview, the CI rung that exercises the shipped artifact (hashed files, integrity, CSP, _headers, SPA fallback).
 import { spawn, spawnSync } from 'node:child_process';
-import { chromium, firefox } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 const preview = process.argv[2] === 'preview';
-const PORT = preview ? 5198 : 5199;
+const historyAdapter = process.argv[2] === 'history';
+const PORT = preview ? 5198 : historyAdapter ? 5197 : 5199;
 const base = `http://127.0.0.1:${PORT}`;
 const jasno = new URL('../../bin/jasno.js', import.meta.url).pathname;
 const cwd = new URL('../../../design/example', import.meta.url).pathname;
@@ -17,13 +19,14 @@ await new Promise((r) => server.stdout.once('data', r));
 server.stdout.on('data', (d) => process.stdout.write('  [jasno dev] ' + d));
 let failed = 0;
 const results = {};
-for (const [name, type] of [['chromium', chromium], ['firefox', firefox]]) {
+for (const [name, type] of [['chromium', chromium], ['firefox', firefox], ['webkit', webkit]]) {
   const log = [];
   const ok = (cond, msg) => { if (!cond) failed++; log.push(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); };
   let browser;
   try {
     browser = await type.launch();
     const page = await browser.newPage();
+    if (historyAdapter) await page.addInitScript(() => { for (let o = window; o; o = Object.getPrototypeOf(o)) if (Object.getOwnPropertyDescriptor(o, 'navigation')) delete o.navigation; });
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });
@@ -31,7 +34,7 @@ for (const [name, type] of [['chromium', chromium], ['firefox', firefox]]) {
     await page.waitForSelector('h1:text("People")');
     await page.waitForSelector('li a');
     const adapter = await page.evaluate(() => ('navigation' in window ? 'Navigation API' : 'History'));
-    ok(true, `adapter: ${adapter}`);
+    ok(adapter === (historyAdapter ? 'History' : 'Navigation API'), `adapter: ${adapter}`);
     ok(await page.title() === 'People', `title People (${await page.title()})`);
     const hist0 = await page.evaluate(() => history.length);
     await page.click('li a >> nth=0');
