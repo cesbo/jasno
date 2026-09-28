@@ -122,19 +122,21 @@
    the new view's onMount callbacks, then focuses its first visible [autofocus] (inside a dialog opened in onMount
    too), else its first h1, else <main>, and announces the title. App = h.header(null, nav) + h.main(null, router.outlet()).
 
- Polling (reload() aborts a load in flight, so schedule the next reload after the last one settled):
+ Polling (reload() aborts a load in flight, so schedule the next reload after the last one settled; refresh at
+ once when the tab shows again):
      const visible = signal(!document.hidden);
-     onMount(({ abortSignal }) => document.addEventListener('visibilitychange',
-       () => visible.set(!document.hidden), { signal: abortSignal }));
+     onMount(({ abortSignal }) => document.addEventListener('visibilitychange', () => {
+       visible.set(!document.hidden); if (!document.hidden && !metrics.isLoading()) metrics.reload(); }, { signal: abortSignal }));
      effect(() => { if (!visible() || metrics.isLoading()) return;
        const t = setTimeout(() => metrics.reload(), 5000); return () => clearTimeout(t); });
    Debounce: await an abortable delay first in the loader; new params abort it (it never becomes an error):
      loader: async ({ params, abortSignal }) => { await delay(300, abortSignal); return search(params, abortSignal); }
      const delay = (ms: number, s: AbortSignal) => new Promise<void>((ok, fail) => {
        const t = setTimeout(ok, ms); s.addEventListener('abort', () => { clearTimeout(t); fail(s.reason); }); });
-   Keep the last good value across errors (a failed load or reload() clears value()):
-     linkedSignal({ source: () => (r.hasValue() ? r.value() : undefined),
-       computation: (v, prev): readonly Metric[] => v ?? prev?.value ?? [] })   // annotate when reading prev
+   Keep the last good value across errors: value() throws after a failed load or reload(); latest() keeps what these
+   params last held (possibly stale), so show the error beside it; a price or balance someone acts on uses value():
+     h.p({ role: 'alert' }, () => (metrics.status() === 'error' ? 'Could not refresh.' : ''))
+     show(() => metrics.latest(), (m) => h.p(null, () => m().join(', ')), () => h.p(null, 'Loading'))
    React to a failed load inside the loader (try/catch, notify, rethrow), not in an effect on status().
 
  Router. Search params: const q = computed(() => router.url().searchParams.get('q') ?? '');
@@ -310,7 +312,9 @@ declare module 'jasno' {
     readonly isLoading: Signal<boolean>;
     /** Tracked read: true when value() has a value ('resolved', 'local', or 'reloading' with a value); narrows value() to T. Use it instead of value()!. */
     hasValue(): this is LoadedResource<T>;
-    /** Refetches the current params, keeping the value (status 'reloading'); aborts a load in flight; no-op while idle. Its result replaces set() values, optimistic ones of saves still in flight included; if it fails the value is gone (status 'error'). */
+    /** The last value held for the current params, possibly stale: value() while there is one; after a failed load or reload() (value() throws then) the value from before the failure, also while a retry loads; undefined while idle, before the first value, and after params change (never another params' value). Never throws. Show it only where old data is still useful (a list, a chart), with the error beside it; a price or balance someone acts on uses value(). */
+    readonly latest: Signal<T | undefined>;
+    /** Refetches the current params, keeping the value (status 'reloading'); aborts a load in flight; no-op while idle. Its result replaces set() values, optimistic ones of saves still in flight included; if it fails value() is gone (status 'error') and latest() keeps it. */
     readonly reload: () => void;
     /** Replaces the value now (status 'local') and aborts a load in flight. Optimistic: set() before the await; after an await only if params are unchanged (undo a failed save this way, never by reload()). In 'loading' (no value yet) it warns RESOURCE_SET_WHILE_LOADING. */
     readonly set: (value: T) => void;

@@ -873,33 +873,33 @@ test('Debounce: an abortable delay in the loader; superseded delays never become
   assert.ok(!statuses.includes('error'), statuses.join());
 });
 
-test('Keep the last good value across errors with linkedSignal (a failed reload clears value())', async (t) => {
+test('Keep the last good value across errors: latest() with the error beside it (value() throws after a failed reload)', async (t) => {
   let fail = false;
   let n = 0;
-  let r!: ReturnType<typeof resource<readonly number[]>>;
+  let metrics!: ReturnType<typeof resource<readonly number[]>>;
   const view = mountTest(t, () => {
-    r = resource({ loader: async (): Promise<readonly number[]> => { if (fail) throw new Error('down'); n++; return [n, n + 10]; } });
-    const last = linkedSignal({ source: () => (r.hasValue() ? r.value() : undefined),
-      computation: (v, prev: { readonly value: readonly number[] } | undefined): readonly number[] => v ?? prev?.value ?? [] });
-    return h.ul(null, each(last, { key: (m) => m, render: (m) => h.li(null, () => String(m())) }));
+    metrics = resource({ loader: async (): Promise<readonly number[]> => { if (fail) throw new Error('down'); n++; return [n, n + 10]; } });
+    return h.div(null,
+      h.p({ role: 'alert' }, () => (metrics.status() === 'error' ? 'Could not refresh.' : '')),
+      show(() => metrics.latest(), (m) => h.p(null, () => m().join(', ')), () => h.p(null, 'Loading')));
   });
-  assert.deepEqual(texts(view.root), []);
+  const text = () => [...view.root.querySelectorAll('p')].map((p) => p.textContent);
+  assert.deepEqual(text(), ['', 'Loading']);
   await settled();
-  assert.deepEqual(texts(view.root), ['1', '11']);
+  assert.deepEqual(text(), ['', '1, 11']);
   fail = true;
-  r.reload();
+  metrics.reload();
   await settled();
-  assert.equal(r.status(), 'error');
-  assert.equal(r.hasValue(), false);
-  assert.throws(() => r.value());
-  assert.deepEqual(texts(view.root), ['1', '11'], 'last good value kept');
-  r.reload();
+  assert.equal(metrics.status(), 'error');
+  assert.throws(() => metrics.value());
+  assert.deepEqual(text(), ['Could not refresh.', '1, 11'], 'last good value kept, error beside it');
+  metrics.reload();
   await settled();
-  assert.deepEqual(texts(view.root), ['1', '11']);
+  assert.deepEqual(text(), ['Could not refresh.', '1, 11']);
   fail = false;
-  r.reload();
+  metrics.reload();
   await settled();
-  assert.deepEqual(texts(view.root), ['2', '12']);
+  assert.deepEqual(text(), ['', '2, 12']);
 });
 
 test('React to a failed load inside the loader (try/catch, notify, rethrow): zero diagnostics', async (t) => {

@@ -1,5 +1,5 @@
 // Every snippet of the RECIPES block at the top of jasno.d.ts, in context. Must compile with 0 errors.
-import { component, computed, createRoot, each, effect, flush, h, linkedSignal, match, onMount, resource, selector, show, signal, svg, untracked, type Read } from 'jasno';
+import { component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type Read } from 'jasno';
 import { createRouter, route, type ViewProps } from 'jasno/router';
 import { addNote, getUser, listCards, listNotes, makeChart, saveTitle, search, subscribePresence, type Card } from './api.ts';
 import { router } from './routes.ts';
@@ -134,17 +134,16 @@ const delay = (ms: number, s: AbortSignal) => new Promise<void>((ok, fail) => {
 export const Dashboard = component(function Dashboard(p: { query: Read<string> }): Node {
   const metrics = resource({ loader: async () => [1, 2, 3] });
   const visible = signal(!document.hidden);
-  onMount(({ abortSignal }) => document.addEventListener('visibilitychange',
-    () => visible.set(!document.hidden), { signal: abortSignal }));
+  onMount(({ abortSignal }) => document.addEventListener('visibilitychange', () => {
+    visible.set(!document.hidden); if (!document.hidden && !metrics.isLoading()) metrics.reload(); }, { signal: abortSignal }));
   effect(() => { if (!visible() || metrics.isLoading()) return;
     const t = setTimeout(() => metrics.reload(), 5000); return () => clearTimeout(t); });
   const results = resource({ params: () => p.query() || undefined,
     loader: async ({ params, abortSignal }) => { await delay(300, abortSignal); return search(params, abortSignal); } });
-  const r = metrics;
-  type Metric = number;
-  const rows = linkedSignal({ source: () => (r.hasValue() ? r.value() : undefined),
-    computation: (v, prev): readonly Metric[] => v ?? prev?.value ?? [] });   // annotate when reading prev
-  return h.div(null, h.p(null, () => rows().join(',')), h.p(null, () => (results.hasValue() ? results.value().length : 0)));
+  return h.div(null,
+    h.p({ role: 'alert' }, () => (metrics.status() === 'error' ? 'Could not refresh.' : '')),
+    show(() => metrics.latest(), (m) => h.p(null, () => m().join(', ')), () => h.p(null, 'Loading')),
+    h.p(null, () => (results.hasValue() ? results.value().length : 0)));
 });
 
 // Router recipes

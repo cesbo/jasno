@@ -16,6 +16,8 @@ interface State {
   readonly value?: unknown;
   readonly has: boolean;
   readonly error?: unknown;
+  /** latest() while there is no value: what these params last held before a failed request (B9.9). */
+  readonly last?: unknown;
 }
 
 const IDLE: State = { status: 'idle', has: false };
@@ -91,7 +93,7 @@ export function resource(options: {
       const r = record.value as State;
       writeRaw(record, status === 'resolved'
         ? { status, params: r.params, version: v, value: x, has: true }
-        : { status, params: r.params, version: v, has: false, error: x });
+        : { status, params: r.params, version: v, has: false, error: x, last: r.has ? r.value : r.last });
     };
     promise.then((x) => settle('resolved', x), (e) => settle('error', e));
   };
@@ -134,7 +136,7 @@ export function resource(options: {
     const v = ++version;
     writeRaw(record, s.has
       ? { status: 'reloading', params: p, version: v, value: s.value, has: true }
-      : { status: 'loading', params: p, version: v, has: false });
+      : { status: 'loading', params: p, version: v, has: false, last: s.last });
     last = p;
     needStart = true;
     writeRaw(tick, (tick.value as number) + 1);
@@ -174,6 +176,8 @@ export function resource(options: {
     return readComputed(valueNode);
   }, valueNode);
   const has = field('hasValue', (s) => s.has && (s.status === 'resolved' || s.status === 'local' || s.status === 'reloading'));
+  // B9.9: never throws; another params' value never shows (their state is LOADING or IDLE, with no last).
+  const latest = field('latest', (s) => (s.has ? s.value : s.last));
 
   return {
     value,
@@ -181,6 +185,7 @@ export function resource(options: {
     error: field('error', (s) => (s.status === 'error' ? s.error : undefined)),
     isLoading: field('isLoading', (s) => s.status === 'loading' || s.status === 'reloading'),
     hasValue: () => has(),
+    latest,
     reload,
     set,
   };

@@ -679,6 +679,64 @@ test('B9.9/ADR-15 hasValue() is a tracked read', async () => {
   stop(); x.dispose();
 });
 
+test('B9.9 latest(): the value while there is one; after a failed reload the value from before, also while a retry loads', async () => {
+  const x = mk<undefined>(undefined);
+  assert.equal(x.r.latest(), undefined, 'nothing before the first value');
+  x.last().resolve('v1'); await tick();
+  assert.equal(x.r.latest(), 'v1');
+  x.r.reload(); flush();
+  assert.equal(x.r.status(), 'reloading');
+  assert.equal(x.r.latest(), 'v1');
+  x.last().reject(new Error('down')); await tick();
+  assert.equal(x.r.status(), 'error');
+  assert.throws(() => x.r.value());
+  assert.equal(x.r.hasValue(), false);
+  assert.equal(x.r.latest(), 'v1', 'kept after the failure, and it never throws');
+  x.r.reload(); flush();
+  assert.equal(x.r.status(), 'loading', 'B9.7: no value held, so loading');
+  assert.equal(x.r.latest(), 'v1', 'still kept while the retry loads');
+  x.last().reject(new Error('down again')); await tick();
+  assert.equal(x.r.latest(), 'v1', 'a second failure keeps it too');
+  x.r.reload(); flush();
+  x.last().resolve('v2'); await tick();
+  assert.equal(x.r.latest(), 'v2');
+  x.dispose();
+});
+
+test('B9.9 latest() never shows another params\' value: undefined after a params change, a failed first load and idle', async () => {
+  const id = signal<number | undefined>(1);
+  const x = mk(id);
+  x.last().resolve('one'); await tick();
+  assert.equal(x.r.latest(), 'one');
+  id.set(2); flush();
+  assert.equal(x.r.status(), 'loading');
+  assert.equal(x.r.latest(), undefined, 'loading for new params');
+  x.last().reject(new Error('down')); await tick();
+  assert.equal(x.r.status(), 'error');
+  assert.equal(x.r.latest(), undefined, 'a failed first load for these params has nothing to keep');
+  id.set(1); flush();
+  assert.equal(x.r.latest(), undefined, 'back to the earlier params: a new load, the old outcome is gone');
+  x.last().resolve('one again'); await tick();
+  id.set(undefined); flush();
+  assert.equal(x.r.status(), 'idle');
+  assert.equal(x.r.latest(), undefined);
+  x.dispose();
+});
+
+test('B9.9 latest() follows set(), keeps a set() value after a failed reload, and is a tracked read', async () => {
+  const x = mk<undefined>(undefined);
+  const seen: unknown[] = [];
+  const stop = createRoot(() => effect(() => { seen.push(x.r.latest()); }));
+  flush();
+  x.last().resolve('v1'); await tick(); flush();
+  x.r.set('mine'); flush();
+  x.r.reload(); flush();
+  x.last().reject(new Error('down')); await tick(); flush();
+  assert.equal(x.r.latest(), 'mine');
+  assert.deepEqual(seen, [undefined, 'v1', 'mine'], 'the failure changes status, not latest(): no extra run');
+  stop(); x.dispose();
+});
+
 test('ADR-15 members are bound: destructured members work', async () => {
   const x = mk<undefined>(undefined);
   const { value, status, error, isLoading, hasValue, reload, set } = x.r;
