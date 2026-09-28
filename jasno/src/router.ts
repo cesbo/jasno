@@ -579,7 +579,9 @@ export function createRouter(routes: readonly RouteDef[], options: {
       if (this.pendingBack) return true;
       const entries = this.nav.entries();
       const prev = this.nav.currentEntry && entries[this.nav.currentEntry.index - 1];
-      const prevUrl = prev?.url ? new URL(prev.url) : undefined;
+      // B17.18: only an entry this document created; one from an earlier page load (a typed URL, a reload) is not
+      // this app's to go back to, even when a route matches it.
+      const prevUrl = prev?.sameDocument && prev.url ? new URL(prev.url) : undefined;
       return !!(this.nav.canGoBack && prevUrl && prevUrl.origin === location.origin && match(prevUrl.pathname));
     }
     back(): Promise<NavigateResult> {
@@ -707,7 +709,7 @@ interface NavigationLike {
   addEventListener(type: 'navigate', fn: (e: Event) => void, opts?: AddEventListenerOptions): void;
   navigate(url: string, opts?: { history?: 'auto' | 'push' | 'replace' }): NavigationResultLike;
   back(): NavigationResultLike;
-  entries(): { url: string | null; index: number }[];
+  entries(): { url: string | null; index: number; sameDocument: boolean }[];
   currentEntry: { index: number } | null;
   canGoBack: boolean;
 }

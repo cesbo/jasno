@@ -15,14 +15,16 @@
        h.button({ type: 'submit', 'aria-disabled': saving }, 'Save'))       // guard with if (saving()) return
    Radio group: one signal; checked: () => plan() === 'pro', onchange: () => plan.set('pro').
    Numbers: e.currentTarget.valueAsNumber. Never disable or remove the focused element (FOCUS_LOST): keep the
-   button enabled with 'aria-disabled', or move focus to the result in onMount.
+   button enabled with 'aria-disabled', or move focus to the result in onMount. Playwright's click() waits for an
+   aria-disabled element to become enabled: test an ignored second press with click({ force: true }) or
+   dispatchEvent('click').
    Drafts: a short-lived editor seeds its input once, value: untracked(p.card).title. A form that outlives saves is
    created per record inside match() on the record id (Per-param lifecycle), so its draft and saving flag never cross
    records and a save echo (a new object, same id) does not reset it; after the save, clear the draft only if it
    still holds the text you sent.
 
  Inline edit. Enter saves through a form: implicit submission ignores IME composition and cannot activate the
-   element that gets focus next. Escape cancels; leaving the field saves. In the row: const editing = signal(false);
+   element that gets focus next. Escape cancels; leaving the field saves (a default; a spec may make it cancel). In the row: const editing = signal(false);
    let refocus = false (set on the Enter/Escape paths only, so tabbing away never pulls focus back):
      show(editing, () => {
        const commit = (again: boolean) => { refocus = again; editing.set(false);
@@ -44,7 +46,10 @@
        await addNote(id, text);
        if (p.params().id === id) notes.reload();       // reload() refetches the CURRENT params
      }
-   Optimistic saves: set() before the await. Saves of one record run one after another; when the last queued save
+   Optimistic saves: set() before the await. Saves of one record run one after another here, which is right when the
+   server may apply requests out of order; when it applies them in the order sent and each change must go out at
+   once, send every save immediately instead and, once none is pending, show the response of the newest sent request
+   that succeeded (per field), else the last accepted value. In the queued form, when the last queued save
    fails, show the last value the server accepted, not the value before this save (an earlier save may still be
    unconfirmed); an earlier failure changes nothing, since a newer value is still being saved. A successful last save
    shows its value again, in case a reload() (polling, Retry) replaced it meanwhile. Never reload() after an optimistic
@@ -163,7 +168,8 @@
    room) lives in a parent Map signal keyed by the param; match bodies and linkedSignal discard theirs.
    Unsaved changes: a window 'beforeunload' listener in onMount covers tab close; in-app leave guards are not in v1.
    Route tests: history.replaceState(null, '', '/users/1') before mountTest(t, () => App()), await settled() (the
-   lazy view), then await router.navigate(url); tests are the only place that touches history.
+   lazy view), then await router.navigate(url); tests are the only place that touches history. A state that lasts
+   while a test holds a loader ("Loading"): await waitFor(() => assert...), since settled() waits for the loader.
    Lazy component inside a view:
      const mod = resource({ loader: () => import('./chart.ts') });
      match(() => (mod.hasValue() ? mod.value().Chart : null), (Chart) => (Chart ? Chart({ data }) : 'Loading'))
@@ -199,8 +205,11 @@
 
  Config and backend. import config from '#config', with package.json "imports": { "#config": {
    "development": "./src/config.dev.ts", "default": "./src/config.prod.ts" } }. Everything under src/ is public:
-   never put secrets there. No backend yet: the same mechanism, "#api": { "development": "./src/api.mock.ts",
+   never put secrets there; jasno dist ships every non-test file there, imported or not, so test helpers go in a
+   *.test.ts file or outside src/. No backend yet: the same mechanism, "#api": { "development": "./src/api.mock.ts",
    "default": "./src/api.ts" }, and import from '#api': jasno dev and npm test get the mock, jasno dist the real module.
+   Under jasno dev the mock answers instead of fetch, so page.route stubs (errors, slow responses) only reach the
+   real module: run those e2e tests against the build (E2E=preview).
    The mock keeps the real types:
      import type * as Api from './api.ts';
      export const listUsers: typeof Api.listUsers = async () => [{ id: '1', name: 'Ada' }];
@@ -603,6 +612,8 @@ declare module 'jasno/testing' {
   export function mountTest(t: TestContextLike, view: () => Node, options?: MountTestOptions): MountedTest;
   /** Resolves when nothing is pending (flush queue, loaders, navigations, promises returned by on* handlers), using real timers even under mock.timers; rejects with unexpected diagnostics or SETTLE_TIMEOUT naming what is pending (default 2000 ms). */
   export function settled(options?: { readonly timeout?: number | undefined }): Promise<void>;
+  /** Flushes and retries check until it stops throwing (default 1000 ms, real timers), then returns its result; on timeout rethrows its last error. For a state that settled() would wait past, such as "Loading" while a test holds the loader: await waitFor(() => assert.equal(status.textContent, 'Loading books')). */
+  export function waitFor<T>(check: () => T, options?: { readonly timeout?: number | undefined }): Promise<T>;
   export {};
 }
 

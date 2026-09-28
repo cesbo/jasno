@@ -148,6 +148,18 @@ export function mountTest(t: TestContextLike, view: () => Node, options: { expec
   return api;
 }
 
+/** Retries check() after a flush until it stops throwing, with real timers; for states settled() would wait past (a held loader). */
+export async function waitFor<T>(check: () => T, options: { timeout?: number | undefined } = {}): Promise<T> {
+  const end = now() + (options.timeout ?? 1000);
+  for (;;) {
+    flush();
+    if (active) throwAll(active, problems(active));
+    try { return check(); } catch (e) { if (now() >= end) throw e; }
+    await new Promise((r) => realSetTimeout(r, 10));
+    await macrotask();
+  }
+}
+
 export async function settled(options: { timeout?: number | undefined } = {}): Promise<void> {
   const timeout = options.timeout ?? 2000;
   const start = now();

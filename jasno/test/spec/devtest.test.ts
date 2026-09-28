@@ -6,7 +6,7 @@ import {
   catchError, component, computed, createContext, createRoot, css, each, effect, flush, h, linkedSignal, match, mount,
   onMount, provide, resource, selector, show, signal, svg, untracked, useContext,
 } from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+import { mountTest, settled, waitFor } from 'jasno/testing';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
 
 type D = { code: string; severity: string; message: string; hint: string; docs: string; ownerPath: string; node?: string | undefined; loc?: string | undefined; count: number };
@@ -528,6 +528,23 @@ test('B19.4 dispose() right after the update that dropped focus still fails with
   on.set(false);
   flush();
   assert.throws(() => view.dispose(), (e) => codeOf(e) === 'FOCUS_LOST');
+});
+
+test('waitFor() reaches a state settled() would wait past: "Loading" while the test holds the loader; on timeout it rethrows the last error', async (t) => {
+  const held = deferred<string>();
+  const view = mountTest(t, () => {
+    const r = resource({ loader: () => held.promise });
+    return show(() => r.hasValue() && r.value(), (v) => h.p(null, v), () => h.p({ role: 'status' }, 'Loading'));
+  });
+  const text = await waitFor(() => {
+    const s = view.root.querySelector('[role=status]')?.textContent;
+    assert.equal(s, 'Loading');
+    return s;
+  });
+  assert.equal(text, 'Loading');
+  await assert.rejects(waitFor(() => assert.equal(view.root.textContent, 'done'), { timeout: 50 }), /Expected values to be strictly equal/);
+  held.resolve('done');
+  await waitFor(() => assert.equal(view.root.textContent, 'done'));
 });
 
 test('B19.4 EFFECT_LEAKED counts ownerless effects created after await; stopped effects and detached roots are not counted', async () => {

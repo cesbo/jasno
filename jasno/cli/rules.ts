@@ -172,7 +172,7 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
       for (const m of node.modifiers as N[]) {
         if (m.kind === K.AccessorKeyword) at(m, 'NO_ACCESSOR', 'error', '`accessor` fields pass tsc and the type stripper, then fail in V8.', 'Write a #private field with a getter and setter.');
         const word = TS_CLASS_MODIFIERS.get(m.kind);
-        if (word) at(m, 'NO_TS_CLASS_MODIFIER', 'error', `\`${word}\` is a TypeScript-only class modifier.`, 'Use a #private field (or drop the modifier); jasno code is erasable TypeScript.');
+        if (word) at(m, 'NO_TS_CLASS_MODIFIER', 'error', `\`${word}\` is a class member modifier outside jasno's syntax subset: tsc checks it, nothing enforces it at run time.`, 'Use a #private field (with a getter for a read-only value), or drop the modifier.');
       }
     }
     if (k === K.VariableDeclarationList && ((node.flags & ast.NodeFlags.Using) !== 0)) {

@@ -659,10 +659,12 @@ test('B17.18 back() with a cross-origin fallback behaves as navigate(fallback, {
  * back(); an intercepted navigation commits (location follows) after dispatch, like 'commit: immediate'. A navigation
  * nobody intercepts is recorded as a full document load. location.assign() fires navigate as in browsers.
  */
-function fakeNavigation(t: Ctx) {
+function fakeNavigation(t: Ctx, earlierLoads: readonly string[] = []) {
   const listeners = new Set<(e: Event) => void>();
-  const entries = [{ url: location.href, index: 0 }];
-  let cur = 0;
+  // earlierLoads: entries of earlier document loads in this tab (same origin, sameDocument false)
+  const entries = [...earlierLoads.map((u, index) => ({ url: new URL(u, location.href).href, index, sameDocument: false })),
+    { url: location.href, index: earlierLoads.length, sameDocument: true }];
+  let cur = earlierLoads.length;
   const events: { type: string; url: string; intercepted?: { focusReset?: string | undefined; scroll?: string | undefined } | undefined }[] = [];
   const fullLoads: string[] = [];
   const fire = (to: string, navigationType: string, init: { formData?: FormData; downloadRequest?: string; index?: number } = {}) => {
@@ -680,8 +682,8 @@ function fakeNavigation(t: Ctx) {
     for (const l of [...listeners]) l(e);
     if (!handler) { fullLoads.push(dest.href); return { committed: Promise.resolve(), finished: Promise.resolve() }; }
     if (navigationType === 'traverse') cur = init.index!;
-    else if (navigationType === 'replace') entries[cur] = { url: dest.href, index: cur };
-    else { entries.splice(cur + 1); entries.push({ url: dest.href, index: cur + 1 }); cur++; }
+    else if (navigationType === 'replace') entries[cur] = { url: dest.href, index: cur, sameDocument: true };
+    else { entries.splice(cur + 1); entries.push({ url: dest.href, index: cur + 1, sameDocument: true }); cur++; }
     history.replaceState(null, '', dest.href);
     return { committed: Promise.resolve(), finished: handler() };
   };
@@ -741,6 +743,18 @@ test('B17.18 Navigation API back(): traverses when canGoBack and the previous en
   assert.equal(fake.events.at(-1)?.type, 'traverse');
   assert.equal(location.pathname, '/');
   assert.equal(view.root.querySelector('h1')?.textContent, 'home');
+});
+
+test('B17.18 Navigation API back(): an entry from an earlier page load is not the app\'s, even when a route matches it (comparison P-B8)', async (t) => {
+  history.replaceState(null, '', '/?book=nope'); // typed after visiting /?book=b1 in the same tab
+  const fake = fakeNavigation(t, ['/?book=b1']);
+  const router = createRouter([route('/', { view: page('home').view })], opts);
+  mountTest(t, () => h.main(null, router.outlet()));
+  await settled();
+  assert.equal(await router.back('/'), 'done');
+  assert.deepEqual([fake.events.at(-1)?.type, fake.events.at(-1)?.url], ['replace', 'http://localhost/'],
+    'navigate(fallback, { replace: true }), not a traversal into the earlier document');
+  assert.equal(location.href, 'http://localhost/');
 });
 
 test('B17.17 Navigation API: the one full document navigation after VIEW_IMPORT_FAILED is not intercepted by the router', async (t) => {
