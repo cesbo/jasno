@@ -624,3 +624,11 @@ Every catalogue code except `TS<number>` (tsc's own codes) has `jasno/errors/<CO
 
 Criterion 5's third clause, no known false positives in warn checks: none is open. Examined: the pilots, the React and Solid calibration and the Grok pilot ran the dev-diagnostics `afterEach` on correct code without a warning; the kanban `FOCUS_LOST` was the happy-dom shim (P-B6, fixed); Grok's `EFFECT_NO_DEPS` on a constant-title effect and `NO_OWNER` after an `await` were true reports; CL-28 to CL-31 fixed the check false positives the probes found; the one found here (RG-1) was an error-level rule and is fixed. For the next parallel wave: five writers shared one scratchpad directory, and one writer's assembly loop rewrote four of another group's guides from their drafts (identical content, confirmed by that group); each agent now keeps drafts in a directory of its own. Policy question left open: `SECRET_FILE_IN_OUTPUT` refuses every dotfile, so `public/.well-known/security.txt` cannot be published (design.md open questions).
 
+
+## Node matrix (2026-09-30)
+
+Every suite ran once on the edges of `engines` (`^24.12.0 || >=26.0.0`), locally instead of CI: Node 24.12.0 (the floor), 24.21.0 (the current 24.x) and 26.10.0, each with `npm run check`, `npm test`, `npm run test:browser`, `npm run test:package` and `npm run test:template`. All green on 24.12.0. On 24.21.0 and 26.10.0 one resolver probe failed (NM-1); after the fix `npm test` is green on all three (783 runtime and 248 CLI tests). The other suites did not touch the fix and were green on every version. Browsers ran only in the versions Playwright installs; the floor versions of criterion 6 (Chrome 136, Firefox 138, Safari 18.4) are not tested yet.
+
+| ID | Source | Severity | Outcome | What / why |
+|---|---|---|---|---|
+| NM-1 | Node matrix | bug | accepted | CL-18 made `#/…` keys in `imports` invalid because the Node of the time (24.12, 25.1) rejected them; Node 24.21 and 26.10 resolve them, so jasno refused imports that Node runs. The resolver now accepts them, as current Node does (`#` and a trailing `/` stay invalid), and the probe compares with Node only where the running Node accepts them. On 24.12 jasno resolves a `#/` key that Node itself rejects; a project that relies on one needs a newer 24.x. |

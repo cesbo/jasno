@@ -301,6 +301,8 @@ test('an "exports" object mixing "." keys with condition keys, or with array-ind
   same('probe.mjs', ['mixed', 'idxkey']);
 });
 
-test('"#/…" is not a valid "imports" specifier in Node', () => {
-  same('probe.mjs', ['#/x']);
+test('"#/…" imports keys resolve as in current Node (24.21 and 26); Node 24.12 and 25.1 still reject them', () => {
+  const { ours, node } = compare('probe.mjs', ['#/x']);
+  assert.deepEqual(ours, { 'dev #/x': 'src/a.js', 'dist #/x': 'src/a.js' });
+  if (Object.values(node).every((v) => v !== 'error')) assert.deepEqual(ours, node); // where this Node accepts them
 });

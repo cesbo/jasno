@@ -91,7 +91,8 @@ export function resolveSpecifier(spec: string, parentFile: string, conditions: R
 }
 
 function resolveImports(spec: string, parentFile: string, conditions: ReadonlySet<string>): string {
-  if (spec === '#' || spec.startsWith('#/') || spec.endsWith('/')) throw new ResolveError(`"${spec}" is not a valid "imports" specifier.`);
+  // "#/…" keys: current Node resolves them (24.21 and 26 checked; 24.12 and 25.1 still reject them).
+  if (spec === '#' || spec.endsWith('/')) throw new ResolveError(`"${spec}" is not a valid "imports" specifier.`);
   const pkg = packageOf(parentFile);
   const map = pkg?.json.imports;
   const hit = map && typeof map === 'object' && !Array.isArray(map) ? matchKey(map, spec) : undefined;
