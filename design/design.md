@@ -831,7 +831,7 @@ Ladder (each rung exits non-zero on failure; stop at the first failing rung; a r
 14. happy-dom lacks the Navigation API; should rung 3 cover the Navigation path per route?
 15. Does `mountTest`'s automatic first flush hide ordering bugs that the production microtask flush would show?
 16. `: Node` convention: drop it if a TS release stops reporting the routes↔views cycle.
-17. `INTERACTIVE_NO_NAME` fidelity against Playwright's accessible-name computation.
+17. `INTERACTIVE_NO_NAME` fidelity against Playwright's accessible-name computation. A first data point (2026-09-29, the Grok pilot): Playwright's locators disagree among themselves; for a `<select>` wrapped in its `<label>`, `getByRole` and Chromium name it by the label text, while `getByLabel(…, { exact: true })` compares the label text with the option texts included.
 18. Firefox unbundled cost (~20× Chromium warm per module, §7) as a named support risk.
 19. Dependencies whose conditional exports differ between `development` and `default`: confirm dev/prod parity per package in `jasno preview`.
 20. A custom-element factory (`h.custom`, S2) once an eval task uses web components.
