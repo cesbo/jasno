@@ -9,7 +9,6 @@ Date: 2026-09-26. Inputs: the research digest (`r1/digest.md`, cited as §0–§
 | `AGENTS.md` | The agent guide shipped in the package (8,187 bytes, ASCII). With `jasno.d.ts` (and the `jasno.elements.d.ts` it references, which tsc needs and agents rarely read) it is everything a fresh agent gets. |
 | `example/` | A multi-file app (router with a param route, lazy views, notFound, resources, keyed lists, a form, context, cleanup, an SVG icon, `selector`, a toast region) and two `node:test` files. Its fetch functions are imported as `#api`, which `package.json` maps to `api.mock.ts` under the `development` condition, so the app runs under `jasno dev` and in tests without a backend. |
 | `tsconfig.json`, `tsconfig.test.json` | Validation: the browser program (jasno.d.ts + example, no tests, `types: []`) and the test program (`types: ["node"]`). Both report 0 errors. |
-| `tsconfig.app.json`, `tsconfig.app-test.json` | Templates testers extend for their browser and test programs. |
 | `tools/gen-elements.cjs` | Generator of the closed element props and the `H` table (v2 rules: live `undefined`, closed `aria-*` from lib.dom's `ARIAMixin`, void elements without children, message-typed `dialog.open`). |
 | `tools/agents-samples/` | Every AGENTS.md sample and every RECIPES snippet as compiling files (`tsc -p tools/agents-samples/tsconfig.json` and `tsconfig.test.json`: 0 errors). |
 | `changelog.md` | Every feedback item: id/source, severity, accepted, rejected or deferred, what changed or why not (v2 items first, then the v3 section). |
@@ -722,7 +721,7 @@ Conventions: `export const Name = component(function Name(p: NameProps): Node { 
 </html>
 ```
 
-`tsconfig.json` (the design's template is `tsconfig.app.json`):
+`tsconfig.json`:
 
 ```json
 {
@@ -738,7 +737,7 @@ Conventions: `export const Name = component(function Name(p: NameProps): Node { 
 }
 ```
 
-`tsconfig.test.json` (template: `tsconfig.app-test.json`):
+`tsconfig.test.json`:
 
 ```json
 {
