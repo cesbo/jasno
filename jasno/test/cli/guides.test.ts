@@ -74,7 +74,7 @@ test('every ts example compiles against jasno.d.ts', () => {
       include: [join(JASNO, '..', 'design', 'jasno.d.ts'), ...files],
     }));
     writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
-    const r = spawnSync(join(JASNO, 'node_modules', '.bin', 'tsc'), ['-p', dir], { encoding: 'utf8' });
+    const r = spawnSync(join(JASNO, 'node_modules', 'typescript', 'bin', 'tsc'), ['-p', dir], { encoding: 'utf8' });
     assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
   } finally {
     rmSync(dir, { recursive: true, force: true });

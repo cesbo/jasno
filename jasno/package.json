@@ -30,7 +30,7 @@
   },
   "scripts": {
     "test": "node --conditions=development --import ./src/happy-dom.ts --test --test-isolation=none \"test/*.test.ts\" \"test/spec/*.test.ts\" && node --test \"test/cli/*.test.ts\" \"test/cli/spec/*.test.ts\"",
-    "check": "tsc -p . && tsc -p tsconfig.test.json",
+    "check": "node node_modules/typescript/bin/tsc -p . && node node_modules/typescript/bin/tsc -p tsconfig.test.json",
     "test:browser": "node test/browser/example.mjs && node test/browser/example.mjs history && node test/browser/example.mjs preview && node test/browser/router.mjs && node test/cli/spec/dist-browser.mjs",
     "build:package": "node scripts/build-package.mjs --pack",
     "test:package": "node scripts/test-package.mjs",
@@ -49,7 +49,8 @@
     "esbuild": "0.28.2",
     "happy-dom": "20.14.5",
     "playwright": "1.63.0",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "typescript6": "npm:typescript@6.0.3"
   },
   "dependencies": {
     "amaro": "1.2.1",

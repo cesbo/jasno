@@ -77,7 +77,7 @@ test('V2-17, E8: tools/gen-elements.cjs regenerates the element region of jasno.
   const design = fileURLToPath(new URL('../../../design/', import.meta.url));
   const copy = join(mkdtempSync(join(tmpdir(), 'jasno-elements-')), 'jasno.elements.d.ts');
   copyFileSync(join(design, 'jasno.elements.d.ts'), copy);
-  const r = spawnSync(process.execPath, [join(design, 'tools/gen-elements.cjs'), copy], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL('../../tools/gen-elements.cjs', import.meta.url)), copy], { encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.equal(readFileSync(copy, 'utf8'), readFileSync(join(design, 'jasno.elements.d.ts'), 'utf8'));
   rmSync(dirname(copy), { recursive: true });
