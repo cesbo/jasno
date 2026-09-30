@@ -48,7 +48,7 @@ export function explain(args: { code?: string | undefined; list: boolean; json: 
   const entry = codes[hit.key]!;
   if (args.json) { out(JSON.stringify({ code: hit.code, rows: entry.rows, doc: doc(hit.code) ?? null })); return 0; }
   const md = doc(hit.code);
-  if (md) { out(md.trimEnd()); return 0; }
+  if (md) { out(md.replace(/^<!--[\s\S]*?-->\n?/gm, '').trim()); return 0; } // the generator's markers and spec refs
   const blocks = entry.rows.map((r) => {
     const lines = [`${hit.code} (${r.severity ?? '?'}; ${r.source}${r.build ? `, ${r.build}` : ''}${r.tool ? `, ${r.tool}` : ''})`];
     if (r.when) lines.push(`When: ${r.when}`);

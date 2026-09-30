@@ -21,7 +21,7 @@
           "source": "Runtime",
           "severity": "error (throws)",
           "build": "dev + prod (microtask guard: dev)",
-          "when": "a consumer ran 100 times in a flush, round 101, or 1,000 microtask flushes without a macrotask (B4.6, B4.10)",
+          "when": "a consumer ran more than 100 times in a flush, round 101, or 1,000 microtask flushes without a macrotask (B4.6, B4.10)",
           "message": "{names} kept re-triggering each other ({runs} runs); DOM may be stale in: {bindings}.",
           "hint": "A consumer writes state it reads: derive it with computed()/linkedSignal(), or make the write conditional so it converges."
         }
@@ -60,7 +60,7 @@
           "source": "Runtime",
           "severity": "error (throws)",
           "build": "dev + prod",
-          "when": "a second copy of jasno initializes",
+          "when": "mount() is called from a second copy of jasno, not the one that loaded first (B16.1)",
           "message": "Two copies of jasno are loaded: {first} and {second}.",
           "hint": "Import jasno only as 'jasno' and never write an import map: jasno dev and jasno dist generate it."
         }
@@ -114,7 +114,7 @@
           "build": "dev + prod",
           "when": "createRouter with an unsupported pattern (B17.1)",
           "message": "Route pattern \"{pattern}\" is not supported: {reason}.",
-          "hint": "Use '/'-rooted static segments, :name, :name?, :name+, :name*, :name(a|b); for unknown URLs use createRouter(routes, { notFound })."
+          "hint": "Use '/'-rooted static segments, :name, :name?, :name+, :name*, :name(a|b); for unknown URLs, and instead of a pattern that matches every path, use createRouter(routes, { notFound })."
         }
       ]
     },
@@ -151,7 +151,7 @@
           "source": "Runtime",
           "severity": "error (throws)",
           "build": "dev + prod",
-          "when": "navigate() or back() before outlet()",
+          "when": "navigate() or back() before outlet() rendered, or after its owner was disposed (B17.3, B17.13)",
           "message": "router.{method}(\"{url}\") was called before router.outlet() was rendered.",
           "hint": "Mount the app first; in tests mountTest(t, () => App()) before navigate()."
         }
@@ -172,7 +172,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check (type-aware)",
-          "when": "a value with a zero-parameter call signature (signal or Read) in a template literal, + concatenation or String()"
+          "when": "a value with a zero-parameter call signature (signal or Read) in + concatenation with a string or in String()"
         }
       ]
     },
@@ -261,7 +261,7 @@
           "source": "Runtime",
           "severity": "warn",
           "build": "dev",
-          "when": "an effect run wrote an observed signal (B5.3)",
+          "when": "an effect run wrote a signal that something observes, or that the effect itself read (B5.3)",
           "message": "Effect \"{effect}\" wrote signal \"{signal}\" during its run.",
           "hint": "Derive it with computed() or linkedSignal(), or write it in the event handler that caused the change; effects only sync the outside world. A subscription whose callback sets signals goes in onMount (per route param: inside match(() => p.params().id, (id) => Body({ id })))."
         }
@@ -365,9 +365,9 @@
           "source": "Runtime",
           "severity": "warn",
           "build": "dev",
-          "when": "an unknown key reached h.*",
+          "when": "an unknown key reached h.* (also open on an element without it) (B15.8)",
           "message": "<{tag}> got unknown prop \"{key}\".",
-          "hint": "Key-specific: onClick → onclick, className → class, for → htmlFor, ref → keep the element, key → each()."
+          "hint": "Key-specific: onClick → onclick (event props are lowercase DOM names), className → class, for → htmlFor, ref → keep the element, key → each(); an unknown aria-* key lists the valid ones."
         }
       ]
     },
@@ -391,7 +391,7 @@
           "source": "Runtime",
           "severity": "warn",
           "build": "dev",
-          "when": "a builder returned a node built outside it (B10.6)",
+          "when": "a builder (a show/match branch, an each row, a catchError fallback) returned a node built outside it (B10.6)",
           "message": "{builder} in {ownerPath} returned <{tag}>, created outside it.",
           "hint": "Create the node inside the builder, or keep it mounted and toggle hidden: () => !open()."
         }
@@ -517,8 +517,8 @@
         {
           "source": "jasno/testing",
           "severity": "test failure",
-          "when": "a reactive error reached report during the test (B19.3)",
-          "message": "{kind} \"{node}\" in {ownerPath} threw: {message}.",
+          "when": "a reactive error reached report, or a promise an on* handler returned rejected, during the test (B19.3, B19.6)",
+          "message": "Reactive code in {ownerPath} threw: {message} (or The promise returned by the {type} handler in {ownerPath} threw: {message})",
           "hint": "Fix the error, or wrap the subtree in catchError(() => ..., (err, reset) => ...)."
         }
       ]
@@ -553,7 +553,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check",
-          "when": "the loaded TypeScript is outside the tested range (~7.0.2)"
+          "when": "the loaded TypeScript is outside the tested range (~7.0.2), or typescript is not installed"
         }
       ]
     },
@@ -575,7 +575,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check, dev, dist",
-          "when": "relative specifier not ending in .ts (.json for JSON modules; dev: 404 for x.js when x.ts exists, with the hint)"
+          "when": "relative specifier not ending in .ts (.json for JSON modules; dev: 404 for x.js when x.ts exists, with the hint); check also for an entry in index.html ending in .js whose .ts exists"
         }
       ]
     },
@@ -640,8 +640,8 @@
         {
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
-          "tool": "check, dev",
-          "when": "the stripped file does not parse as a module (check parses all files in one process with vm.SourceTextModule and locates a failure with node --check; dev serves a module that throws with file:line:col)"
+          "tool": "check, dev, dist",
+          "when": "the stripped file does not parse as a module (check parses all files in one process with vm.SourceTextModule and locates a failure with node --check; dev serves a module that throws with file:line:col; dev and dist also report syntax the type stripper refuses, such as enum)"
         }
       ]
     },
@@ -662,7 +662,7 @@
         {
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
-          "tool": "check, dev",
+          "tool": "check, dev, dist",
           "when": "index.html contains a <script type=\"importmap\">; dev refuses to inject a second map and serves an error page naming this code"
         }
       ]
@@ -696,7 +696,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check",
-          "when": "assignment to innerHTML/outerHTML/srcdoc, insertAdjacentHTML, document.write (blocked by the production Trusted Types CSP)"
+          "when": "assignment to innerHTML/outerHTML/srcdoc, insertAdjacentHTML, document.write/writeln, also through el['innerHTML'] (blocked by the production Trusted Types CSP)"
         }
       ]
     },
@@ -740,7 +740,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check (type-aware)",
-          "when": "a value with a zero-parameter call signature (signal or Read) in a template literal, + concatenation or String()"
+          "when": "a value with a zero-parameter call signature (signal or Read) in a template literal"
         }
       ]
     },
@@ -751,7 +751,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "warn",
           "tool": "check (type-aware)",
-          "when": "x() of a signal passed in setup where MaybeRead<T> is accepted or as an h child (h.p(null, count()))"
+          "when": "x() of a signal or Read passed in a component body (the function given to component()) where MaybeRead<T> is accepted or as an h child (h.p(null, count())); show/match/each callbacks are not checked (the runtime's STRICT_READ_UNTRACKED covers them)"
         }
       ]
     },
@@ -784,7 +784,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "warn",
           "tool": "check",
-          "when": "component function without a : Node annotation (ADR-06)"
+          "when": "component function without a return type annotation (: Node) (ADR-06)"
         }
       ]
     },
@@ -828,7 +828,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check, dev, dist",
-          "when": "a relative or root-relative import in the module graph, or the entry index.html imports, names no file (dev prints it when it builds the import map; dist fails); a .js specifier whose .ts exists is TS_EXTENSION instead"
+          "when": "the entry index.html imports names no file (check; a missing relative import inside src/ is tsc's TS2307 there); dev and dist: a relative or root-relative import in the module graph names no file (dev prints it when it builds the import map; dist fails), and dist also when index.html has no inline module script; a .js specifier whose .ts exists is TS_EXTENSION instead"
         }
       ]
     },

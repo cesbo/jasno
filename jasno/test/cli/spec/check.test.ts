@@ -195,27 +195,27 @@ test('correct code stays clean: interface/type readonly, abstract class, `using`
   lacks(fp, 'src/main.ts');
 });
 
-test('NO_TS_CLASS_MODIFIER fires on `readonly` index signatures in a type literal and an interface (spec: "members"; error on correct code)', () => {
+test('NO_TS_CLASS_MODIFIER does not fire on `readonly` index signatures in a type literal and an interface (spec: "members"; error on correct code)', () => {
   clean(fp, 'src/fp-index.ts');
 });
 
-test('NODE_TYPES_IN_BROWSER_CODE fires on the triple-slash text inside a // comment and a string (only a leading directive references types)', () => {
+test('NODE_TYPES_IN_BROWSER_CODE does not fire on the triple-slash text inside a // comment and a string (only a leading directive references types)', () => {
   clean(fp, 'src/fp-triple.ts');
 });
 
-test('FOCUS_STYLE_REMOVED fires on `button:focus:not(:focus-visible) { outline: none }`, which keeps the keyboard focus ring (ADR-24 policy)', () => {
+test('FOCUS_STYLE_REMOVED does not fire on `button:focus:not(:focus-visible) { outline: none }`, which keeps the keyboard focus ring (ADR-24 policy)', () => {
   clean(fp, 'src/fp-focus.ts');
 });
 
-test('USE_ROUTER (warn) fires on a parameter named location that is not window.location (ADR-24 policy)', () => {
+test('USE_ROUTER (warn) does not fire on a parameter named location that is not window.location (ADR-24 policy)', () => {
   clean(fp, 'src/fp-location.ts');
 });
 
-test('USE_ROUTER (error) fires on pushState/replaceState of an object that is not window.history', () => {
+test('USE_ROUTER (error) does not fire on pushState/replaceState of an object that is not window.history', () => {
   clean(fp, 'src/fp-history.ts');
 });
 
-test('WORKER_UNSUPPORTED fires on `new Worker` of a local class', () => {
+test('WORKER_UNSUPPORTED does not fire on `new Worker` of a local class', () => {
   clean(fp, 'src/fp-worker.ts');
 });
 
@@ -223,15 +223,15 @@ test('ASYNC_IN_EFFECT, ANONYMOUS_COMPONENT, COMPONENT_RETURN_TYPE fire on effect
   clean(fp, 'src/fp-names.ts');
 });
 
-test('FOCUS_STYLE_REMOVED fires on a local tag function named css (ADR-24 policy)', () => {
+test('FOCUS_STYLE_REMOVED does not fire on a local tag function named css (ADR-24 policy)', () => {
   clean(fp, 'src/fp-css.ts');
 });
 
-test('CURRENT_TARGET_AFTER_AWAIT fires on a nested handler\'s own `e` created after the await', () => {
+test('CURRENT_TARGET_AFTER_AWAIT does not fire on a nested handler\'s own `e` created after the await', () => {
   lacks(fp, 'src/fp-handlers.ts:5:');
 });
 
-test('CURRENT_TARGET_AFTER_AWAIT fires on a property named `once` (not an on* handler)', () => {
+test('CURRENT_TARGET_AFTER_AWAIT does not fire on a property named `once` (not an on* handler)', () => {
   lacks(fp, 'src/fp-handlers.ts:8:');
 });
 
@@ -239,11 +239,11 @@ test('CURRENT_TARGET_AFTER_AWAIT fires when the only await is in an early-return
   lacks(fp, 'src/fp-handlers.ts:11:');
 });
 
-test('ASYNC_IN_EFFECT fires on an effect that only installs an async event listener with a cleanup (spec wording; ADR-24 policy)', () => {
+test('ASYNC_IN_EFFECT does not fire on an effect that only installs an async event listener with a cleanup (spec wording; ADR-24 policy)', () => {
   clean(fp, 'src/fp-effect.ts');
 });
 
-test('IMPORT_MAP_HANDWRITTEN fires on an import map inside an HTML comment', () => {
+test('IMPORT_MAP_HANDWRITTEN does not fire on an import map inside an HTML comment', () => {
   lacks(fp, 'index.html');
 });
 
@@ -372,7 +372,7 @@ test('NO_TS_CLASS_MODIFIER: protected, public, declare, override members', () =>
   has(fn, 'src/mods.ts:8:3 NO_TS_CLASS_MODIFIER');
 });
 
-test('NO_TS_CLASS_MODIFIER misses `abstract` members (SyntaxKind reverse mapping gives FirstContextualKeyword)', () => {
+test('NO_TS_CLASS_MODIFIER catches `abstract` members (SyntaxKind reverse mapping gives FirstContextualKeyword)', () => {
   has(fn, 'src/mods.ts:5:3 NO_TS_CLASS_MODIFIER');
 });
 
@@ -398,11 +398,11 @@ test('NODE_TYPES_IN_BROWSER_CODE: export * from node:, typeof import(node:)', ()
   has(fn, 'src/nodeimp.ts:2:17 NODE_TYPES_IN_BROWSER_CODE');
 });
 
-test('NODE_TYPES_IN_BROWSER_CODE misses a dynamic import(\'node:fs\') in a browser file (the lexer path runs only without the AST)', () => {
+test('NODE_TYPES_IN_BROWSER_CODE catches a dynamic import(\'node:fs\') in a browser file (the lexer path runs only without the AST)', () => {
   assert.ok(fn.lines.some((l) => l.startsWith('src/nodeimp.ts:3:') && l.includes('NODE_TYPES_IN_BROWSER_CODE')), dump(fn));
 });
 
-test('NODE_TYPES_IN_BROWSER_CODE misses /// <reference types="node" /> in a .d.ts under src/ (Node globals leak into the browser program, ADR-26 C1)', () => {
+test('NODE_TYPES_IN_BROWSER_CODE catches /// <reference types="node" /> in a .d.ts under src/ (Node globals leak into the browser program, ADR-26 C1)', () => {
   has(fn, 'src/env.d.ts:1:1 NODE_TYPES_IN_BROWSER_CODE');
 });
 
@@ -427,7 +427,7 @@ test('CURRENT_TARGET_AFTER_AWAIT in an addEventListener callback', () => {
   has(fn, 'src/handlers.ts:5:73 CURRENT_TARGET_AFTER_AWAIT');
 });
 
-test('CURRENT_TARGET_AFTER_AWAIT misses an h.* method-shorthand handler, an el.onclick = async handler and a for await', () => {
+test('CURRENT_TARGET_AFTER_AWAIT catches an h.* method-shorthand handler, an el.onclick = async handler and a for await', () => {
   assert.ok(fn.lines.some((l) => l.startsWith('src/handlers.ts:3:') && l.includes('CURRENT_TARGET_AFTER_AWAIT')), `method shorthand:\n${dump(fn)}`);
   assert.ok(fn.lines.some((l) => l.startsWith('src/handlers.ts:6:') && l.includes('CURRENT_TARGET_AFTER_AWAIT')), `el.onclick:\n${dump(fn)}`);
   assert.ok(fn.lines.some((l) => l.startsWith('src/handlers.ts:8:') && l.includes('CURRENT_TARGET_AFTER_AWAIT')), `for await:\n${dump(fn)}`);

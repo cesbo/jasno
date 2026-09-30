@@ -111,6 +111,8 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
     /** An await inside a block that ends in return/throw precedes only what is inside that block. */
     const precedes = (a: N, use: N): boolean => {
       if (a.pos > use.pos) return false;
+      // The awaited operand, and a for-await's iterable, are evaluated before the handler pauses.
+      if (contains(a.kind === K.AwaitExpression ? a : (a.expression as N), use)) return false;
       for (let b = a.parent as N; b && b !== fn.body; b = b.parent as N) {
         if (b.kind === K.Block && !contains(b, use)) {
           const last = (b.statements as N[]).at(-1);
@@ -223,7 +225,7 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
       if (isJasno(node.expression, 'component') && node.arguments?.length) {
         const fn = node.arguments[0] as N;
         if (fn.kind === K.ArrowFunction || (fn.kind === K.FunctionExpression && !fn.name)) {
-          at(fn, 'ANONYMOUS_COMPONENT', 'warn', 'component() was given an anonymous function: owner paths and diagnostics show <anonymous>.', 'component(function Card(p: CardProps): Node { ... })');
+          at(fn, 'ANONYMOUS_COMPONENT', 'warn', 'component() was given an anonymous function: owner paths and diagnostics show <Anonymous>.', 'component(function Card(p: CardProps): Node { ... })');
         }
         if ((fn.kind === K.ArrowFunction || fn.kind === K.FunctionExpression) && !fn.type) {
           at(fn, 'COMPONENT_RETURN_TYPE', 'warn', 'Component function without a `: Node` return annotation: an inferred return type can make tsc report TS7022 far away (the route table).', 'component(function Card(p: CardProps): Node { ... })');

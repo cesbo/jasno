@@ -177,7 +177,7 @@ test('bin/jasno.js without package.json: check exits 1 with a stderr message; ex
   assert.match(c.err, /^jasno check: No package\.json/);
   const e = bin(['explain', 'focus_lost'], dir);
   assert.equal(e.status, 0, e.err);
-  assert.match(e.out, /^FOCUS_LOST \(warn;/);
+  assert.match(e.out, /^# FOCUS_LOST\n/); // the repair guide
   assert.equal(e.err, '');
   assert.equal(bin(['explain', '--list'], dir).status, 0);
 });
@@ -343,7 +343,7 @@ test('--json prints the catalogue errors/index.json (design.md (e) explain)', ()
   assert.deepEqual(JSON.parse(r.out), JSON.parse(readFileSync(join(JASNO, 'errors', 'index.json'), 'utf8')));
 });
 
-test('open: the repair guide the runtime points at (docs: node_modules/jasno/errors/CODE.md) exists for every code and ships in the package', { todo: 'errors/<CODE>.md for every code is a v1 exit criterion (15.7); the prototype prints the catalogue row' }, () => {
+test('the repair guide the runtime points at (docs: node_modules/jasno/errors/CODE.md) exists for every code and ships in the package', () => {
   const diag = readFileSync(join(JASNO, 'src', 'diag.ts'), 'utf8');
   assert.match(diag, /node_modules\/jasno\/errors\/\$\{code\}\.md/);
   const pkg = JSON.parse(readFileSync(join(JASNO, 'package.json'), 'utf8')) as { files?: string[] };

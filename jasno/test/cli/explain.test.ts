@@ -9,11 +9,12 @@ const run = (args: Parameters<typeof explain>[0]) => {
   return { code: explain(args, (s) => out.push(s)), out: out.join('\n') };
 };
 
-test('explain CODE prints the catalogue entry (case-insensitive); TS codes map to TS<number>', () => {
+test('explain CODE prints the repair guide without its HTML comments (case-insensitive); TS codes map to TS<number>', () => {
   const r = run({ code: 'focus_lost', list: false, json: false });
   assert.equal(r.code, 0);
-  assert.match(r.out, /^FOCUS_LOST \(warn; Runtime, dev\)\nWhen: /);
-  assert.match(r.out, /\nFix: Keep the control enabled/);
+  assert.match(r.out, /^# FOCUS_LOST\n\n\*\*warn\*\*, runtime, dev builds: /);
+  assert.match(r.out, /\n## Fix\n/);
+  assert.doesNotMatch(r.out, /<!--/);
   assert.match(run({ code: 'TS2835', list: false, json: false }).out, /^TS2835 \(error;/);
   const json = JSON.parse(run({ code: 'SETTLE_TIMEOUT', list: false, json: true }).out) as { code: string; rows: { source: string }[] };
   assert.deepEqual([json.code, json.rows[0]!.source], ['SETTLE_TIMEOUT', 'jasno/testing']);

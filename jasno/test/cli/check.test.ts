@@ -66,6 +66,8 @@ before(async () => {
       'declare function save(): Promise<void>;',
       'export const a = h.button({ onclick: async (e) => { await save(); e.currentTarget.disabled = false; } }, "Save");',
       'export const b = h.button({ onclick: async (e) => { const el = e.currentTarget; await save(); el.disabled = false; } }, "Save");',
+      'declare function send(d: FormData): Promise<void>;',
+      'export const c = h.form({ onsubmit: async (e) => { e.preventDefault(); await send(new FormData(e.currentTarget)); } });',
       '',
     ].join('\n'),
     'src/effects.ts': "import { effect } from 'jasno';\nexport const stop = effect(() => { void fetch('/x'); });\nexport const fine = effect(() => { document.title = 'x'; });\n",
@@ -138,9 +140,10 @@ test('IMPORT_NOT_MAPPED and NODE_TYPES_IN_BROWSER_CODE (a node: import, type-onl
   absent('#config');
 });
 
-test('CURRENT_TARGET_AFTER_AWAIT: only after the first await', () => {
+test('CURRENT_TARGET_AFTER_AWAIT: only after the first await; the awaited operand is read before the pause', () => {
   expect('src/handler.ts:3:67 CURRENT_TARGET_AFTER_AWAIT');
   absent('src/handler.ts:4');
+  absent('src/handler.ts:6'); // await send(new FormData(e.currentTarget)): a false positive until 2026-09-30
 });
 
 test('ASYNC_IN_EFFECT (warn)', () => {
