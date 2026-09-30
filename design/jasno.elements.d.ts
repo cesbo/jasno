@@ -185,9 +185,9 @@ declare module 'jasno' {
     title?: MaybeRead<E['title'] | undefined> | undefined;
     translate?: MaybeRead<E['translate'] | undefined> | undefined;
     writingSuggestions?: MaybeRead<E['writingSuggestions'] | undefined> | undefined;
+    role?: MaybeRead<E['role'] | undefined> | undefined;
     id?: MaybeRead<E['id'] | undefined> | undefined;
     slot?: MaybeRead<E['slot'] | undefined> | undefined;
-    role?: MaybeRead<E['role'] | undefined> | undefined;
     contentEditable?: MaybeRead<E['contentEditable'] | undefined> | undefined;
     enterKeyHint?: MaybeRead<E['enterKeyHint'] | undefined> | undefined;
     inputMode?: MaybeRead<E['inputMode'] | undefined> | undefined;
