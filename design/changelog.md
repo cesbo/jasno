@@ -537,7 +537,7 @@ Criterion 4 has two halves: every check the changelog promises has a fixture, an
 - `test/spec/router-ui.test.ts`: RR-10 (two `back()` calls before the traversal arrives take one step).
 - `test/cli/audit.test.ts`: CL-20, CL-22, C3, CL-24, CL-27, CL-35, C1.
 
-Open: M8 (release packaging) applies once the package ships `.d.ts` (CL-12). The browser half of U-K1 (inline edit, Enter and Escape) is covered by the kanban pilot's e2e (below).
+M8 (release packaging): applied 2026-09-30 (Packaging, PK-5). The browser half of U-K1 (inline edit, Enter and Escape) is covered by the kanban pilot's e2e (below).
 
 **Pilot apps.** The six v1 apps were rebuilt on jasno in `../pilots/` (contacts, todo-timers, dashboard, wizard, kanban, chat; about 1,900 lines of app code), each by an agent that read only `AGENTS.md`, `jasno.d.ts` and `jasno.elements.d.ts`. All six pass every rung: `jasno check --strict` clean, `npm test` (42 component tests), Playwright under `jasno dev` in Chromium, Firefox and WebKit (90 tests: 30 specs × 3), and `jasno dist --condition development` + `jasno preview` (the same 90). No app needed a diagnostic in `expect`; with correct code no runtime diagnostic fired. Planted mistakes were caught with the right hint: `FOCUS_LOST` (5 apps), `STRICT_READ_UNTRACKED`, `KEY_ACTIVATES_NEW_FOCUS`, `INTERACTIVE_NO_NAME`. Every app's first tsconfig drew `TSCONFIG_DRIFT`, and its messages named each value. Rung 4 checks page errors only, because the shipped build has no `window.__JASNO__` (CL-03). Workarounds removed after the fixes below: contacts and dashboard e2e no longer wait for the first view before clicking, kanban's test file no longer wraps `dialog.close()`, and wizard's placeholder option is plain `h.option({ value: '' }, …)`.
 
@@ -581,3 +581,20 @@ A calibration comparison against React and Solid (`../compare/results/REPORT.md`
 | P-T1 | jasno library-loans, support-inbox | testing gap | accepted | Asserting a state that lasts while a test holds a loader ("Loading") had no pattern: `settled()` waits for the loader and times out, so both builders wrote a polling helper. `jasno/testing` exports `waitFor(check, { timeout })` with Testing Library's meaning: flush and retry until `check` stops throwing (real timers), then return its result; RECIPES Route tests mentions it. |
 
 A Grok pilot on 2026-09-29 (`grok-4.7`, the same tasks, templates, guide snapshots and hidden tests; docs plus `check` and unit tests, no browser; `../compare/harness/agent.mjs`, one run per cell) found no sign that jasno's docs fail for another vendor's model: 153 of 156 hidden tests for jasno and for React, 156 for Solid, at $7.96, $7.38 and $9.85. It also exposed a hidden-test artifact: `getByLabel(name, { exact: true })` compares the whole label text, so a `<select>` wrapped in its `<label>` did not match its own name, which Chromium's accessibility tree and Playwright's `getByRole` compute from the label text alone. The locators now use `getByRole('combobox', { name })`; every run was rescored (Claude still 100%). Tests locate controls by role and accessible name.
+
+## Eval arms decided (2026-09-30)
+
+The powered eval of arms A–H (design 15.6: at least five models, about 250 samples per variant) will not run before v1. The arms are decided as the design has them: A `h.div`, B `onclick`, C Angular names where the meaning matches, D `Read<T>` props, E microtask flush, F the full `resource` status set, G `each(list, { key, render })`, H frozen values (design.md "Eval plan"). The evidence is indirect: the pilots, the React and Solid calibration and the Grok pilot built working apps from the guide without leaked idioms, but no run compared two variants of one arm. Revisiting a choice after v1 goes through the version policy (stub plus codemod).
+
+## Packaging (2026-09-30)
+
+`jasno/scripts/build-package.mjs` builds the publishable package into `release/` (`npm run build:package`); `scripts/test-package.mjs` (`npm run test:package`) installs the tarball into a copy of the example and runs every rung in three browsers with the installed CLI. The repository keeps running from the TypeScript sources.
+
+| ID | Source | Severity | Outcome | What / why |
+|---|---|---|---|---|
+| PK-1 | packaging | bug | accepted | The package ships JavaScript: Node refuses type stripping under `node_modules`, so the prototype's `exports` to `src/*.ts` (and `bin` importing `cli/main.ts`) worked only through a `file:` symlink. Closes CL-12's "the package will ship prod.js/router.js". |
+| PK-2 | packaging | design | accepted | `jasno/internal` (the same file as `jasno` per condition) carries the internals `jasno/router` and `jasno/testing` import, so separate bundles share one reactive system; `src/internal.ts` names them, and the build checks that every imported internal is exported by both bundles. |
+| PK-3 | packaging | deviation | accepted | `jasno/router` has a `development` target (`router.dev.js`), unlike design (f)'s abridged `{ types, default }`: each flavor inlines `DEV`. |
+| PK-4 | packaging | bug | accepted | esbuild folds neither an imported nor a top-level constant, so `prod.js` first carried the whole dev build (`__JASNO__`, graph and why); the build drops the `#dev` import and substitutes `DEV` with `define`, and fails if `__JASNO__` reaches `prod.js` or `router.js`. |
+| PK-5 | packaging | design | accepted | The published types come from the curated `jasno.d.ts`, not `--isolatedDeclarations` on the sources (whose types are internal, e.g. `resource(): unknown`); non-exported values get `declare`, the elements become an augmentation without `export {}`. The main file is `dist/jasno.d.ts`, which closes doc question 27. M8 now applies: the release check type-checks the example against the tarball with `skipLibCheck` off. |
+

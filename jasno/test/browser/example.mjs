@@ -8,8 +8,9 @@ const preview = process.argv[2] === 'preview';
 const historyAdapter = process.argv[2] === 'history';
 const PORT = preview ? 5198 : historyAdapter ? 5197 : 5199;
 const base = `http://127.0.0.1:${PORT}`;
-const jasno = new URL('../../bin/jasno.js', import.meta.url).pathname;
-const cwd = new URL('../../../design/example', import.meta.url).pathname;
+// EXAMPLE_DIR and JASNO_BIN point the probe at a copy of the example that installed the packed tarball (test-package).
+const jasno = process.env.JASNO_BIN ?? new URL('../../bin/jasno.js', import.meta.url).pathname;
+const cwd = process.env.EXAMPLE_DIR ?? new URL('../../../design/example', import.meta.url).pathname;
 if (preview) {
   const built = spawnSync('node', [jasno, 'dist', '--condition', 'development'], { cwd, stdio: 'inherit' });
   if (built.status !== 0) process.exit(1);
@@ -71,7 +72,7 @@ for (const [name, type] of [['chromium', chromium], ['firefox', firefox], ['webk
     if (preview) {
       ok(await page.evaluate(() => window.__JASNO__ === undefined), 'production build: no __JASNO__');
       const hashed = await page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname).filter((p) => /\.[0-9a-f]{10}\.js$/.test(p)));
-      ok(hashed.some((p) => p.startsWith('/src/views/user.')) && hashed.some((p) => p.startsWith('/jasno/src/')), `modules load from hashed URLs (${hashed.length})`);
+      ok(hashed.some((p) => p.startsWith('/src/views/user.')) && hashed.some((p) => p.startsWith('/jasno/')), `modules load from hashed URLs (${hashed.length})`);
       ok(!(await page.evaluate(() => performance.getEntriesByType('resource').some((e) => new URL(e.name).pathname.endsWith('.ts')))), 'no .ts request');
     } else {
       const diags = await page.evaluate(() => window.__JASNO__?.diagnostics().map((d) => d.message));
