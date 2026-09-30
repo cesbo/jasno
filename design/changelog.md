@@ -598,3 +598,15 @@ The powered eval of arms A–H (design 15.6: at least five models, about 250 sam
 | PK-4 | packaging | bug | accepted | esbuild folds neither an imported nor a top-level constant, so `prod.js` first carried the whole dev build (`__JASNO__`, graph and why); the build drops the `#dev` import and substitutes `DEV` with `define`, and fails if `__JASNO__` reaches `prod.js` or `router.js`. |
 | PK-5 | packaging | design | accepted | The published types come from the curated `jasno.d.ts`, not `--isolatedDeclarations` on the sources (whose types are internal, e.g. `resource(): unknown`); non-exported values get `declare`, the elements become an augmentation without `export {}`. The main file is `dist/jasno.d.ts`, which closes doc question 27. M8 now applies: the release check type-checks the example against the tarball with `skipLibCheck` off. |
 
+## Template (2026-09-30)
+
+`create-jasno` (`npm create jasno <dir>`) scaffolds a project; `jasno/scripts/test-template.mjs` (`npm run test:template`) scaffolds against the packed tarball and runs `check --strict`, `npm test`, `npm run e2e` in three engines and the preview rung, all green on the first run.
+
+| ID | Source | Severity | Outcome | What / why |
+|---|---|---|---|---|
+| TP-1 | pilots P-G1, comparison | doc gap | accepted | The template exists: tsconfigs, `tsconfig.test.json` covering `e2e` and `playwright.config.ts`, the Playwright config with the `JASNO_E2E` switch, the `e2e` script and the diagnostics `afterEach`, which every pilot and builder had to invent. It is the minimal working subset of design (f). |
+| TP-2 | template | detail | accepted | The e2e `afterEach` fails when `window.__JASNO__` is missing under `jasno dev`, so the diagnostics check cannot pass vacuously; a planted view without an h1 failed with `VIEW_NO_HEADING`. |
+| TP-3 | template | deviation | accepted | CI installs all three Playwright engines, not only Chromium as M4's text had: the config lists three, and P-R1 and P-R2 were Firefox and WebKit bugs. CI runs `npm ci` once the lockfile is committed and `npm install` before. |
+| TP-4 | kanban pilot | hint | accepted | The missing-tsconfig hint says "Start from npm create jasno, or copy its tsconfig.json" instead of pointing at docs that had no template. |
+| TP-5 | template | drift guard | accepted | `test:template` fails when `create-jasno` does not pack a template file (npm drops dotfiles, so the template stores `_gitignore` and renames on copy), when its version differs from jasno's, or when its AGENTS.md block differs from `design/AGENTS.md`. |
+

@@ -699,6 +699,8 @@ my-app/
   public/             files served at the site root (robots.txt, favicon.ico), copied unhashed to the root of dist/
 ```
 
+`npm create jasno <dir>` (the `create-jasno` package, `create-jasno/` in the repository, 2026-09-30) scaffolds the minimal working subset of this tree: `index.html`, `package.json` (scripts as below, `jasno` at its own exact version), both tsconfigs, `playwright.config.ts` (Chromium, Firefox, WebKit), `.gitattributes`, `.gitignore`, `.nvmrc`, the AGENTS.md block, `CLAUDE.md`, a CI workflow, `src/main.ts`, `app.ts`, `routes.ts`, `views/home.ts` and `views/about.ts`, one component test and an e2e spec whose `afterEach` fails on page errors and on dev diagnostics (and on a missing `window.__JASNO__` under `jasno dev`, so the check cannot pass vacuously). The rest of the tree (`state.ts`, `api.ts`, `#config`, `components/`, `assets/`, `public/`) is where an app grows. `npm run test:template` in `jasno/` scaffolds against the packed tarball and runs every rung with the template's own scripts.
+
 Conventions: `export const Name = component(function Name(p: NameProps): Node { ... })` with an exported `NameProps`; data props `Read<T>`, optional props `?: Read<T> | undefined`, callbacks plain functions, maybe-rendered content as `() => Child` props; kebab-case file names; relative imports with `.ts`; `import type` for types; packages by bare name; no barrel files (module budget); app-wide state in plain modules; styles colocated with `css` under a component-named root class that the component sets itself; route patterns only in `routes.ts`, URLs from `router.href` or relative `?q=` hrefs; a detail over a list is a search param on the list's route, closed with `router.back()`; per-param work lives in a `match` body keyed on the param; everything under `src/` is public.
 
 `index.html`:
@@ -777,7 +779,7 @@ Conventions: `export const Name = component(function Name(p: NameProps): Node { 
 
 `playwright.config.ts` (template): `const preview = process.env.JASNO_E2E === 'preview';` then `webServer: { command: preview ? 'npm run preview' : 'npm run dev', url: preview ? 'http://127.0.0.1:4173' : 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI }` and the same URL as `use.baseURL`. Playwright's `webServer` is a top-level option (a list starts every server), so v2's per-project servers could not work; one variable picks the server and the same tests run against both.
 
-Scaffolded CI (M4): Node from `.nvmrc`; `npm ci`; `npx playwright install --with-deps chromium`; `npm run check -- --strict`; `npm test`; `npm run e2e`; `npm run dist && JASNO_E2E=preview npm run e2e`.
+Scaffolded CI (M4): Node from `.nvmrc`; `npm ci` once `package-lock.json` is committed (`npm install` before, so the first push is green; `create-jasno` says to commit the lockfile); `npx playwright install --with-deps` (all three engines, as the config lists them: the recipe bugs P-R1 and P-R2 showed only in Firefox and WebKit); `npm run check -- --strict`; `npm test`; `npm run e2e`; `npm run dist && JASNO_E2E=preview npm run e2e`.
 
 ---
 

@@ -1,0 +1,17 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      # npm ci once package-lock.json is committed
+      - run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - run: npx playwright install --with-deps
+      - run: npm run check -- --strict
+      - run: npm test
+      - run: npm run e2e
+      - run: npm run dist && JASNO_E2E=preview npm run e2e
