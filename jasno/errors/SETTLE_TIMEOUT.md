@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # SETTLE_TIMEOUT
 
-**test failure**, jasno/testing: settled() timed out.
+**test failure**, @jasno/core/testing: settled() timed out.
 
 - Message: `settled() timed out after {ms} ms; pending: {list}.`
 - Hint: Stub fetch or provide a fake service; raise timeout only for slow real work.
@@ -23,8 +23,8 @@
 ```ts
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { component, createContext, h, provide, resource, useContext } from 'jasno';
-import { mountTest, settled, waitFor } from 'jasno/testing';
+import { component, createContext, h, provide, resource, useContext } from '@jasno/core';
+import { mountTest, settled, waitFor } from '@jasno/core/testing';
 
 interface Api { listBooks(signal: AbortSignal): Promise<readonly string[]> }
 const ApiContext = createContext<Api>('Api');

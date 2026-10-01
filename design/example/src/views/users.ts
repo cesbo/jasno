@@ -1,4 +1,4 @@
-import { component, h, resource, show } from 'jasno';
+import { component, h, resource, show } from '@jasno/core';
 import { listUsers } from '#api';
 import { UserList } from '../components/user-list.ts';
 import { router } from '../routes.ts';

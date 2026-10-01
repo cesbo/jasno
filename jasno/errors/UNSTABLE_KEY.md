@@ -21,7 +21,7 @@ The key function given to `each()` returned two different keys for the same item
 ## Example
 
 ```ts
-import { component, each, h, type Read } from 'jasno';
+import { component, each, h, type Read } from '@jasno/core';
 
 interface Todo { readonly id: string; readonly text: string }
 

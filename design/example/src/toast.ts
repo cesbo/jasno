@@ -1,4 +1,4 @@
-import { component, createContext, css, each, h, onMount, type Read } from 'jasno';
+import { component, createContext, css, each, h, onMount, type Read } from '@jasno/core';
 
 /** Shows a short status message. App provides it; any component below reads it with useContext. */
 export type Toast = (message: string) => void;

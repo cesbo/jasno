@@ -1,6 +1,6 @@
 // AGENTS.md "Routing" inline forms: the app shell, per-param work in a match body, closing a detail.
-import { component, h, match, onMount } from 'jasno';
-import type { ViewProps } from 'jasno/router';
+import { component, h, match, onMount } from '@jasno/core';
+import type { ViewProps } from '@jasno/core/router';
 import { router } from './routes.ts';
 
 const nav = h.nav({ 'aria-label': 'Main' }, h.a({ href: router.href('/') }, 'Home'));

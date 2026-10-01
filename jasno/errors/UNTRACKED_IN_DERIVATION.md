@@ -19,7 +19,7 @@ A `computed()` or a live binding function ran and read every signal through `unt
 ## Example
 
 ```ts
-import { component, computed, h, untracked, type Read } from 'jasno';
+import { component, computed, h, untracked, type Read } from '@jasno/core';
 
 // Wrong: the computed reads only through untracked(); the heading never changes
 export const TitleWrong = component(function TitleWrong(p: { name: Read<string> }): Node {

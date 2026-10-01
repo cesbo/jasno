@@ -17,7 +17,7 @@ An exported function with a PascalCase name returns `Node` but is not wrapped in
 ## Example
 
 ```ts
-import { component, h, onMount, signal, type Read } from 'jasno';
+import { component, h, onMount, signal, type Read } from '@jasno/core';
 
 export interface ClockProps { label: Read<string> }
 

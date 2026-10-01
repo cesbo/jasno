@@ -1,4 +1,4 @@
-import { createRouter, route } from 'jasno/router';
+import { createRouter, route } from '@jasno/core/router';
 import { getUser } from '#api';
 import { ErrorPanel } from './components/error-panel.ts';
 import { NotFound } from './views/not-found.ts';

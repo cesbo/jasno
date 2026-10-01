@@ -5,9 +5,9 @@ import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { component, computed, h, match, mount, onMount, show, signal, type Read } from 'jasno';
-import { createRouter, route } from 'jasno/router';
-import { mountTest, settled } from 'jasno/testing';
+import { component, computed, h, match, mount, onMount, show, signal, type Read } from '@jasno/core';
+import { createRouter, route } from '@jasno/core/router';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred } from '../helpers.ts';
 
 type Ctx = TestContext;
@@ -577,7 +577,7 @@ test('B17.18 back() resolves with the traversal\'s result, after the previous ro
 });
 
 /**
- * Runs an ES module snippet in a child process with happy-dom and without jasno/testing: a promise that never settles
+ * Runs an ES module snippet in a child process with happy-dom and without @jasno/core/testing: a promise that never settles
  * there cannot hang settled() in this process. Returns the last line printed.
  */
 function isolated(code: string): string {
@@ -590,8 +590,8 @@ function isolated(code: string): string {
 
 test('B17.18 two back() calls before the first traversal arrives both settle (the first is not lost)', () => {
   const out = isolated(`
-    import { component, h, mount } from 'jasno';
-    import { createRouter, route } from 'jasno/router';
+    import { component, h, mount } from '@jasno/core';
+    import { createRouter, route } from '@jasno/core/router';
     const view = (name) => async () => ({ default: component(function V() { return h.h1(null, name); }) });
     const router = createRouter([route('/', { view: view('home') }), route('/b', { view: view('b') }), route('/c', { view: view('c') })],
       { error: () => h.p(null, 'error'), notFound: () => h.p(null, 'not found') });
@@ -618,8 +618,8 @@ test('B17.18 two back() calls before the first traversal arrives both settle (th
 
 test('RR-10: two back() calls before the traversal arrives take one step, not two', () => {
   const out = isolated(`
-    import { component, h, mount } from 'jasno';
-    import { createRouter, route } from 'jasno/router';
+    import { component, h, mount } from '@jasno/core';
+    import { createRouter, route } from '@jasno/core/router';
     const view = (name) => async () => ({ default: component(function V() { return h.h1(null, name); }) });
     const router = createRouter([route('/', { view: view('home') }), route('/b', { view: view('b') }), route('/c', { view: view('c') })],
       { error: () => h.p(null, 'error'), notFound: () => h.p(null, 'not found') });

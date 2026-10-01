@@ -21,7 +21,7 @@ An effect, `onMount` callback, resource or component was created while no owner 
 ## Example
 
 ```ts
-import { createRoot, resource } from 'jasno';
+import { createRoot, resource } from '@jasno/core';
 
 interface Session { readonly user: string }
 declare function getSession(abortSignal: AbortSignal): Promise<Session | null>;

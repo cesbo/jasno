@@ -6,8 +6,8 @@ import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRoot, effect, flush, h, show, signal } from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+import { createRoot, effect, flush, h, show, signal } from '@jasno/core';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture } from '../helpers.ts';
 
 test('U-DG8: update() in an effect that writes an observed signal reports EFFECT_WRITES_STATE, like set()', () => {
@@ -40,7 +40,7 @@ test('RP-10: FOCUS_LOST is reported once per element, action, owner path and cau
   assert.equal(lost[0]!.count, 2);
 });
 
-test('RP-18: jasno/testing/happy-dom focuses [autofocus] on showModal() and returns focus to the opener on close()', (t) => {
+test('RP-18: @jasno/core/testing/happy-dom focuses [autofocus] on showModal() and returns focus to the opener on close()', (t) => {
   const v = mountTest(t, () => {
     const opener = h.button({ type: 'button', onclick: () => dialog.showModal() }, 'Open');
     const dialog = h.dialog({ 'aria-label': 'Confirm' }, h.button({ type: 'button' }, 'Other'), h.button({ type: 'button', autofocus: true }, 'OK'));
@@ -54,7 +54,7 @@ test('RP-18: jasno/testing/happy-dom focuses [autofocus] on showModal() and retu
   assert.equal(document.activeElement, opener);
 });
 
-test('jasno/testing/happy-dom: close() returns focus before the close event, so onclose may move it; returnValue is kept (pilots kanban B1, contacts G2)', (t) => {
+test('@jasno/core/testing/happy-dom: close() returns focus before the close event, so onclose may move it; returnValue is kept (pilots kanban B1, contacts G2)', (t) => {
   const v = mountTest(t, () => {
     const opener = h.button({ type: 'button', onclick: () => dialog.showModal() }, 'Open');
     const heading = h.h2({ tabIndex: -1 }, 'Board');
@@ -83,7 +83,7 @@ test('V2-17, E8: tools/gen-elements.cjs regenerates the element region of jasno.
   rmSync(dirname(copy), { recursive: true });
 });
 
-test('jasno/testing/happy-dom: AbortSignal.timeout() does not keep node alive (pilots chat B1, contacts B2)', () => {
+test('@jasno/core/testing/happy-dom: AbortSignal.timeout() does not keep node alive (pilots chat B1, contacts B2)', () => {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const started = performance.now();
   const r = spawnSync(process.execPath, ['--import', './src/happy-dom.ts', '-e', 'AbortSignal.timeout(20_000)'], { cwd: root, encoding: 'utf8', timeout: 15_000 });

@@ -1,4 +1,4 @@
-import { component, computed, css, each, flush, h, linkedSignal, selector, show, signal, type Read } from 'jasno';
+import { component, computed, css, each, flush, h, linkedSignal, selector, show, signal, type Read } from '@jasno/core';
 import type { User } from '../api.ts';
 
 export interface UserListProps {

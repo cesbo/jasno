@@ -16,7 +16,7 @@ const BASE = {
   'index.html': INDEX,
   'tsconfig.json': JSON.stringify({ compilerOptions: OPTIONS, include: [DTS, 'src'], exclude: ['src/**/*.test.ts'] }),
   'tsconfig.test.json': JSON.stringify({ extends: './tsconfig.json', compilerOptions: { types: ['node'] }, include: [DTS, 'src/**/*.test.ts'], exclude: [] }),
-  'src/main.ts': "import { mount } from 'jasno';\nimport config from '#config';\nawait Promise.resolve();\nexport { mount, config };\n",
+  'src/main.ts': "import { mount } from '@jasno/core';\nimport config from '#config';\nawait Promise.resolve();\nexport { mount, config };\n",
   'src/config.ts': 'export default { api: "/api" };\n',
 };
 
@@ -59,10 +59,10 @@ before(async () => {
       '}',
       '',
     ].join('\n'),
-    'src/imports.ts': "import pad from 'left-pad';\nimport { mountTest } from 'jasno/testing';\nimport { readFileSync } from 'node:fs';\nimport type { Stats } from 'node:fs';\nexport { pad, mountTest, readFileSync };\nexport type { Stats };\n",
+    'src/imports.ts': "import pad from 'left-pad';\nimport { mountTest } from '@jasno/core/testing';\nimport { readFileSync } from 'node:fs';\nimport type { Stats } from 'node:fs';\nexport { pad, mountTest, readFileSync };\nexport type { Stats };\n",
     'src/reference.ts': '/// <reference types="node" />\nexport const x = 1;\n',
     'src/handler.ts': [
-      "import { h } from 'jasno';",
+      "import { h } from '@jasno/core';",
       'declare function save(): Promise<void>;',
       'export const a = h.button({ onclick: async (e) => { await save(); e.currentTarget.disabled = false; } }, "Save");',
       'export const b = h.button({ onclick: async (e) => { const el = e.currentTarget; await save(); el.disabled = false; } }, "Save");',
@@ -70,9 +70,9 @@ before(async () => {
       'export const c = h.form({ onsubmit: async (e) => { e.preventDefault(); await send(new FormData(e.currentTarget)); } });',
       '',
     ].join('\n'),
-    'src/effects.ts': "import { effect } from 'jasno';\nexport const stop = effect(() => { void fetch('/x'); });\nexport const fine = effect(() => { document.title = 'x'; });\n",
+    'src/effects.ts': "import { effect } from '@jasno/core';\nexport const stop = effect(() => { void fetch('/x'); });\nexport const fine = effect(() => { document.title = 'x'; });\n",
     'src/components.ts': [
-      "import { component, h, signal } from 'jasno';",
+      "import { component, h, signal } from '@jasno/core';",
       'export function Card(): Node { return h.div(null); }',
       "export const Anon = component(() => h.div(null));",
       'export const Named = component(function Named(): Node {',
@@ -81,8 +81,8 @@ before(async () => {
       '});',
       '',
     ].join('\n'),
-    'src/signals.ts': "import { signal } from 'jasno';\nconst count = signal(0);\nexport const a = `n=${count}`;\nexport const b = 'n=' + count;\nexport const c = String(count);\nexport const ok = `n=${count()}`;\n",
-    'src/styles.ts': "import { css, h } from 'jasno';\nexport const sheet = css`\n  button { outline: none; }\n  .card { outline: 0; }\n  .link { color: red; }\n`;\nexport const b = h.button({ class: 'card primary' }, 'x');\n",
+    'src/signals.ts': "import { signal } from '@jasno/core';\nconst count = signal(0);\nexport const a = `n=${count}`;\nexport const b = 'n=' + count;\nexport const c = String(count);\nexport const ok = `n=${count()}`;\n",
+    'src/styles.ts': "import { css, h } from '@jasno/core';\nexport const sheet = css`\n  button { outline: none; }\n  .card { outline: 0; }\n  .link { color: red; }\n`;\nexport const b = h.button({ class: 'card primary' }, 'x');\n",
     'src/dup.ts': 'export const x = 1;\nexport { x as y };\nexport { x as y };\n',
     'src/stripfail.ts': 'enum E { A }\nexport { E };\n',
     'src/main.test.ts': "import { test } from 'node:test';\nimport { mount } from './main';\ntest('x', () => { void mount; });\n",
@@ -187,13 +187,13 @@ test('a clean project passes; warnings fail only under --strict (or CI)', async 
   const clean = await run(BASE);
   assert.equal(clean.code, 0, clean.lines.join('\n'));
   assert.deepEqual(clean.lines, ['typescript 7.0.2', 'jasno check: 0 errors, 0 warnings.']);
-  const warn = { ...BASE, 'src/effects.ts': "import { effect } from 'jasno';\nexport const stop = effect(() => { void fetch('/x'); });\n" };
+  const warn = { ...BASE, 'src/effects.ts': "import { effect } from '@jasno/core';\nexport const stop = effect(() => { void fetch('/x'); });\n" };
   assert.equal((await run(warn)).code, 0);
   assert.equal((await run(warn, { strict: true })).code, 1);
 });
 
 test('a :focus-visible rule anywhere in the program lifts FOCUS_STYLE_REMOVED', async () => {
-  const r = await run({ ...BASE, 'src/styles.ts': "import { css } from 'jasno';\nexport const a = css`button { outline: none; }`;\nexport const b = css`:focus-visible { outline: 2px solid; }`;\n" });
+  const r = await run({ ...BASE, 'src/styles.ts': "import { css } from '@jasno/core';\nexport const a = css`button { outline: none; }`;\nexport const b = css`:focus-visible { outline: 2px solid; }`;\n" });
   assert.ok(!r.lines.some((l) => l.includes('FOCUS_STYLE_REMOVED')), r.lines.join('\n'));
 });
 
@@ -245,7 +245,7 @@ test('TS2835 suggestions name .ts; TS2554 on a component call adds the children 
     ...BASE,
     'tsconfig.json': JSON.stringify({ compilerOptions: { ...OPTIONS, allowImportingTsExtensions: true }, include: [DTS, 'src'], exclude: ['src/**/*.test.ts'] }),
     'src/noext.ts': "import { mount } from './main';\nexport { mount };\n",
-    'src/card.ts': "import { component, h } from 'jasno';\nexport const Card = component(function Card(p: { title: string }): Node { return h.div(null, p.title); });\nexport const c = Card({ title: 'x' }, h.p(null));\n",
+    'src/card.ts': "import { component, h } from '@jasno/core';\nexport const Card = component(function Card(p: { title: string }): Node { return h.div(null, p.title); });\nexport const c = Card({ title: 'x' }, h.p(null));\n",
   });
   assert.ok(r.lines.some((l) => l.startsWith('src/noext.ts:1:23 TS2835') && l.includes("'./main.ts'")), r.lines.join('\n'));
   assert.ok(r.lines.some((l) => l.includes('TS2554') && l.includes('children go in the props object')), r.lines.join('\n'));
@@ -255,13 +255,13 @@ test('TS7022 on the router export: COMPONENT_RETURN_TYPE findings print first, t
   const r = await run({
     ...BASE,
     'src/routes.ts': [
-      "import { createRouter, route } from 'jasno/router';",
+      "import { createRouter, route } from '@jasno/core/router';",
       'export const router = createRouter([',
       "  route('/x', { view: () => import('./x.ts'), loader: async () => ({ name: 'x' }), title: (d) => d.name }),",
       "], { error: () => 'error', notFound: () => 'not found' });",
       '',
     ].join('\n'),
-    'src/x.ts': "import { component, h } from 'jasno';\nimport { router } from './routes.ts';\nexport default component(function X() { return h.a({ href: router.href('/x') }, 'x'); });\n",
+    'src/x.ts': "import { component, h } from '@jasno/core';\nimport { router } from './routes.ts';\nexport default component(function X() { return h.a({ href: router.href('/x') }, 'x'); });\n",
   });
   const codes = r.lines.slice(1, -1).map((l) => l.split(' ')[1]);
   assert.ok(codes.includes('TS7022'), r.lines.join('\n'));
@@ -272,7 +272,7 @@ test('TS7022 on the router export: COMPONENT_RETURN_TYPE findings print first, t
 test('FILE_NOT_PUBLISHED at rung 1: browser code importing a module outside src/ or a test file', async () => {
   const r = await run({
     ...BASE,
-    'src/main.ts': "import { mount } from 'jasno';\nimport { secret } from '../server/env.ts';\nimport { fixture } from './helpers.test.ts';\nexport { mount, secret, fixture };\n",
+    'src/main.ts': "import { mount } from '@jasno/core';\nimport { secret } from '../server/env.ts';\nimport { fixture } from './helpers.test.ts';\nexport { mount, secret, fixture };\n",
     'server/env.ts': "export const secret = 'x';\n",
     'src/helpers.test.ts': 'export const fixture = 1;\n',
   });

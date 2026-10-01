@@ -20,7 +20,7 @@ A `show` or `match` branch, an `each` row or a `catchError` fallback returned an
 ## Example
 
 ```ts
-import { component, h, show, type Read } from 'jasno';
+import { component, h, show, type Read } from '@jasno/core';
 
 interface HelpProps { open: Read<boolean>; text: Read<string> }
 

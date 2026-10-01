@@ -27,8 +27,8 @@ Navigate only while the app with the outlet is mounted:
 ```ts
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Router } from 'jasno/router';
-import { mountTest, settled } from 'jasno/testing';
+import type { Router } from '@jasno/core/router';
+import { mountTest, settled } from '@jasno/core/testing';
 
 declare const router: Router<'/' | '/users/:id'>;
 declare function App(): Node;

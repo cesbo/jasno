@@ -18,7 +18,7 @@ Call `useContext` in the component body (or in `onMount`, which runs with the co
 ## Example
 
 ```ts
-import { component, createContext, h, useContext } from 'jasno';
+import { component, createContext, h, useContext } from '@jasno/core';
 
 const Toast = createContext<(msg: string) => void>('Toast');
 declare function save(): Promise<void>;

@@ -15,7 +15,7 @@ const app = project({
   'package.json': JSON.stringify({ name: 'app', type: 'module', dependencies: { 'dep-esm': '1' } }),
   'index.html': INDEX,
   'src/main.ts': [
-    "import { h, mount } from 'jasno';",
+    "import { h, mount } from '@jasno/core';",
     "import { mode } from 'dep-esm';",
     "import data from './data.json' with { type: 'json' };",
     "const lazy = (): Promise<string> => import('./views/lazy.ts').then((m) => m.default);",

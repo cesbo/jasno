@@ -6,13 +6,13 @@
   "scripts": {
     "check": "jasno check",
     "explain": "jasno explain",
-    "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
+    "test": "node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
     "dev": "jasno dev",
     "dist": "jasno dist",
     "preview": "jasno preview",
     "e2e": "playwright test"
   },
-  "dependencies": { "jasno": "__JASNO__" },
+  "dependencies": { "@jasno/core": "__JASNO__" },
   "devDependencies": {
     "typescript": "~7.0.2",
     "happy-dom": "^20.14.5",

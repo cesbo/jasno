@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   catchError, component, createContext, each, effect, flush, h, match, mount, onMount, provide, show, signal, svg, useContext,
-} from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf } from './helpers.ts';
 
 const texts = (root: Element, sel = 'li') => [...root.querySelectorAll(sel)].map((n) => n.textContent);

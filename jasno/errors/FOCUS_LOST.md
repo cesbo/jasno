@@ -22,7 +22,7 @@ Decide where focus goes before the update takes the focused element away:
 ## Example
 
 ```ts
-import { component, h, signal } from 'jasno';
+import { component, h, signal } from '@jasno/core';
 
 declare function save(): Promise<void>;
 

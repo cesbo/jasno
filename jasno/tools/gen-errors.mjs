@@ -1,5 +1,5 @@
 // Generates errors/index.json (the catalogue jasno explain prints) from design.md section (c): one entry per code
-// with its table (runtime, jasno/testing, CLI) and columns, and the generated header of every errors/<CODE>.md.
+// with its table (runtime, @jasno/core/testing, CLI) and columns, and the generated header of every errors/<CODE>.md.
 // Run: node tools/gen-errors.mjs (importing it writes nothing).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
@@ -36,7 +36,7 @@ export function header(entry) {
     // 'dev', 'dev + prod', and either with a parenthetical note ('dev (the reload happens in both builds)').
     const [, build = '', note] = /^(dev \+ prod|dev)\s*(?:\((.*)\))?$/.exec(r.build ?? '') ?? [];
     const where = r.source === 'Runtime' ? `runtime, ${build === 'dev' ? 'dev builds' : 'dev and production builds'}${note ? ` (${note})` : ''}`
-      : r.source === 'jasno/testing' ? 'jasno/testing' : `reported by jasno ${r.tool.split(/,\s*/).join(', jasno ')}`;
+      : r.source === '@jasno/core/testing' ? '@jasno/core/testing' : `reported by jasno ${r.tool.split(/,\s*/).join(', jasno ')}`;
     lines.push(`**${r.severity}**, ${where}: ${when}.`, '');
     if (r.message) lines.push(`- Message: \`${r.message}\``);
     if (r.hint) lines.push(`- Hint: ${r.hint}`);

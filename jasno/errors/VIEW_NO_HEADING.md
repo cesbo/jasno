@@ -20,8 +20,8 @@ After a navigation the router moves focus into the new view: to its first visibl
 ## Example
 
 ```ts
-import { component, h, resource, show } from 'jasno';
-import type { ViewProps } from 'jasno/router';
+import { component, h, resource, show } from '@jasno/core';
+import type { ViewProps } from '@jasno/core/router';
 
 interface User { readonly id: string; readonly name: string }
 declare function getUser(id: string, signal: AbortSignal): Promise<User>;

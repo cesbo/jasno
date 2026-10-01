@@ -315,7 +315,7 @@ export const hooks: {
   handlerPromise: ((p: Promise<unknown>, what: string) => void) | undefined;
   flushStart: (() => void) | undefined;
   flushEnd: (() => void) | undefined;
-  /** jasno/router registers its state for __JASNO__.router(). */
+  /** @jasno/core/router registers its state for __JASNO__.router(). */
   routerInfo: (() => unknown) | undefined;
   /** A router navigation that will move focus: the focus-loss check waits for it (B20.2). */
   focusPending: (() => Promise<unknown> | undefined) | undefined;
@@ -495,7 +495,7 @@ export function brand<F extends Function>(fn: F, n: RNode): F {
 }
 export const nodeOf = (fn: Function): RNode | undefined => nodeOfFn.get(fn);
 
-/** Signals created outside any owner (dev): jasno/testing resets them after each test (B19.5). */
+/** Signals created outside any owner (dev): @jasno/core/testing resets them after each test (B19.5). */
 const outsideSignals: { ref: WeakRef<RNode>; reset: (n: any) => void }[] = [];
 
 export function resetOutsideSignals(): void {

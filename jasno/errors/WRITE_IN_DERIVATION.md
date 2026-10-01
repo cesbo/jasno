@@ -23,7 +23,7 @@ Keep the computation pure and move the write somewhere else:
 ## Example
 
 ```ts
-import { component, computed, h, signal, type Read } from 'jasno';
+import { component, computed, h, signal, type Read } from '@jasno/core';
 
 interface Item { readonly name: string; readonly price: number }
 

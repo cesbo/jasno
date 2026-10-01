@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # EFFECT_LEAKED
 
-**test failure**, jasno/testing: owners created by the test alive after unmount.
+**test failure**, @jasno/core/testing: owners created by the test alive after unmount.
 
 - Message: `{n} owners created by this test are alive after unmount: {paths}.`
 - Hint: Create effects and resources during setup or onMount, not in handlers or after await.
@@ -21,7 +21,7 @@ When the test ended and its view was unmounted, effects, resources or components
 ## Example
 
 ```ts
-import { component, effect, h, signal } from 'jasno';
+import { component, effect, h, signal } from '@jasno/core';
 
 // Wrong: every click creates another effect with no owner, and none is ever disposed
 export const CounterWrong = component(function CounterWrong(): Node {

@@ -25,7 +25,7 @@ tsc rejects these return values in a component (its function must return `Node`)
 ## Example
 
 ```ts no-check
-import { component, h } from 'jasno';
+import { component, h } from '@jasno/core';
 
 // Wrong: an array of <li>, or null when there are no tags
 export const Tags = component(function Tags(p: { tags: readonly string[] }): Node {
@@ -34,7 +34,7 @@ export const Tags = component(function Tags(p: { tags: readonly string[] }): Nod
 ```
 
 ```ts
-import { component, each, h, show, type Read } from 'jasno';
+import { component, each, h, show, type Read } from '@jasno/core';
 
 // Right: always one node; show() renders nothing while the list is empty
 export const Tags = component(function Tags(p: { tags: Read<readonly string[]> }): Node {

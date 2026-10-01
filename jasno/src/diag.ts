@@ -1,5 +1,5 @@
 // Diagnostics: the "[CODE] message" format, deduplication, first user stack frame, delivery (console, __JASNO__,
-// the jasno/testing recorder). Codes and templates: design.md (c).
+// the @jasno/core/testing recorder). Codes and templates: design.md (c).
 
 export type Severity = 'error' | 'warn' | 'info';
 
@@ -21,11 +21,11 @@ export interface DiagInfo {
   region?: string | undefined;
   /** Extra deduplication key (EFFECT_WRITES_STATE dedupes per effect and signal). */
   key?: string | undefined;
-  /** Owner the event belongs to (jasno/testing tags events from owners the test did not create). */
+  /** Owner the event belongs to (@jasno/core/testing tags events from owners the test did not create). */
   owner?: unknown;
 }
 
-const docsOf = (code: string) => `node_modules/jasno/errors/${code}.md`;
+const docsOf = (code: string) => `node_modules/@jasno/core/errors/${code}.md`;
 
 /** Errors jasno creates: message starts with [CODE]; the Diagnostic is on error.diag (B8.7). */
 export class JasnoError extends Error {
@@ -52,7 +52,7 @@ function make(code: string, severity: Severity, message: string, hint: string, i
 const seen = new Map<string, Diagnostic>();
 const log: Diagnostic[] = [];
 
-/** jasno/testing installs a sink; it returns true when it took the event (no console output then). */
+/** @jasno/core/testing installs a sink; it returns true when it took the event (no console output then). */
 export const diagHooks: { sink: ((d: Diagnostic, owner: unknown) => boolean) | undefined } = { sink: undefined };
 
 /** Reports a warn-level diagnostic (dev builds only; callers guard with DEV). */

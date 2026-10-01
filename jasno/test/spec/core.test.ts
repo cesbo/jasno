@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import {
   component, computed, createRoot, each, effect, flush, h, linkedSignal, match, mount, onMount, resource, show, signal,
   untracked,
-} from 'jasno';
-import { mountTest } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest } from '@jasno/core/testing';
 import { isIdle, nodeOf, type SignalNode } from '../../src/core.ts';
 import { userFrame } from '../../src/diag.ts';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';

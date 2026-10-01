@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import {
   catchError, component, computed, createContext, each, effect, flush, h, mount, onMount, provide, show, signal, svg,
   useContext, css,
-} from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- props that only a cast or spread can produce

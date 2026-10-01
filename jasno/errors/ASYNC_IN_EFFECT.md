@@ -17,7 +17,7 @@ An `effect()` callback starts async work while it runs: the callback is async, c
 ## Example
 
 ```ts
-import { component, effect, h, resource, show, signal, type Read } from 'jasno';
+import { component, effect, h, resource, show, signal, type Read } from '@jasno/core';
 
 interface User { readonly name: string }
 declare function getUser(id: string, abortSignal?: AbortSignal): Promise<User>;

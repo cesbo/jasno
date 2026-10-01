@@ -20,8 +20,8 @@ When TS7022 appears on the router export, `jasno check` prints these warnings fi
 ## Example
 
 ```ts
-import { component, h } from 'jasno';
-import type { Router } from 'jasno/router';
+import { component, h } from '@jasno/core';
+import type { Router } from '@jasno/core/router';
 
 declare const router: Router<'/' | '/about'>; // from src/routes.ts, whose table imports this view
 

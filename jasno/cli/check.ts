@@ -190,11 +190,11 @@ function importRules(root: string, pkg: PackageJson, file: string, browser: bool
       continue;
     }
     const pkgName = s.startsWith('@') ? s.split('/').slice(0, 2).join('/') : s.split('/')[0]!;
-    if (s === 'jasno' || s === 'jasno/router' || (pkgName !== 'jasno' && deps.includes(pkgName)) || (s.startsWith('#') && isKey(s))) continue;
+    if (s === '@jasno/core' || s === '@jasno/core/router' || (pkgName !== '@jasno/core' && deps.includes(pkgName)) || (s.startsWith('#') && isKey(s))) continue;
     out.push({
       code: 'IMPORT_NOT_MAPPED', severity: 'error', ...at,
-      message: `"${s}" is not jasno, jasno/router, a package in "dependencies" or a package.json "imports" key, so the import map has no entry for it.`,
-      hint: s.startsWith('jasno/') ? `${s} is for tests; browser code imports jasno and jasno/router.` : s.startsWith('#') ? `Add "${s}" to package.json "imports".` : `npm install ${pkgName} (a dependency, not a devDependency).`,
+      message: `"${s}" is not @jasno/core, @jasno/core/router, a package in "dependencies" or a package.json "imports" key, so the import map has no entry for it.`,
+      hint: s.startsWith('@jasno/core/') ? `${s} is for tests; browser code imports @jasno/core and @jasno/core/router.` : s.startsWith('#') ? `Add "${s}" to package.json "imports".` : `npm install ${pkgName} (a dependency, not a devDependency).`,
     });
   }
   return out;

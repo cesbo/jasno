@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flush, provide } from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+import { flush, provide } from '@jasno/core';
+import { mountTest, settled } from '@jasno/core/testing';
 import { ToastContext } from '../toast.ts';
 import { NoteForm } from './note-form.ts';
 

@@ -20,7 +20,7 @@ There is no escape hatch: `trusted-types 'none'` forbids creating a policy. Read
 ## Example
 
 ```ts
-import { h } from 'jasno';
+import { h } from '@jasno/core';
 
 // Wrong: the Trusted Types CSP rejects the string, and name is parsed as HTML
 export function joinedWrong(name: string): HTMLElement {

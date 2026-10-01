@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { component, effect, h, onMount, signal, type Read } from 'jasno';
-import { createRouter, route, type ViewProps } from 'jasno/router';
-import { mountTest, settled } from 'jasno/testing';
+import { component, effect, h, onMount, signal, type Read } from '@jasno/core';
+import { createRouter, route, type ViewProps } from '@jasno/core/router';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred } from './helpers.ts';
 
 const View = (name: string, extra: () => Node = () => h.p(null, name)) =>

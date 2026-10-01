@@ -15,7 +15,7 @@
 
 - Give `index.html` the element, in its body: `<div id="app"></div>`.
 - Pass the same id to the lookup: `mount(App, document.getElementById('app'))`.
-- In tests, use `mountTest(t, () => App())` from `jasno/testing`: it creates its own container.
+- In tests, use `mountTest(t, () => App())` from `@jasno/core/testing`: it creates its own container.
 
 ```html
 <body><div id="app"></div><script type="module">import '/src/main.ts';</script></body>
@@ -24,7 +24,7 @@
 ## Example
 
 ```ts
-import { component, h, mount } from 'jasno';
+import { component, h, mount } from '@jasno/core';
 
 const App = component(function App(): Node { return h.main(null, h.h1(null, 'Hello')); });
 

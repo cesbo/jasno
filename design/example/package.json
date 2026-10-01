@@ -8,12 +8,12 @@
   },
   "scripts": {
     "check": "jasno check",
-    "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
+    "test": "node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
     "dev": "jasno dev",
     "dist": "jasno dist",
     "preview": "jasno preview"
   },
-  "dependencies": { "jasno": "file:../../jasno" },
+  "dependencies": { "@jasno/core": "file:../../jasno" },
   "devDependencies": {
     "typescript": "7.0.2",
     "happy-dom": "20.14.5",

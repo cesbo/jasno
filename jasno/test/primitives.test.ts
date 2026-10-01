@@ -5,9 +5,9 @@ import assert from 'node:assert/strict';
 import {
   catchError, component, computed, createContext, createRoot, css, each, effect, flush, h, linkedSignal, match, mount,
   onMount, provide, resource, selector, show, signal, svg, untracked, useContext, type Read,
-} from 'jasno';
-import { createRouter, route, type ViewProps } from 'jasno/router';
-import { mountTest, settled } from 'jasno/testing';
+} from '@jasno/core';
+import { createRouter, route, type ViewProps } from '@jasno/core/router';
+import { mountTest, settled } from '@jasno/core/testing';
 import { TAG_PROPS } from '../src/props.ts';
 
 type Ctx = Parameters<typeof mountTest>[0];

@@ -17,7 +17,7 @@ test('explain CODE prints the repair guide without its HTML comments (case-insen
   assert.doesNotMatch(r.out, /<!--/);
   assert.match(run({ code: 'TS2835', list: false, json: false }).out, /^TS2835 \(error;/);
   const json = JSON.parse(run({ code: 'SETTLE_TIMEOUT', list: false, json: true }).out) as { code: string; rows: { source: string }[] };
-  assert.deepEqual([json.code, json.rows[0]!.source], ['SETTLE_TIMEOUT', 'jasno/testing']);
+  assert.deepEqual([json.code, json.rows[0]!.source], ['SETTLE_TIMEOUT', '@jasno/core/testing']);
 });
 
 test('an unknown code fails and suggests near names', () => {

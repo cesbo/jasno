@@ -5,7 +5,7 @@
 ## Example
 
 ```ts
-import { component, computed, each, h, show, signal, type Read } from 'jasno';
+import { component, computed, each, h, show, signal, type Read } from '@jasno/core';
 
 export interface Todo { readonly id: number; readonly text: string; readonly done: boolean }
 export interface TodoListProps { todos: Read<readonly Todo[]>; onToggle: (id: number) => void }
@@ -52,7 +52,7 @@ show(() => user.hasValue() && user.value(), (u) => h.h2(null, () => u().name), (
 
 Gate content on `hasValue()` (never `value()!`), spinners on `isLoading()`, errors on `status() === 'error'`. No `params` = load once. The loader is untracked: read signals only in `params`; resolve `null`, never `undefined`. New params abort the old load; `reload()` refetches. After an `await`, write only if params are unchanged (views stay mounted); undo a failed optimistic `set()` with `set()`, never `reload()`.
 
-## Routing (`jasno/router`)
+## Routing (`@jasno/core/router`)
 
 ```ts
 export const router = createRouter([
@@ -93,8 +93,8 @@ Never write an import map: `jasno dev`/`dist` put one at `<!--jasno:head-->`. `s
 ```ts
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flush } from 'jasno';
-import { mountTest } from 'jasno/testing';
+import { flush } from '@jasno/core';
+import { mountTest } from '@jasno/core/testing';
 
 test('filters', (t) => {
   const view = mountTest(t, () => TodoList({ todos: () => [{ id: 1, text: 'milk', done: false }], onToggle: () => {} }));
@@ -102,17 +102,17 @@ test('filters', (t) => {
   input.focus();
   input.value = 'milk';
   input.dispatchEvent(new Event('input'));
-  flush(); // async work: await settled() from 'jasno/testing'
+  flush(); // async: await settled()
   assert.equal(view.root.querySelectorAll('li').length, 1);
 });
 ```
 
-Warnings, uncaught effect errors and leaked effects fail the test: fix them. Module-level signals reset after each test. Compare nodes with `assert.ok(a === b)` (`assert.equal` prints both and runs out of memory).
+Warnings, uncaught effect errors and leaked effects fail the test: fix them. Module-level signals reset after each test. Compare nodes with `assert.ok(a === b)` (`assert.equal` prints both: out of memory).
 
 ## Verify in order (non-zero exit = fail)
 
 1. `npm run check` (`jasno check`): tsc for both configs plus its rules.
-2. `npm test`: `node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**/*.test.ts"`.
+2. `npm test`: `node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none "src/**/*.test.ts"`.
 3. `npx playwright test` against `npm run dev`: `getByRole`, focus, keyboard.
 
 If a rung cannot run, say so; never claim it passed. State: `window.__JASNO__.diagnostics()`; fixes: `npm run explain CODE`.

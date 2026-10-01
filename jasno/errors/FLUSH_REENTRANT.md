@@ -20,7 +20,7 @@
 ## Example
 
 ```ts
-import { component, flush, h, onMount } from 'jasno';
+import { component, flush, h, onMount } from '@jasno/core';
 
 declare function report(height: number): void;
 

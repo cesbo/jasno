@@ -1,5 +1,5 @@
 {
-  "name": "jasno",
+  "name": "@jasno/core",
   "version": "0.1.0",
   "description": "jasno runtime prototype: signals, typed tag functions, no bundler.",
   "type": "module",

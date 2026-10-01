@@ -24,7 +24,7 @@ Once the resource has a value, the same setup read reports `STRICT_READ_UNTRACKE
 ## Example
 
 ```ts
-import { component, h, resource, show, type Read } from 'jasno';
+import { component, h, resource, show, type Read } from '@jasno/core';
 
 interface User { readonly name: string }
 declare function getUser(id: string, signal: AbortSignal): Promise<User>;

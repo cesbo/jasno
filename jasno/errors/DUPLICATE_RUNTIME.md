@@ -4,7 +4,7 @@
 **error (throws)**, runtime, dev and production builds: mount() is called from a second copy of jasno, not the one that loaded first.
 
 - Message: `Two copies of jasno are loaded: {first} and {second}.`
-- Hint: Import jasno only as 'jasno' and never write an import map: jasno dev and jasno dist generate it.
+- Hint: Import jasno only as '@jasno/core' and never write an import map: jasno dev and jasno dist generate it.
 
 <!-- design.md: B16.1 -->
 <!-- /generated:catalogue -->
@@ -13,21 +13,21 @@ The page loaded jasno from two different URLs, and `mount()` was called from a c
 
 ## Fix
 
-- Import jasno only by its package names: `'jasno'`, `'jasno/router'`, `'jasno/testing'`. Never import a file inside the package (`/node_modules/jasno/...`) or a copy from another URL.
+- Import jasno only by its package names: `'@jasno/core'`, `'@jasno/core/router'`, `'@jasno/core/testing'`. Never import a file inside the package (`/node_modules/@jasno/core/...`) or a copy from another URL.
 - Never write an import map: delete any `<script type="importmap">` from `index.html` and keep the `<!--jasno:head-->` slot, where `jasno dev` and `jasno dist` put the generated one (`jasno check` reports a hand-written map as `IMPORT_MAP_HANDWRITTEN`).
-- Compare the two URLs in the message: the one that is not what `'jasno'` maps to shows which import loads the second copy.
+- Compare the two URLs in the message: the one that is not what `'@jasno/core'` maps to shows which import loads the second copy.
 
 ## Example
 
 ```ts no-check
 // Wrong: a file path into the package is a second URL for jasno
-import { mount } from 'jasno';
-import { signal } from '/node_modules/jasno/dist/dev.js';
+import { mount } from '@jasno/core';
+import { signal } from '/node_modules/@jasno/core/dist/dev.js';
 ```
 
 ```ts
 // Right: every import names the package
-import { mount, signal } from 'jasno';
+import { mount, signal } from '@jasno/core';
 ```
 
 ## Fixture

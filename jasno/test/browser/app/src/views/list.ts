@@ -1,4 +1,4 @@
-import { component, computed, h, match, onMount } from 'jasno';
+import { component, computed, h, match, onMount } from '@jasno/core';
 import { router } from '../routes.ts';
 
 const CardDialog = component(function CardDialog(p: { id: string; heading: HTMLElement }): Node {

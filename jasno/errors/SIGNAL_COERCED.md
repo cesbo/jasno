@@ -21,7 +21,7 @@ A signal was used as if it were its value: concatenated with `+`, passed to `Str
 ## Example
 
 ```ts
-import { component, h, signal } from 'jasno';
+import { component, h, signal } from '@jasno/core';
 
 // Wrong: the signal itself is concatenated (TypeError in dev; jasno check reports SIGNAL_COERCED)
 export const CounterWrong = component(function CounterWrong(): Node {

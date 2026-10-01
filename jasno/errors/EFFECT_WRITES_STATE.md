@@ -21,7 +21,7 @@ An effect set a signal during its run, and that signal is shown somewhere or was
 ## Example
 
 ```ts
-import { component, effect, h, match, onMount, signal, type Read } from 'jasno';
+import { component, effect, h, match, onMount, signal, type Read } from '@jasno/core';
 
 declare function subscribePresence(roomId: string, onChange: (users: readonly string[]) => void): () => void;
 

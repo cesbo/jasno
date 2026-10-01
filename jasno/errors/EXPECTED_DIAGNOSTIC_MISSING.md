@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # EXPECTED_DIAGNOSTIC_MISSING
 
-**test failure**, jasno/testing: a code in expect never occurred.
+**test failure**, @jasno/core/testing: a code in expect never occurred.
 
 - Message: `Expected diagnostic {code} did not occur.`
 - Hint: Remove it from expect, or make the test reach that case.
@@ -20,8 +20,8 @@ The test passed `{ expect: [...] }` to `mountTest`, but the code the message nam
 
 ```ts
 import { test } from 'node:test';
-import { flush, h, show, signal } from 'jasno';
-import { mountTest } from 'jasno/testing';
+import { flush, h, show, signal } from '@jasno/core';
+import { mountTest } from '@jasno/core/testing';
 
 // Wrong: the button never had focus, so hiding it reports nothing
 test('hiding Next reports FOCUS_LOST', (t) => {

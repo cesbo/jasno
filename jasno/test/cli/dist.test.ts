@@ -11,7 +11,7 @@ import { http, INDEX, project, reporter } from './fixture.ts';
 const FILES = {
   'package.json': JSON.stringify({ name: 'app', type: 'module', imports: { '#config': { development: './src/config.dev.ts', default: './src/config.prod.ts' } } }),
   'index.html': INDEX,
-  'src/main.ts': "import { mount } from 'jasno';\nimport { mode } from 'dep-esm';\nimport config from '#config';\nimport data from './data.json' with { type: 'json' };\nconst view = () => import('./views/lazy.ts');\nconst n: number = 1; // kept in place\nexport { mount, mode, config, data, view, n };\n",
+  'src/main.ts': "import { mount } from '@jasno/core';\nimport { mode } from 'dep-esm';\nimport config from '#config';\nimport data from './data.json' with { type: 'json' };\nconst view = () => import('./views/lazy.ts');\nconst n: number = 1; // kept in place\nexport { mount, mode, config, data, view, n };\n",
   'src/config.dev.ts': "import { fixtures } from './fixtures.ts';\nexport default { api: '/mock', fixtures };\n",
   'src/fixtures.ts': 'export const fixtures = [1, 2];\n',
   'src/config.prod.ts': "export default { api: '/api' };\n",

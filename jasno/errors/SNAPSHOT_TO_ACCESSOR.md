@@ -19,7 +19,7 @@ The rule looks at the component function's own body: calling signals inside hand
 ## Example
 
 ```ts
-import { component, h, signal } from 'jasno';
+import { component, h, signal } from '@jasno/core';
 
 // Wrong: count() is read once, so the button keeps saying 0
 export const CounterWrong = component(function CounterWrong(): Node {

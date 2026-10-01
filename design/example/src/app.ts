@@ -1,4 +1,4 @@
-import { component, css, h, provide, show, signal } from 'jasno';
+import { component, css, h, provide, show, signal } from '@jasno/core';
 import { router } from './routes.ts';
 import { ToastContext, ToastRegion, type Toast, type ToastItem } from './toast.ts';
 

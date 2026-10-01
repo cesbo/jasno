@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import {
   catchError, component, computed, createContext, createRoot, each, effect, flush, h, linkedSignal, match, mount, onMount,
   provide, resource, show, signal, untracked, useContext,
-} from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest, settled } from '@jasno/core/testing';
 import { hooks } from '../../src/core.ts';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
 
@@ -18,7 +18,7 @@ function host(view: () => Node) {
   return { target, unmount: () => { unmount(); target.remove(); } };
 }
 
-// A loader promise that settles when aborted (so jasno/testing's pending set drains).
+// A loader promise that settles when aborted (so @jasno/core/testing's pending set drains).
 const hang = (abortSignal: AbortSignal) =>
   new Promise<never>((_, reject) => abortSignal.addEventListener('abort', () => reject(abortSignal.reason)));
 

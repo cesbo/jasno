@@ -24,7 +24,7 @@ Listeners on elements are not reported: use `on*` props on the elements you crea
 ## Example
 
 ```ts
-import { component, h, onMount, signal } from 'jasno';
+import { component, h, onMount, signal } from '@jasno/core';
 
 // Wrong: the interval and the resize listener outlive the component
 export const ClockWrong = component(function ClockWrong(): Node {

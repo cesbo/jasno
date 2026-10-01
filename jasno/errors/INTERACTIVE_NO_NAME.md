@@ -26,7 +26,7 @@ One warning can stand for several controls of the same component (its `count` sa
 ## Example
 
 ```ts
-import { component, h, signal, svg } from 'jasno';
+import { component, h, signal, svg } from '@jasno/core';
 
 const icon = (): SVGSVGElement =>
   svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' }));

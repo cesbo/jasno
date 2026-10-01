@@ -29,7 +29,7 @@ export function readAllWrong(): string {
 ```
 
 ```ts
-import { component, h, onMount } from 'jasno';
+import { component, h, onMount } from '@jasno/core';
 
 declare function openConnection(): { read(): string; close(): void };
 

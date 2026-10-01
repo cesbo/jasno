@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRoot, flush, resource, signal } from 'jasno';
+import { createRoot, flush, resource, signal } from '@jasno/core';
 import { capture, deferred, tick } from './helpers.ts';
 
 type Status = 'idle' | 'loading' | 'reloading' | 'resolved' | 'error' | 'local';

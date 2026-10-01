@@ -18,7 +18,7 @@ Code refers to a file under `src/` that is not a module: `new URL('./logo.png', 
 ## Example
 
 ```ts
-import { component, h } from 'jasno';
+import { component, h } from '@jasno/core';
 
 // Wrong: src/logo.png is not published, so the image 404s in production
 export const LogoWrong = component(function LogoWrong(): Node {

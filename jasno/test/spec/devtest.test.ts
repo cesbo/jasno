@@ -1,12 +1,12 @@
-// Spec conformance: B12 strict-read region, B19 jasno/testing, B20 focus loss, (c) runtime/testing catalogue rows, (d) __JASNO__.
+// Spec conformance: B12 strict-read region, B19 @jasno/core/testing, B20 focus loss, (c) runtime/testing catalogue rows, (d) __JASNO__.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   catchError, component, computed, createContext, createRoot, css, each, effect, flush, h, linkedSignal, match, mount,
   onMount, provide, resource, selector, show, signal, svg, untracked, useContext,
-} from 'jasno';
-import { mountTest, settled, waitFor } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest, settled, waitFor } from '@jasno/core/testing';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
 
 type D = { code: string; severity: string; message: string; hint: string; docs: string; ownerPath: string; node?: string | undefined; loc?: string | undefined; count: number };
@@ -404,7 +404,7 @@ test('B12.9 mounting every built-in with no user reads yields zero diagnostics (
   assert.match(view.root.textContent ?? '', /Title.*v.*off.*b.*314.*ok.*4.*2/);
 });
 
-// ================================================================ B19 jasno/testing
+// ================================================================ B19 @jasno/core/testing
 
 test('B19.1 mountTest: container div in body, fresh root, one flush (onMount and first effect runs), checks on t.after', () => {
   const afters: (() => void)[] = [];
@@ -864,8 +864,8 @@ function table(from: string, to: string): Map<string, string[]> {
   }
   return rows;
 }
-const runtimeRows = table('### Runtime', '### `jasno/testing`');
-const testingRows = table('### `jasno/testing`', '### `jasno check`');
+const runtimeRows = table('### Runtime', '### `@jasno/core/testing`');
+const testingRows = table('### `@jasno/core/testing`', '### `jasno check`');
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function conforms(d: D, opts: { template?: boolean; hint?: boolean } = {}): void {
@@ -875,7 +875,7 @@ function conforms(d: D, opts: { template?: boolean; hint?: boolean } = {}): void
   const [, severity] = row;
   const template = runtime ? row[4]! : row[3]!;
   const hint = runtime ? row[5]! : row[4]!;
-  assert.equal(d.docs, `node_modules/jasno/errors/${d.code}.md`);
+  assert.equal(d.docs, `node_modules/@jasno/core/errors/${d.code}.md`);
   assert.equal(d.severity, severity!.startsWith('warn') ? 'warn' : 'error');
   if (opts.template !== false) {
     const body = template.replace(/^`|`$/g, '').split(/\{[a-zA-Z]+\}/).map(esc).join('.+?');
@@ -988,7 +988,7 @@ const catalogue: Record<string, () => Promise<D>> = {
     const g = globalThis as unknown as Record<symbol, unknown>;
     const key = Symbol.for('jasno.runtime');
     const old = g[key];
-    g[key] = 'file:///elsewhere/node_modules/jasno/src/dom.ts';
+    g[key] = 'file:///elsewhere/node_modules/@jasno/core/src/dom.ts';
     try { mount(() => h.p(null), detached()); } finally { g[key] = old; }
   }),
   MOUNT_TARGET_MISSING: () => errorOf('MOUNT_TARGET_MISSING', () => { mount(() => h.p(null), null); }),
@@ -1003,7 +1003,7 @@ const catalogue: Record<string, () => Promise<D>> = {
   COMPONENT_RETURN_NOT_NODE: () => errorOf('COMPONENT_RETURN_NOT_NODE', () => {
     mount(() => component(function CatBad(): Node { return 'x' as unknown as Node; })(), detached());
   }),
-  // jasno/testing rows
+  // @jasno/core/testing rows
   EFFECT_LEAKED: async () => {
     const view = mountTest(fakeT(), () => h.button({ onclick: () => { effect(() => {}); } }, 'b'));
     view.root.querySelector('button')!.click();
@@ -1054,7 +1054,7 @@ test('(c) console delivery: the first printed line is self-contained ([CODE] mes
   t.mock.restoreAll();
   const out = lines.find((l) => l.includes('consoleFmt'));
   assert.ok(out, 'printed with console.warn');
-  assert.match(out.split('\n')[0]!, /^\[STRICT_READ_UNTRACKED\] .+ hint: .+ docs: node_modules\/jasno\/errors\/STRICT_READ_UNTRACKED\.md$/);
+  assert.match(out.split('\n')[0]!, /^\[STRICT_READ_UNTRACKED\] .+ hint: .+ docs: node_modules\/@jasno\/core\/errors\/STRICT_READ_UNTRACKED\.md$/);
 });
 
 // ================================================================ (d) window.__JASNO__

@@ -35,7 +35,7 @@ before(async () => {
     'index.html': INDEX,
     '.env': 'SECRET=1',
     'tsconfig.json': '{}',
-    'src/main.ts': "import { mount } from 'jasno';\nimport { mode } from 'dep-esm';\nimport { sub } from 'dep-esm/sub';\nimport config from '#config';\nconst n: number = 1;\nexport { mount, mode, sub, config, n };\n",
+    'src/main.ts': "import { mount } from '@jasno/core';\nimport { mode } from 'dep-esm';\nimport { sub } from 'dep-esm/sub';\nimport config from '#config';\nconst n: number = 1;\nexport { mount, mode, sub, config, n };\n",
     'src/config.dev.ts': 'export default { api: "/mock" };\n',
     'src/config.prod.ts': 'export default { api: "/api" };\n',
     'src/data.json': '{"a":1}',
@@ -66,7 +66,7 @@ test('index.html: one generated import map (development condition, package scope
   assert.equal(res.status, 200);
   assert.match(String(res.headers['content-type']), /^text\/html/);
   const map = JSON.parse(/<script type="importmap">(.*?)<\/script>/.exec(res.body)![1]!) as { imports: Record<string, string>; scopes: Record<string, Record<string, string>> };
-  assert.equal(map.imports['jasno'], '/@jasno/src/index.ts');
+  assert.equal(map.imports['@jasno/core'], '/@jasno/src/index.ts');
   assert.equal(map.imports['dep-esm'], '/@dep/dep-esm@1.2.3/dev.js');
   assert.equal(map.imports['dep-esm/sub'], '/@dep/dep-esm@1.2.3/sub.js');
   assert.equal(map.imports['#config'], '/src/config.dev.ts');

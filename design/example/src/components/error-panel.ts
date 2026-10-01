@@ -1,4 +1,4 @@
-import { component, h } from 'jasno';
+import { component, h } from '@jasno/core';
 
 export interface ErrorPanelProps {
   error: unknown;

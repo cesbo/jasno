@@ -1,4 +1,4 @@
-// CLI test fixtures: a project in a temp directory with node_modules/jasno linked to this package, and raw HTTP
+// CLI test fixtures: a project in a temp directory with node_modules/@jasno/core linked to this package, and raw HTTP
 // requests (fetch cannot forge Host).
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { request } from 'node:http';
@@ -26,8 +26,8 @@ export const INDEX = `<!doctype html>
 /** Writes files (paths relative to the project root) into a fresh temp project. */
 export function project(files: Record<string, string | undefined>): { root: string; remove(): void } {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'jasno-cli-')));
-  mkdirSync(join(root, 'node_modules'), { recursive: true });
-  symlinkSync(JASNO, join(root, 'node_modules', 'jasno'));
+  mkdirSync(join(root, 'node_modules', '@jasno'), { recursive: true });
+  symlinkSync(JASNO, join(root, 'node_modules', '@jasno', 'core'));
   for (const [path, text] of Object.entries(files)) {
     if (text === undefined) continue;
     mkdirSync(dirname(join(root, path)), { recursive: true });

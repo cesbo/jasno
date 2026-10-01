@@ -62,7 +62,7 @@
           "build": "dev + prod",
           "when": "mount() is called from a second copy of jasno, not the one that loaded first (B16.1)",
           "message": "Two copies of jasno are loaded: {first} and {second}.",
-          "hint": "Import jasno only as 'jasno' and never write an import map: jasno dev and jasno dist generate it."
+          "hint": "Import jasno only as '@jasno/core' and never write an import map: jasno dev and jasno dist generate it."
         }
       ]
     },
@@ -479,7 +479,7 @@
       "code": "EFFECT_LEAKED",
       "rows": [
         {
-          "source": "jasno/testing",
+          "source": "@jasno/core/testing",
           "severity": "test failure",
           "when": "owners created by the test alive after unmount (B19.4)",
           "message": "{n} owners created by this test are alive after unmount: {paths}.",
@@ -491,7 +491,7 @@
       "code": "EXPECTED_DIAGNOSTIC_MISSING",
       "rows": [
         {
-          "source": "jasno/testing",
+          "source": "@jasno/core/testing",
           "severity": "test failure",
           "when": "a code in expect never occurred",
           "message": "Expected diagnostic {code} did not occur.",
@@ -503,7 +503,7 @@
       "code": "SETTLE_TIMEOUT",
       "rows": [
         {
-          "source": "jasno/testing",
+          "source": "@jasno/core/testing",
           "severity": "test failure",
           "when": "settled() timed out",
           "message": "settled() timed out after {ms} ms; pending: {list}.",
@@ -515,7 +515,7 @@
       "code": "UNCAUGHT_ERROR",
       "rows": [
         {
-          "source": "jasno/testing",
+          "source": "@jasno/core/testing",
           "severity": "test failure",
           "when": "a reactive error reached report, or a promise an on* handler returned rejected, during the test (B19.3, B19.6)",
           "message": "Reactive code in {ownerPath} threw: {message} (or The promise returned by the {type} handler in {ownerPath} threw: {message})",
@@ -527,10 +527,10 @@
       "code": "TESTING_REQUIRES_DEV_BUILD",
       "rows": [
         {
-          "source": "jasno/testing",
+          "source": "@jasno/core/testing",
           "severity": "error at import",
-          "when": "jasno/testing resolved without --conditions=development",
-          "message": "jasno/testing needs the development build of jasno.",
+          "when": "@jasno/core/testing resolved without --conditions=development",
+          "message": "@jasno/core/testing needs the development build of jasno.",
           "hint": "Run node with --conditions=development (npm test does)."
         }
       ]
@@ -652,7 +652,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check, dev, dist",
-          "when": "a bare specifier in a browser file that is not jasno, jasno/router, a dependencies package or a package.json \"imports\" key (dev and dist: one that does not resolve)"
+          "when": "a bare specifier in a browser file that is not @jasno/core, @jasno/core/router, a dependencies package or a package.json \"imports\" key (dev and dist: one that does not resolve)"
         }
       ]
     },

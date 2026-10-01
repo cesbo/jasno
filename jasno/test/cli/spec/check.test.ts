@@ -21,7 +21,7 @@ const BASE: Record<string, string | undefined> = {
   'index.html': INDEX,
   'tsconfig.json': JSON.stringify({ compilerOptions: OPTIONS, include: [DTS, 'src'], exclude: ['src/**/*.test.ts'] }),
   'tsconfig.test.json': TEST_CONFIG,
-  'src/main.ts': "import { mount } from 'jasno';\nawait Promise.resolve();\nexport { mount };\n",
+  'src/main.ts': "import { mount } from '@jasno/core';\nawait Promise.resolve();\nexport { mount };\n",
   'src/config.ts': 'export default { api: "/api" };\n',
 };
 
@@ -121,7 +121,7 @@ const FP: Record<string, string> = {
   'src/clean-data.json': '{"a":1}',
   'src/clean-json.ts': "import data from './clean-data.json' with { type: 'json' };\nexport default data;\n",
   'src/clean-dom.ts': [
-    "import { css, h } from 'jasno';",
+    "import { css, h } from '@jasno/core';",
     'declare function load(): Promise<string>;',
     'export const read = (el: HTMLElement) => el.innerHTML.length + el.outerHTML.length;',
     "export const card = h.div({ class: 'card' }, 'x');",
@@ -138,7 +138,7 @@ const FP: Record<string, string> = {
     'export const doc = \'/// <reference types="node" />\';',
     '',
   ].join('\n'),
-  'src/fp-focus.ts': "import { css, h } from 'jasno';\nexport const sheet = css`\n  button:focus:not(:focus-visible) { outline: none; }\n`;\nexport const b = h.button(null, 'x');\n",
+  'src/fp-focus.ts': "import { css, h } from '@jasno/core';\nexport const sheet = css`\n  button:focus:not(:focus-visible) { outline: none; }\n`;\nexport const b = h.button(null, 'x');\n",
   'src/fp-location.ts': 'export function label(location: { pathname: string; search: string }): string { return location.pathname + location.search; }\n',
   'src/fp-history.ts': [
     'export class UndoHistory { pushState(s: string): void { void s; } replaceState(s: string): void { void s; } }',
@@ -152,7 +152,7 @@ const FP: Record<string, string> = {
   'src/fp-names.ts': "import { component, effect } from './fx-lib.ts';\neffect(() => { void fetch('/ping'); });\nexport const widget = component(() => 1);\n",
   'src/fp-css.ts': "const css = (s: TemplateStringsArray): string => s.join('');\nexport const txt = css`button { outline: none; }`;\n",
   'src/fp-handlers.ts': [
-    "import { h } from 'jasno';",
+    "import { h } from '@jasno/core';",
     'declare function load(): Promise<string>;',
     'export const b = h.button({ onclick: async (e) => {',
     '  const text = await load();',
@@ -167,7 +167,7 @@ const FP: Record<string, string> = {
     '',
   ].join('\n'),
   'src/fp-effect.ts': [
-    "import { effect, signal } from 'jasno';",
+    "import { effect, signal } from '@jasno/core';",
     'const enabled = signal(true);',
     'export const stop = effect(() => {',
     '  if (!enabled()) return;',
@@ -259,7 +259,7 @@ test('a browser file a test imports gets tsc errors from the test program\'s Nod
 
 const FN: Record<string, string> = {
   'index.html': INDEX.replace('<!--jasno:head-->', '<!--jasno:head-->\n  <script type="importmap">{"imports":{}}</script>'),
-  'src/main.ts': "import { mount } from 'jasno';\nimport { util } from '../lib/util.ts';\nawait Promise.resolve();\nexport { mount, util };\n",
+  'src/main.ts': "import { mount } from '@jasno/core';\nimport { util } from '../lib/util.ts';\nawait Promise.resolve();\nexport { mount, util };\n",
   'lib/util.ts': "await Promise.resolve();\nexport const util = new SharedWorker('/w.js');\nexport function go() { history.pushState(null, '', '/x'); }\n",
   'src/mods.ts': [
     'export abstract class A {',
@@ -304,7 +304,7 @@ const FN: Record<string, string> = {
     '',
   ].join('\n'),
   'src/handlers.ts': [
-    "import { h } from 'jasno';",
+    "import { h } from '@jasno/core';",
     'declare function save(): Promise<void>;',
     'export const a = h.button({ async onclick(e) { await save(); e.currentTarget.disabled = true; } }, "x");',
     'export function wire(el: HTMLButtonElement) {',
@@ -315,7 +315,7 @@ const FN: Record<string, string> = {
     '',
   ].join('\n'),
   'src/effects.ts': [
-    "import { effect, signal } from 'jasno';",
+    "import { effect, signal } from '@jasno/core';",
     'const id = signal(1);',
     "export const a = effect(() => { void import('./config.ts').then((m) => m.default.api + id()); });",
     'export const b = effect(() => { const run = async () => { await 1; }; void run; });',
@@ -323,7 +323,7 @@ const FN: Record<string, string> = {
     '',
   ].join('\n'),
   'src/comp.ts': [
-    "import { component, h, signal, type Read } from 'jasno';",
+    "import { component, h, signal, type Read } from '@jasno/core';",
     'export const Card = (): Node => h.div(null);',
     'export const Anon = component(function (): Node { return h.div(null); });',
     'export const NoType = component(function NoType() { return h.div(null); });',
@@ -339,7 +339,7 @@ const FN: Record<string, string> = {
     '',
   ].join('\n'),
   'src/styles.ts': [
-    "import { css, h } from 'jasno';",
+    "import { css, h } from '@jasno/core';",
     'export const s = css`',
     '  .x button { all: unset; }',
     '  [tabindex] { outline: 0; }',
@@ -495,7 +495,7 @@ test('IMPORT_MAP_HANDWRITTEN prints no line:col although the <script> has one ((
 const NODE_BODY = [
   "import { readFileSync } from 'node:fs';",
   "import pad from 'devdep';",
-  "import { component, h, signal } from 'jasno';",
+  "import { component, h, signal } from '@jasno/core';",
   'await Promise.resolve();',
   'export function nodeStuff(el: HTMLElement) {',
   "  history.pushState(null, '', '/x');",
@@ -602,7 +602,7 @@ test('without the TS API: the stripped-text rules still run (syntax gate, IMPORT
 
 // ------------------------------------------------ 4. output contract
 
-const WARN_ONLY = { ...BASE, 'src/effects.ts': "import { effect } from 'jasno';\nexport const stop = effect(() => { void fetch('/x'); });\n" };
+const WARN_ONLY = { ...BASE, 'src/effects.ts': "import { effect } from '@jasno/core';\nexport const stop = effect(() => { void fetch('/x'); });\n" };
 
 test('exit codes: a warning passes without --strict and fails when CI is set', async () => {
   const plain = await run(WARN_ONLY, { strict: false });

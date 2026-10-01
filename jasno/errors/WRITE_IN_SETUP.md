@@ -21,7 +21,7 @@ While jasno was building UI (a component body, a `show`/`match`/`each`/`catchErr
 ## Example
 
 ```ts
-import { component, h, onMount, type WritableSignal } from 'jasno';
+import { component, h, onMount, type WritableSignal } from '@jasno/core';
 
 declare const pageTitle: WritableSignal<string>; // from src/state.ts, shown in the app header
 

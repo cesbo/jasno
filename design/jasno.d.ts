@@ -1,6 +1,6 @@
 /// <reference path="./jasno.elements.d.ts" />
 // jasno: the complete public API as ambient module declarations.
-// Modules: 'jasno' (core), 'jasno/router', 'jasno/testing', 'jasno/testing/happy-dom'.
+// Modules: '@jasno/core' (core), '@jasno/core/router', '@jasno/core/testing', '@jasno/core/testing/happy-dom'.
 // Rules this file follows: one signature per function (no overloads), every optional prop is `?: X | undefined`
 // (exactOptionalPropertyTypes), element props are closed and generated from lib.dom (tools/gen-elements.cjs).
 // Every snippet in the RECIPES block compiles (tools/agents-samples/recipes.ts).
@@ -54,7 +54,7 @@
    unconfirmed); an earlier failure changes nothing, since a newer value is still being saved. A successful last save
    shows its value again, in case a reload() (polling, Retry) replaced it meanwhile. Never reload() after an optimistic
    save: a failed reload() clears the value. Give the request a timeout. confirmed and queue are plain module variables
-   that jasno/testing does not reset, so a test awaits every rename it starts. App-wide data lives in
+   that @jasno/core/testing does not reset, so a test awaits every rename it starts. App-wide data lives in
    src/state.ts as export const cards = createRoot(() => resource({ loader: ... })), changed by functions there:
      const confirmed = new Map<string, string>();     // last title the server accepted, while saves are queued
      const queue = new Map<string, Promise<void>>();  // the last queued save per card
@@ -216,7 +216,7 @@
    api.ts functions take an AbortSignal and validate res.json() (typed any) before returning it.
 */
 
-declare module 'jasno' {
+declare module '@jasno/core' {
   const SIGNAL: unique symbol;
   const CONTEXT: unique symbol;
   type NotAsync<T> = T extends PromiseLike<unknown>
@@ -432,7 +432,7 @@ declare module 'jasno' {
 
   // ---------------------------------------------------------------- diagnostics and dev introspection
 
-  /** Stable runtime diagnostic codes (the CLI adds its own); the repair guide is node_modules/jasno/errors/CODE.md. */
+  /** Stable runtime diagnostic codes (the CLI adds its own); the repair guide is node_modules/@jasno/core/errors/CODE.md. */
   export type DiagnosticCode =
     | 'WRITE_IN_DERIVATION' | 'EFFECT_LOOP' | 'NO_PROVIDER' | 'CONTEXT_OUTSIDE_OWNER' | 'DUPLICATE_RUNTIME'
     | 'MOUNT_TARGET_MISSING' | 'FLUSH_REENTRANT' | 'OWNED_IN_DERIVATION'
@@ -450,7 +450,7 @@ declare module 'jasno' {
     readonly severity: 'error' | 'warn' | 'info';
     readonly message: string;
     readonly hint: string;
-    /** Repair guide shipped in the package, e.g. node_modules/jasno/errors/STRICT_READ_UNTRACKED.md. */
+    /** Repair guide shipped in the package, e.g. node_modules/@jasno/core/errors/STRICT_READ_UNTRACKED.md. */
     readonly docs: string;
     /** Owner path where it happened, e.g. "<App> › <UserList> › each row". */
     readonly ownerPath: string;
@@ -510,8 +510,8 @@ declare module 'jasno' {
   export {};
 }
 
-declare module 'jasno/router' {
-  import type { Child, Read, Signal } from 'jasno';
+declare module '@jasno/core/router' {
+  import type { Child, Read, Signal } from '@jasno/core';
   type Rendered = Exclude<Child, null | undefined | boolean>;
   type RegexChar = '\\' | '[' | ']' | '.' | '*' | '+' | '?' | '^' | '$' | '{' | '}' | '(' | ')';
   type Alternatives<S extends string> = S extends `${infer A}|${infer B}` ? A | Alternatives<B> : S;
@@ -585,8 +585,8 @@ declare module 'jasno/router' {
   export {};
 }
 
-declare module 'jasno/testing' {
-  import type { Diagnostic, DiagnosticCode } from 'jasno';
+declare module '@jasno/core/testing' {
+  import type { Diagnostic, DiagnosticCode } from '@jasno/core';
   /** Codes that always mean the component code is wrong: fix them, never expect them. */
   type FixNotExpect =
     | 'STRICT_READ_UNTRACKED' | 'LOADER_READ_UNTRACKED' | 'UNTRACKED_IN_DERIVATION' | 'PENDING_READ_UNTRACKED'
@@ -617,10 +617,10 @@ declare module 'jasno/testing' {
   export {};
 }
 
-/** Side-effect module for tests: registers happy-dom globals and adds the dialog focusing steps happy-dom lacks (showModal() focuses [autofocus], close() returns focus before the close event and keeps returnValue); AbortSignal.timeout() does not keep node alive (node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**\/*.test.ts"). */
-declare module 'jasno/testing/happy-dom' {}
+/** Side-effect module for tests: registers happy-dom globals and adds the dialog focusing steps happy-dom lacks (showModal() focuses [autofocus], close() returns focus before the close event and keeps returnValue); AbortSignal.timeout() does not keep node alive (node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none "src/**\/*.test.ts"). */
+declare module '@jasno/core/testing/happy-dom' {}
 
 interface Window {
   /** jasno dev-build introspection (undefined in production): diagnostics(), graph(), inspect(), why(), router(). */
-  readonly __JASNO__?: import('jasno').FFDevtools;
+  readonly __JASNO__?: import('@jasno/core').FFDevtools;
 }

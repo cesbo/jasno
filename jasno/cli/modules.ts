@@ -146,7 +146,7 @@ export function walk(roots: readonly string[], root: string, conditions: Readonl
           ? { code: 'DEP_NOT_BROWSER_ESM', severity: 'error', message: `"${imp.specifier}" cannot be resolved for the browser: ${edge.error}`, hint: noBrowserEntry ? 'The package has no entry for the browser/import/default conditions; use a package or version with an ESM build.' : undefined, file, ...at }
           : isRelative(imp.specifier)
             ? { code: edge.error.includes('relative specifiers end in .ts') ? 'TS_EXTENSION' : 'MODULE_NOT_FOUND', severity: 'error', message: edge.error, file, ...at }
-            : { code: 'IMPORT_NOT_MAPPED', severity: 'error', message: `"${imp.specifier}" cannot be mapped: ${edge.error}`, hint: 'Import jasno, jasno/router, a package from "dependencies" or a package.json "imports" key.', file, ...at });
+            : { code: 'IMPORT_NOT_MAPPED', severity: 'error', message: `"${imp.specifier}" cannot be mapped: ${edge.error}`, hint: 'Import @jasno/core, @jasno/core/router, a package from "dependencies" or a package.json "imports" key.', file, ...at });
         continue;
       }
       queue.push(edge.file);

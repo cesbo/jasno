@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computed, createRoot, effect, flush, linkedSignal, onMount, selector, signal, untracked } from 'jasno';
+import { computed, createRoot, effect, flush, linkedSignal, onMount, selector, signal, untracked } from '@jasno/core';
 import { nodeOf, type SignalNode } from '../src/core.ts';
 import { capture, codeOf, tick } from './helpers.ts';
 

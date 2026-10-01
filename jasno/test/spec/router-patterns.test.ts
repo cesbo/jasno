@@ -2,9 +2,9 @@
 // B17.14 href).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { component, h, type Read } from 'jasno';
-import { createRouter, route } from 'jasno/router';
-import { mountTest, settled } from 'jasno/testing';
+import { component, h, type Read } from '@jasno/core';
+import { createRouter, route } from '@jasno/core/router';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf } from '../helpers.ts';
 
 /** A view whose h1 is the pattern and whose .params shows the params as JSON. */

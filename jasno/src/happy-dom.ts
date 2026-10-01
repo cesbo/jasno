@@ -1,4 +1,4 @@
-// jasno/testing/happy-dom: registers happy-dom's window as the global object (the same steps as
+// @jasno/core/testing/happy-dom: registers happy-dom's window as the global object (the same steps as
 // @happy-dom/global-registrator, without the extra package).
 import { setTimeout as nodeSetTimeout } from 'node:timers';
 import { GlobalWindow, PropertySymbol } from 'happy-dom';

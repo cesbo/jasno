@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   catchError, component, computed, createRoot, each, effect, flush, h, match, mount, onMount, selector, show, signal,
-} from 'jasno';
-import { mountTest } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest } from '@jasno/core/testing';
 import { capture } from '../helpers.ts';
 
 type Read<T> = () => T;

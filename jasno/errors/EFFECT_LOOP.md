@@ -23,7 +23,7 @@ Find the consumer the message names first, then:
 ## Example
 
 ```ts
-import { component, computed, each, effect, h, signal } from 'jasno';
+import { component, computed, each, effect, h, signal } from '@jasno/core';
 
 // Wrong: the effect reads names and writes a new sorted array back on every run
 export const NamesWrong = component(function NamesWrong(): Node {

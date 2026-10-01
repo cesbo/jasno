@@ -65,7 +65,7 @@ function tree(dir: string): Record<string, string> {
 }
 
 const PKG = JSON.stringify({ name: 'app', type: 'module', dependencies: { jasno: '*' } });
-const MAIN = "import { mount } from 'jasno';\nexport { mount };\n";
+const MAIN = "import { mount } from '@jasno/core';\nexport { mount };\n";
 const OPTIONS = {
   target: 'es2025', module: 'nodenext', moduleResolution: 'nodenext', lib: ['es2025', 'dom'], types: [],
   strict: true, noEmit: true, allowImportingTsExtensions: true, erasableSyntaxOnly: true, verbatimModuleSyntax: true,
@@ -343,9 +343,9 @@ test('--json prints the catalogue errors/index.json (design.md (e) explain)', ()
   assert.deepEqual(JSON.parse(r.out), JSON.parse(readFileSync(join(JASNO, 'errors', 'index.json'), 'utf8')));
 });
 
-test('the repair guide the runtime points at (docs: node_modules/jasno/errors/CODE.md) exists for every code and ships in the package', () => {
+test('the repair guide the runtime points at (docs: node_modules/@jasno/core/errors/CODE.md) exists for every code and ships in the package', () => {
   const diag = readFileSync(join(JASNO, 'src', 'diag.ts'), 'utf8');
-  assert.match(diag, /node_modules\/jasno\/errors\/\$\{code\}\.md/);
+  assert.match(diag, /node_modules\/@jasno\/core\/errors\/\$\{code\}\.md/);
   const pkg = JSON.parse(readFileSync(join(JASNO, 'package.json'), 'utf8')) as { files?: string[] };
   if (pkg.files) assert.ok(pkg.files.some((f) => f === 'errors' || f.startsWith('errors/')), 'package.json "files" must include errors/');
   const missing = Object.keys(catalogue()).filter((c) => c !== 'TS<number>' && !existsSync(join(JASNO, 'errors', `${c}.md`)));

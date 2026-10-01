@@ -73,7 +73,7 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
   // Local names bound to jasno's exports: effect, component, css, h and svg rules apply to those only.
   const jasno = new Map<string, string>();
   for (const st of sf.statements as unknown as N[]) {
-    if (st.kind !== K.ImportDeclaration || stringValue(st.moduleSpecifier) !== 'jasno') continue;
+    if (st.kind !== K.ImportDeclaration || stringValue(st.moduleSpecifier) !== '@jasno/core') continue;
     const bindings = st.importClause?.namedBindings as N | undefined;
     if (bindings?.kind === K.NamedImports) for (const el of bindings.elements as N[]) jasno.set(el.name.text, (el.propertyName ?? el.name).text);
   }

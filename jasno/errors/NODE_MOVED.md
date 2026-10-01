@@ -20,7 +20,7 @@ A node that already had a parent was passed as a child again. A DOM node can be 
 ## Example
 
 ```ts
-import { component, h, svg } from 'jasno';
+import { component, h, svg } from '@jasno/core';
 
 // Wrong: one icon node appended to two buttons; the first button loses it
 export const ToolbarWrong = component(function ToolbarWrong(): Node {

@@ -29,7 +29,7 @@ if (missing.length) throw new Error(`create-jasno does not pack: ${missing.join(
 if (readFileSync(join(CREATE, 'LICENSE'), 'utf8') !== readFileSync(join(ROOT, '..', 'LICENSE'), 'utf8')) throw new Error('create-jasno/LICENSE differs from LICENSE');
 
 run('node', ['scripts/build-package.mjs', '--pack'], ROOT);
-const tgz = join(ROOT, 'release', `jasno-${jasno.version}.tgz`);
+const tgz = join(ROOT, 'release', `jasno-core-${jasno.version}.tgz`);
 const tmp = mkdtempSync(join(tmpdir(), 'jasno-template-'));
 try {
   run('node', [join(CREATE, 'index.js'), 'my-app', '--jasno', `file:${tgz}`], tmp);

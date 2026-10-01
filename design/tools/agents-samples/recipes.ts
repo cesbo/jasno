@@ -1,6 +1,6 @@
 // Every snippet of the RECIPES block at the top of jasno.d.ts, in context. Must compile with 0 errors.
-import { component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type Read } from 'jasno';
-import { createRouter, route, type ViewProps } from 'jasno/router';
+import { component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type Read } from '@jasno/core';
+import { createRouter, route, type ViewProps } from '@jasno/core/router';
 import { addNote, getUser, listCards, listNotes, makeChart, saveTitle, search, subscribePresence, type Card } from './api.ts';
 import { router } from './routes.ts';
 

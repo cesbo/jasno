@@ -1,4 +1,4 @@
-import { component, computed, h, signal, useContext } from 'jasno';
+import { component, computed, h, signal, useContext } from '@jasno/core';
 import { ToastContext } from '../toast.ts';
 
 export interface NoteFormProps {

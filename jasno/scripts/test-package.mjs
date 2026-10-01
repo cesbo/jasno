@@ -19,7 +19,7 @@ const run = (cmd, args, cwd, env = {}) => {
 
 run('node', ['scripts/build-package.mjs', '--pack'], ROOT);
 const { version } = JSON.parse(readFileSync(join(ROOT, 'release', 'package.json'), 'utf8'));
-const tgz = join(ROOT, 'release', `jasno-${version}.tgz`);
+const tgz = join(ROOT, 'release', `jasno-core-${version}.tgz`); // npm pack names @jasno/core so
 
 const files = execFileSync('tar', ['-tzf', tgz], { encoding: 'utf8' }).trim().split('\n');
 const stray = files.filter((f) => /\.ts$/.test(f) && !/\.d\.ts$/.test(f) || /test/.test(f.replace('testing', '')));
@@ -32,7 +32,7 @@ const dir = mkdtempSync(join(tmpdir(), 'jasno-release-'));
 try {
   cpSync(EXAMPLE, dir, { recursive: true, filter: (p) => !/(^|\/)(node_modules|dist|\.jasno|test-results)(\/|$)/.test(relative(EXAMPLE, p)) });
   const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
-  pkg.dependencies.jasno = `file:${tgz}`;
+  pkg.dependencies['@jasno/core'] = `file:${tgz}`;
   writeFileSync(join(dir, 'package.json'), JSON.stringify(pkg, null, 2));
   for (const f of ['tsconfig.json', 'tsconfig.test.json']) {
     const ts = JSON.parse(readFileSync(join(dir, f), 'utf8'));
@@ -50,7 +50,7 @@ try {
   const probe = join(ROOT, 'test', 'browser', 'example.mjs');
   run('node', [probe], ROOT, { EXAMPLE_DIR: dir, JASNO_BIN: bin });
   run('node', [probe, 'preview'], ROOT, { EXAMPLE_DIR: dir, JASNO_BIN: bin });
-  console.log(`\nrelease check passed: jasno-${version}.tgz`);
+  console.log(`\nrelease check passed: jasno-core-${version}.tgz`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

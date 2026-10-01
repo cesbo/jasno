@@ -26,7 +26,7 @@ Rewrite the pattern in the supported grammar: segments that start with `/`, each
 ## Example
 
 ```ts
-import { createRouter, route } from 'jasno/router';
+import { createRouter, route } from '@jasno/core/router';
 
 declare function Page(): Node;
 declare function NotFound(): Node;

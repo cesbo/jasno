@@ -18,7 +18,7 @@ An effect's first run read no signal, so nothing can ever make it run again: it 
 ## Example
 
 ```ts
-import { component, effect, h, onMount } from 'jasno';
+import { component, effect, h, onMount } from '@jasno/core';
 
 declare function fit(): void;
 

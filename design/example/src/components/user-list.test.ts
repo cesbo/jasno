@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flush, signal } from 'jasno';
-import { mountTest } from 'jasno/testing';
+import { flush, signal } from '@jasno/core';
+import { mountTest } from '@jasno/core/testing';
 import type { User } from '../api.ts';
 import { UserList } from './user-list.ts';
 

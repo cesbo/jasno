@@ -14,7 +14,7 @@ after(() => { for (const a of apps) a.remove(); });
 const APP = {
   'package.json': JSON.stringify({ name: 'app', type: 'module' }),
   'index.html': INDEX,
-  'src/main.ts': "import { mount } from 'jasno';\nexport { mount };\n",
+  'src/main.ts': "import { mount } from '@jasno/core';\nexport { mount };\n",
 };
 
 async function build(files: Record<string, string | undefined>) {

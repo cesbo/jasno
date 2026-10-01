@@ -17,7 +17,7 @@ A `css` rule removes the focus outline (`outline: none` or `0`, `all: unset`, `i
 ## Example
 
 ```ts
-import { component, css, h } from 'jasno';
+import { component, css, h } from '@jasno/core';
 
 // Wrong: the reset hides the focus ring, and no rule shows focus instead
 css`.toolbar button { all: unset; padding: 4px 8px; cursor: pointer; }`;

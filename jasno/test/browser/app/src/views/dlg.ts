@@ -1,4 +1,4 @@
-import { component, h, onMount } from 'jasno';
+import { component, h, onMount } from '@jasno/core';
 export default component(function DlgView(): Node {
   const d = h.dialog({ 'aria-labelledby': 'dt' }, h.h2({ id: 'dt' }, 'Welcome'),
     h.form({ method: 'dialog' }, h.button({ id: 'dlg-ok', autofocus: true }, 'OK')));

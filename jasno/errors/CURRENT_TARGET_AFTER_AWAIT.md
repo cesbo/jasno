@@ -18,7 +18,7 @@ The rule checks `on*` props and methods of `h.*` and `svg()` props objects, `add
 ## Example
 
 ```ts
-import { h } from 'jasno';
+import { h } from '@jasno/core';
 
 declare function send(): Promise<void>;
 

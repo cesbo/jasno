@@ -19,7 +19,7 @@ An unannotated arrow also gets `COMPONENT_RETURN_TYPE` at the same position; thi
 ## Example
 
 ```ts
-import { component, h, type Read } from 'jasno';
+import { component, h, type Read } from '@jasno/core';
 
 export interface CardProps { title: Read<string> }
 

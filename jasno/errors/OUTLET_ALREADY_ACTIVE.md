@@ -22,8 +22,8 @@ Render `router.outlet()` once, in App: `h.main(null, router.outlet())`. Then rem
 ## Example
 
 ```ts
-import { component, h, match } from 'jasno';
-import type { Router, ViewProps } from 'jasno/router';
+import { component, h, match } from '@jasno/core';
+import type { Router, ViewProps } from '@jasno/core/router';
 
 declare const router: Router<'/settings/:tab(profile|billing)'>;
 declare function Profile(): Node;

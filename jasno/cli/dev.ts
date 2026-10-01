@@ -50,7 +50,7 @@ if (!navigator.webdriver) new EventSource('/__jasno/events').addEventListener('r
 
 export interface DevServer { url: string; port: number; close(): Promise<void> }
 
-const prefixOf = (pkg: Pkg): string => (pkg.json.name === 'jasno' ? '/@jasno/' : `/@dep/${pkg.json.name ?? 'unnamed'}@${pkg.json.version ?? '0.0.0'}/`);
+const prefixOf = (pkg: Pkg): string => (pkg.json.name === '@jasno/core' ? '/@jasno/' : `/@dep/${pkg.json.name ?? 'unnamed'}@${pkg.json.version ?? '0.0.0'}/`);
 
 const hostnameOf = (host: string): string => (host.startsWith('[') ? host.slice(0, host.indexOf(']') + 1) : host.replace(/:\d+$/, '')).toLowerCase();
 
@@ -183,7 +183,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     else if (path !== '/favicon.ico') reporter.info(`404 ${path}${hint ? ` hint: ${hint}` : ''}`);
     send(res, req, 404, TYPES['.txt']!, code ? `[${code}] ${message}${hint ? ` ${hint}` : ''}` : `404 ${path}${hint ? `: ${hint}` : ''}`);
   };
-  const JASNO_HINT = "jasno's modules are under /@jasno/src/ (jasno → /@jasno/src/index.ts, jasno/router → /@jasno/src/router.ts); import them by name.";
+  const JASNO_HINT = "jasno's modules are under /@jasno/src/ (@jasno/core → /@jasno/src/index.ts, @jasno/core/router → /@jasno/src/router.ts); import them by name.";
 
   const readBody = (req: IncomingMessage): Promise<string | undefined> => new Promise((resolve) => {
     let size = 0;
@@ -232,7 +232,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     const file = join(dir, ...rest.split('/'));
     if (rest.split('/').includes('node_modules') || !file.startsWith(dir + sep) || !exact(file)) {
       if (prefix === '/@jasno/' && file.endsWith('.js') && exact(file.slice(0, -3) + '.ts')) {
-        return notFound(req, res, path, undefined, undefined, `the module is ${path.slice(0, -3)}.ts; import 'jasno' and 'jasno/router' by name.`);
+        return notFound(req, res, path, undefined, undefined, `the module is ${path.slice(0, -3)}.ts; import '@jasno/core' and '@jasno/core/router' by name.`);
       }
       return notFound(req, res, path, undefined, undefined, prefix === '/@jasno/' ? JASNO_HINT : undefined);
     }

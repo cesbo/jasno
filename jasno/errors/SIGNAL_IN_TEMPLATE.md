@@ -18,7 +18,7 @@ A signal or a `Read` prop sits uncalled inside a template literal: `` `Clicked $
 ## Example
 
 ```ts
-import { component, h, signal } from 'jasno';
+import { component, h, signal } from '@jasno/core';
 
 // Wrong: the text is the function, not the number
 export const CounterWrong = component(function CounterWrong(): Node {

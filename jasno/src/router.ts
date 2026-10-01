@@ -1,4 +1,4 @@
-// jasno/router: route table (patterns, shadowing, href), History and Navigation API adapters, the navigation
+// @jasno/core/router: route table (patterns, shadowing, href), History and Navigation API adapters, the navigation
 // pipeline, focus, announcement, title, scroll (design.md B17).
 import { DEV } from '#dev';
 import {

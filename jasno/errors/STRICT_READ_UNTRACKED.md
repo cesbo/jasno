@@ -24,7 +24,7 @@ Keep the signal live by handing jasno a function instead of its current value:
 ## Example
 
 ```ts
-import { component, computed, h, type Read } from 'jasno';
+import { component, computed, h, type Read } from '@jasno/core';
 
 // Wrong: the body reads the props once; the total never changes
 export const TotalWrong = component(function TotalWrong(p: { price: Read<number>; qty: Read<number> }): Node {

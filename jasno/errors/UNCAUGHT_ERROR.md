@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # UNCAUGHT_ERROR
 
-**test failure**, jasno/testing: a reactive error reached report, or a promise an on* handler returned rejected, during the test.
+**test failure**, @jasno/core/testing: a reactive error reached report, or a promise an on* handler returned rejected, during the test.
 
 - Message: `Reactive code in {ownerPath} threw: {message} (or The promise returned by the {type} handler in {ownerPath} threw: {message})`
 - Hint: Fix the error, or wrap the subtree in catchError(() => ..., (err, reset) => ...).
@@ -20,7 +20,7 @@ Code that jasno runs for you threw during the test and no `catchError` region ca
 ## Example
 
 ```ts
-import { catchError, component, h, signal } from 'jasno';
+import { catchError, component, h, signal } from '@jasno/core';
 
 declare function save(): Promise<void>;
 declare const Chart: () => Node;

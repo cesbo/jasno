@@ -1,5 +1,5 @@
 // AGENTS.md "Example", verbatim.
-import { component, computed, each, h, show, signal, type Read } from 'jasno';
+import { component, computed, each, h, show, signal, type Read } from '@jasno/core';
 
 export interface Todo { readonly id: number; readonly text: string; readonly done: boolean }
 export interface TodoListProps { todos: Read<readonly Todo[]>; onToggle: (id: number) => void }

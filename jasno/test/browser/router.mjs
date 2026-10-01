@@ -7,8 +7,8 @@ import { chromium, firefox, webkit } from 'playwright';
 const PORT = 5211;
 const base = `http://127.0.0.1:${PORT}`;
 const APP = new URL('./app', import.meta.url).pathname;
-mkdirSync(APP + '/node_modules', { recursive: true });
-try { symlinkSync('../../../..', APP + '/node_modules/jasno'); } catch { /* exists */ }
+mkdirSync(APP + '/node_modules/@jasno', { recursive: true });
+try { symlinkSync('../../../../..', APP + '/node_modules/@jasno/core'); } catch { /* exists */ }
 const server = spawn('node', [new URL('../../bin/jasno.js', import.meta.url).pathname, 'dev', '--port', String(PORT)], { cwd: APP, stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise((r) => server.stdout.once('data', r));
 server.stdout.on('data', (d) => process.stdout.write('  [jasno dev] ' + d));

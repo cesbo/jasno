@@ -25,7 +25,7 @@ The router compares the two patterns segment by segment. A static segment covers
 ## Example
 
 ```ts
-import { createRouter, route } from 'jasno/router';
+import { createRouter, route } from '@jasno/core/router';
 
 declare function Page(): Node;
 declare function NotFound(): Node;

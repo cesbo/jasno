@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type {} from 'jasno'; // types for window.__JASNO__
+import type {} from '@jasno/core'; // types for window.__JASNO__
 
 // Every test fails on a page error or a jasno dev warning (FOCUS_LOST, VIEW_NO_HEADING, KEY_ACTIVATES_NEW_FOCUS, ...).
 // The production build (JASNO_E2E=preview) has no window.__JASNO__, so there only page errors count.

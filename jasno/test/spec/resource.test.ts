@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   catchError, component, computed, createRoot, each, effect, flush, h, mount, onMount, resource, show, signal, untracked,
-} from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
 
 /** Loader promises that would otherwise never settle; the last test settles them so settled() elsewhere is not held up. */

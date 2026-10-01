@@ -1,4 +1,4 @@
-// Test helpers: record diagnostics and routed errors without jasno/testing's per-test checks.
+// Test helpers: record diagnostics and routed errors without @jasno/core/testing's per-test checks.
 import { hooks } from '../src/core.ts';
 import { diagHooks, type Diagnostic } from '../src/diag.ts';
 

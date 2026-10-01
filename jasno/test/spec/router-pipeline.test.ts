@@ -2,9 +2,9 @@
 // B7.3, B7.4; ADR-21; RECIPES "Router", "Redirect", "Per-param lifecycle"). History adapter (happy-dom).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { component, effect, h, onMount, signal, untracked, type Read } from 'jasno';
-import { createRouter, route } from 'jasno/router';
-import { mountTest, settled } from 'jasno/testing';
+import { component, effect, h, onMount, signal, untracked, type Read } from '@jasno/core';
+import { createRouter, route } from '@jasno/core/router';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
 import { hooks } from '../../src/core.ts'; // only to untrack one deliberately leaked promise
 
@@ -849,7 +849,7 @@ test('race: disposing the outlet before router.back()\'s popstate arrives still 
   // Browsers fire popstate asynchronously after history.back(); happy-dom fires it synchronously.
   const realBack = History.prototype.back;
   t.mock.method(history, 'back', function (this: History) { setTimeout(() => realBack.call(history), 0); });
-  // The never-settling promise would sit in jasno/testing's pending set and time out every later settled() in this
+  // The never-settling promise would sit in @jasno/core/testing's pending set and time out every later settled() in this
   // process, so this one call is not tracked.
   const saved = hooks.pending;
   hooks.pending = undefined;
@@ -883,7 +883,7 @@ test('B17.3 an outlet disposed during the navigation flush (onMount flips a logi
     route('/', { view: probe('home').view }),
     route('/bye', { view: probe('bye', () => { onMount(() => { session.set(false); }); return h.p(null); }).view, title: 'Bye' }),
   ], { error: errorView, notFound });
-  const { show } = await import('jasno');
+  const { show } = await import('@jasno/core');
   t.after(() => { for (const el of document.querySelectorAll('body > [aria-live=polite]')) el.remove(); }); // the leaked region
   mountTest(t, () => h.div(null, show(session, () => h.main(null, router.outlet()), () => h.p({ id: 'login' }, 'Log in'))));
   await settled();

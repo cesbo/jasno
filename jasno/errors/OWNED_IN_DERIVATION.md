@@ -20,7 +20,7 @@ An effect, resource, component, `onMount` callback, `createRoot` or `mount()` wa
 ## Example
 
 ```ts
-import { component, computed, h, resource, show, type Read } from 'jasno';
+import { component, computed, h, resource, show, type Read } from '@jasno/core';
 
 interface User { readonly name: string }
 declare function getUser(id: string, abortSignal: AbortSignal): Promise<User>;

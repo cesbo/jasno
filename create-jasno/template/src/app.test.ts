@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mountTest, settled } from 'jasno/testing';
+import { mountTest, settled } from '@jasno/core/testing';
 import { App } from './app.ts';
 import { router } from './routes.ts';
 

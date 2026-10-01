@@ -20,7 +20,7 @@
 ## Example
 
 ```ts
-import { component, createContext, h, provide, useContext } from 'jasno';
+import { component, createContext, h, provide, useContext } from '@jasno/core';
 
 const Theme = createContext<string>('Theme');
 const Label = component(function Label(): Node { return h.span(null, useContext(Theme)); });

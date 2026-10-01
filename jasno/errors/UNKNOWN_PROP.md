@@ -31,7 +31,7 @@ Then find where the key got in, usually a spread of a wider object (`{ ...props 
 ## Example
 
 ```ts no-check
-import { component, h } from 'jasno';
+import { component, h } from '@jasno/core';
 declare function save(): Promise<void>;
 
 // Wrong: React names; the click handler never runs
@@ -43,7 +43,7 @@ export const Field = component(function Field(): Node {
 ```
 
 ```ts
-import { component, h } from 'jasno';
+import { component, h } from '@jasno/core';
 declare function save(): Promise<void>;
 
 // Right: DOM property names and lowercase events

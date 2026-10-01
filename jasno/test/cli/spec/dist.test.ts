@@ -112,7 +112,7 @@ test('names carry a content hash; rebuilds are byte-identical; an edit renames t
 const GRAPH: Files = {
   'package.json': PKG({ dependencies: { a: '1', b: '1', c: '2' } }),
   'index.html': INDEX,
-  'src/main.ts': "import { mount } from 'jasno';\nimport { a } from 'a';\nimport { b } from 'b';\nimport { c } from 'c';\nimport { route } from 'jasno/router';\nexport { mount, a, b, c, route };\n",
+  'src/main.ts': "import { mount } from '@jasno/core';\nimport { a } from 'a';\nimport { b } from 'b';\nimport { c } from 'c';\nimport { route } from '@jasno/core/router';\nexport { mount, a, b, c, route };\n",
   'node_modules/a/package.json': dep('a', '1.0.0', { exports: { '.': './index.js', './self': './lib/self.mjs' } }),
   'node_modules/a/index.js': "import { c } from 'c';\nimport self from 'a/self';\nexport const a = 'a' + c + self;\n",
   'node_modules/a/lib/self.mjs': "import { up } from '../util/up.js';\nimport data from './data.json' with { type: 'json' };\nexport default up + data.v;\n",
@@ -132,7 +132,7 @@ const GRAPH: Files = {
 // ---------------------------------------------------------------------------------------------------------------
 // CSP, _headers, SPA fallback (dist 5-7).
 
-const SIMPLE: Files = { 'package.json': PKG(), 'index.html': INDEX, 'src/main.ts': "import { mount } from 'jasno';\nexport const lazy = () => import('./views/v.ts');\nexport { mount };\n", 'src/views/v.ts': 'export default 1;\n', 'assets/logo.svg': '<svg/>' };
+const SIMPLE: Files = { 'package.json': PKG(), 'index.html': INDEX, 'src/main.ts': "import { mount } from '@jasno/core';\nexport const lazy = () => import('./views/v.ts');\nexport { mount };\n", 'src/views/v.ts': 'export default 1;\n', 'assets/logo.svg': '<svg/>' };
 
 test('CSP meta and _headers are exactly the (e) dist 6 policy: map hash, then entry hash; cache rules per path; --nonce prints the nonce variant without hashes', async () => {
   const b = await build(SIMPLE, { nonce: true });

@@ -1,5 +1,5 @@
-import { h } from 'jasno';
-import { createRouter, route } from 'jasno/router';
+import { h } from '@jasno/core';
+import { createRouter, route } from '@jasno/core/router';
 
 const wait = (ms: number, s: AbortSignal) => new Promise<void>((ok, fail) => {
   const t = setTimeout(ok, ms); s.addEventListener('abort', () => { clearTimeout(t); fail(s.reason); });

@@ -14,7 +14,7 @@ Delete the `<script type="importmap">` element and keep the `<!--jasno:head-->` 
 
 - Packages: list them in `dependencies` and import them by name (`import { z } from 'zod'`); jasno maps them.
 - Aliases: package.json `"imports"` keys starting with `#` (`"#config"`), with `development` and `default` conditions when dev and production differ.
-- `jasno` and `jasno/router` are always mapped.
+- `@jasno/core` and `@jasno/core/router` are always mapped.
 
 ## Example
 
@@ -23,7 +23,7 @@ Delete the `<script type="importmap">` element and keep the `<!--jasno:head-->` 
   <meta charset="utf-8">
   <title>App</title>
   <!-- Wrong: a handwritten map where jasno's goes -->
-  <script type="importmap">{ "imports": { "jasno": "/node_modules/jasno/dist/prod.js" } }</script>
+  <script type="importmap">{ "imports": { "@jasno/core": "/node_modules/@jasno/core/dist/prod.js" } }</script>
 </head>
 ```
 

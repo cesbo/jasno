@@ -22,7 +22,7 @@ The warning never fires in `reloading` (a `reload()` that keeps the value), so a
 ## Example
 
 ```ts
-import { component, h, resource, show, type Read } from 'jasno';
+import { component, h, resource, show, type Read } from '@jasno/core';
 
 interface Note { readonly id: string; readonly text: string }
 declare function getNote(id: string, signal: AbortSignal): Promise<Note>;

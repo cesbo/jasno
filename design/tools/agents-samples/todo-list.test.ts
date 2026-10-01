@@ -1,8 +1,8 @@
 // AGENTS.md "Testing", verbatim.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flush } from 'jasno';
-import { mountTest } from 'jasno/testing';
+import { flush } from '@jasno/core';
+import { mountTest } from '@jasno/core/testing';
 import { TodoList } from './todo-list.ts';
 
 test('filters', (t) => {
@@ -11,6 +11,6 @@ test('filters', (t) => {
   input.focus();
   input.value = 'milk';
   input.dispatchEvent(new Event('input'));
-  flush(); // async work: await settled() from 'jasno/testing'
+  flush(); // async: await settled()
   assert.equal(view.root.querySelectorAll('li').length, 1);
 });

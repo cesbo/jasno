@@ -618,7 +618,7 @@ export function mount(view: () => Node, target: Element | null): () => void {
   const first = (globalThis as Record<symbol, string>)[RUNTIME];
   if (first !== import.meta.url) {
     throw new JasnoError('DUPLICATE_RUNTIME', `Two copies of jasno are loaded: ${first} and ${import.meta.url}.`,
-      "Import jasno only as 'jasno' and never write an import map: jasno dev and jasno dist generate it.");
+      "Import jasno only as '@jasno/core' and never write an import map: jasno dev and jasno dist generate it.");
   }
   assertNotDerivation('mount()');
   const root = new Owner(undefined, undefined);

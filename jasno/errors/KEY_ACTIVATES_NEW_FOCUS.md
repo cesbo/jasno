@@ -20,7 +20,7 @@ An Enter `keydown` handler returned without calling `e.preventDefault()`, and fo
 ## Example
 
 ```ts
-import { component, h, onMount, untracked, type Read } from 'jasno';
+import { component, h, onMount, untracked, type Read } from '@jasno/core';
 
 // The parent closes the editor in onDone and focuses the title button it renders instead.
 interface EditorProps { title: Read<string>; onDone: (title: string) => void }

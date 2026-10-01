@@ -17,7 +17,7 @@ A browser module other than the entry that `index.html` imports (normally `src/m
 ## Example
 
 ```ts
-import { createRoot, resource } from 'jasno';
+import { createRoot, resource } from '@jasno/core';
 
 interface Settings { readonly theme: string }
 declare function getSettings(abortSignal: AbortSignal): Promise<Settings>;

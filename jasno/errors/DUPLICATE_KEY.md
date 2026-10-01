@@ -21,7 +21,7 @@ The array given to `each()` had two items whose key function returned the same k
 ## Example
 
 ```ts
-import { component, each, h, signal } from 'jasno';
+import { component, each, h, signal } from '@jasno/core';
 
 interface Msg { readonly id: string; readonly text: string }
 export const messages = signal<readonly Msg[]>([]);

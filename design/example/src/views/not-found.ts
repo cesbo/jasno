@@ -1,4 +1,4 @@
-import { component, h, onMount } from 'jasno';
+import { component, h, onMount } from '@jasno/core';
 import { router } from '../routes.ts';
 
 // Rendered by the router for URLs that match no route (createRouter's notFound option).

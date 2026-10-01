@@ -4,9 +4,9 @@
 import {
   batch, catchError, component, createContext, css, each, h, match, provide, resource, signal, useState,
   type Read, type WritableSignal,
-} from 'jasno';
-import { createRouter, route } from 'jasno/router';
-import { mountTest } from 'jasno/testing';
+} from '@jasno/core';
+import { createRouter, route } from '@jasno/core/router';
+import { mountTest } from '@jasno/core/testing';
 
 declare const nav: HTMLElement;
 declare const t: Parameters<typeof mountTest>[0];

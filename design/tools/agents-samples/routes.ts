@@ -1,6 +1,6 @@
 // AGENTS.md "Routing".
-import { component, h } from 'jasno';
-import { createRouter, route } from 'jasno/router';
+import { component, h } from '@jasno/core';
+import { createRouter, route } from '@jasno/core/router';
 import { getUser } from './api.ts';
 const ErrorPanel = component(function ErrorPanel(p: { error: unknown; retry: () => void }): Node {
   return h.section({ role: 'alert' }, h.h1(null, 'Something went wrong'), String(p.error), h.button({ onclick: p.retry }, 'Retry'));

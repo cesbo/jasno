@@ -20,7 +20,7 @@ A form's `onsubmit` handler returned without calling `e.preventDefault()`. The f
 ## Example
 
 ```ts
-import { component, h, signal } from 'jasno';
+import { component, h, signal } from '@jasno/core';
 
 declare function subscribe(email: string): Promise<void>;
 

@@ -1,5 +1,5 @@
 // AGENTS.md reactive rule, components, markup, lists, async, context/cleanup snippets.
-import { catchError, component, computed, createContext, css, each, effect, h, linkedSignal, match, mount, onMount, provide, resource, show, signal, svg, untracked, useContext, type Child, type Read } from 'jasno';
+import { catchError, component, computed, createContext, css, each, effect, h, linkedSignal, match, mount, onMount, provide, resource, show, signal, svg, untracked, useContext, type Child, type Read } from '@jasno/core';
 import { getUser } from './api.ts';
 
 css`.card { .title { font-weight: 600; } }`;

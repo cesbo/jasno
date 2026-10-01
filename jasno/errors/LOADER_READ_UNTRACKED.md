@@ -20,7 +20,7 @@ A resource loader read a signal before its first `await`. The loader runs untrac
 ## Example
 
 ```ts
-import { component, h, resource, signal } from 'jasno';
+import { component, h, resource, signal } from '@jasno/core';
 
 declare function search(q: string, abortSignal: AbortSignal): Promise<readonly string[]>;
 

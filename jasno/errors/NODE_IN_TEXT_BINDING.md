@@ -26,7 +26,7 @@ tsc rejects a function child that returns a node, so this code usually got in th
 ## Example
 
 ```ts no-check
-import { component, h, type Read } from 'jasno';
+import { component, h, type Read } from '@jasno/core';
 
 declare function signIn(): void;
 
@@ -39,7 +39,7 @@ export const Header = component(function Header(p: { signedIn: Read<boolean> }):
 ```
 
 ```ts
-import { component, h, show, type Read } from 'jasno';
+import { component, h, show, type Read } from '@jasno/core';
 
 declare function signIn(): void;
 

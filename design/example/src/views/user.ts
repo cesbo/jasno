@@ -1,5 +1,5 @@
-import { component, each, h, match, resource, show, svg } from 'jasno';
-import type { ViewProps } from 'jasno/router';
+import { component, each, h, match, resource, show, svg } from '@jasno/core';
+import type { ViewProps } from '@jasno/core/router';
 import { addNote, listNotes } from '#api';
 import type { User } from '../api.ts';
 import { NoteForm } from '../components/note-form.ts';

@@ -18,8 +18,8 @@ Browser code changes the URL with `history.pushState` or `replaceState` (an erro
 ## Example
 
 ```ts
-import { component, computed, h } from 'jasno';
-import type { Router } from 'jasno/router';
+import { component, computed, h } from '@jasno/core';
+import type { Router } from '@jasno/core/router';
 
 declare const router: Router<'/search'>;
 

@@ -1,4 +1,4 @@
-import { component, h } from 'jasno';
+import { component, h } from '@jasno/core';
 import { router } from './routes.ts';
 
 export const App = component(function App(): Node {

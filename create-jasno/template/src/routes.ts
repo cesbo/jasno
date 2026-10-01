@@ -1,5 +1,5 @@
-import { h } from 'jasno';
-import { createRouter, route } from 'jasno/router';
+import { h } from '@jasno/core';
+import { createRouter, route } from '@jasno/core/router';
 
 export const router = createRouter([
   route('/', { view: () => import('./views/home.ts'), title: 'Home' }),

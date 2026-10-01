@@ -14,10 +14,12 @@ npx playwright install
 npm run dev
 ```
 
+The npm package is `@jasno/core` (npm refuses the bare name `jasno` as too close to other packages); it installs the `jasno` command.
+
 ## Example
 
 ```ts
-import { component, h, mount, signal } from 'jasno';
+import { component, h, mount, signal } from '@jasno/core';
 
 const Counter = component(function Counter(): Node {
   const count = signal(0);
@@ -34,7 +36,7 @@ A function is live and a value is static: `() => count()` updates the text, `cou
 - **No build configuration.** `jasno dev` strips types as it serves, one module per file. `jasno dist` bundles with esbuild into hashed chunks, one per lazy view, with source maps, integrity, the CSP, `_headers` and `_redirects`. npm packages are imported by name.
 - **Checks.** `jasno check` runs tsc on the browser and test programs plus jasno's own rules. In development, problems are reported with a code; `npm run explain CODE` prints the repair guide.
 - **Accessibility built in.** The router moves focus to each view's heading; lost focus, unnamed controls and a few other mistakes are reported.
-- **Testing.** `jasno/testing` mounts components under `node:test` with happy-dom; the template adds Playwright in Chromium, Firefox and WebKit.
+- **Testing.** `@jasno/core/testing` mounts components under `node:test` with happy-dom; the template adds Playwright in Chromium, Firefox and WebKit.
 - **Small.** The production runtime with the router is about 17 KB gzipped.
 
 ## Commands

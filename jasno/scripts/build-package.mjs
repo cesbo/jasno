@@ -2,7 +2,7 @@
 // The repository runs jasno from its TypeScript sources; Node refuses to strip types under node_modules, so an
 // installed package must ship JavaScript. release/ gets:
 //   dist/dev.js, dist/prod.js     the public API plus the internals (src/bundle.ts); prod is minified, DEV inlined
-//   dist/router{,.dev}.js         jasno/router; its internals come from 'jasno/internal', the same file as 'jasno'
+//   dist/router{,.dev}.js         @jasno/core/router; its internals come from '@jasno/core/internal', the same file as '@jasno/core'
 //   dist/testing.js, testing-requires-dev.js, happy-dom.js
 //   dist/cli.js, bin/jasno.js     the CLI (typescript, amaro and es-module-lexer resolve from the project)
 //   dist/*.d.ts                   module-form types generated from the curated design/jasno.d.ts (RECIPES included)
@@ -30,9 +30,9 @@ mkdirSync(DIST, { recursive: true });
 // ---------------------------------------------------------------- JavaScript
 
 const INTERNAL = /^\.\/(core|dom|diag|resource|index|internal)\.ts$/;
-/** router/testing builds: the shared modules are external, imported from 'jasno/internal'. */
+/** router/testing builds: the shared modules are external, imported from '@jasno/core/internal'. */
 const shareInternals = { name: 'jasno-internal', setup(b) {
-  b.onResolve({ filter: INTERNAL }, () => ({ path: 'jasno/internal', external: true }));
+  b.onResolve({ filter: INTERNAL }, () => ({ path: '@jasno/core/internal', external: true }));
 } };
 /** esbuild folds neither an imported constant nor a top-level const: the import goes and `define` substitutes DEV at
  * parse time, so minify drops the dev-only code. */
@@ -58,17 +58,17 @@ await Promise.all([
   build({ ...common, entryPoints: ['cli/main.ts'], outfile: join(DIST, 'cli.js'), platform: 'node', packages: 'external' }),
 ]);
 
-// Every name router and testing import from 'jasno/internal' must be exported by both bundles (a missing one would
+// Every name router and testing import from '@jasno/core/internal' must be exported by both bundles (a missing one would
 // only fail at link time in the browser), and the production bundle must not carry the dev build.
 await init;
 const exportsOf = (file) => new Set(parse(readFileSync(join(DIST, file), "utf8"))[1].map((e) => e.name ?? e.n));
 const dev = exportsOf('dev.js'), prod = exportsOf('prod.js');
 for (const file of ['router.dev.js', 'router.js', 'testing.js', 'testing-requires-dev.js']) {
   const code = readFileSync(join(DIST, file), 'utf8');
-  for (const m of code.matchAll(/import\s*\{([^}]*)\}\s*from\s*"jasno\/internal"/g)) {
+  for (const m of code.matchAll(/import\s*\{([^}]*)\}\s*from\s*"@jasno\/core\/internal"/g)) {
     for (const part of m[1].split(',')) {
       const name = part.trim().split(/\s+as\s+/)[0];
-      if (name && !(dev.has(name) && prod.has(name))) throw new Error(`${file} imports ${name} from jasno/internal, which the bundles do not export`);
+      if (name && !(dev.has(name) && prod.has(name))) throw new Error(`${file} imports ${name} from @jasno/core/internal, which the bundles do not export`);
     }
   }
 }
@@ -97,19 +97,19 @@ function ambient(text) {
 }
 // In a module .d.ts a non-exported value declaration needs `declare` (TS1046); ambient blocks implied it.
 const moduleForm = (lines) => lines.map((l) => (/^(const|let|var|function|class|enum|namespace) /.test(l) ? `declare ${l}` : l));
-const relative = (line) => line.replace(/from 'jasno'/g, "from './jasno.js'").replace(/import\('jasno'\)/g, "import('./jasno.js')");
+const relative = (line) => line.replace(/from '@jasno\/core'/g, "from './jasno.js'").replace(/import\('@jasno\/core'\)/g, "import('./jasno.js')");
 const api = ambient(readFileSync(join(DESIGN, 'jasno.d.ts'), 'utf8'));
 const elements = ambient(readFileSync(join(DESIGN, 'jasno.elements.d.ts'), 'utf8'));
 // The trailing global interface (window.__JASNO__) becomes a global augmentation of the module file.
 const globals = api.rest.join('\n').trim();
 if (!/^interface Window \{[\s\S]*\}$/.test(globals)) throw new Error(`unexpected top-level declarations after the modules:\n${globals}`);
 const types = {
-  'jasno.d.ts': [...api.header, ...moduleForm(api.blocks['jasno'].body), '', 'declare global {', ...globals.split('\n').map((l) => `  ${relative(l)}`), '}', ''],
-  'router.d.ts': ['// jasno/router: types of the router (see RECIPES in jasno.d.ts).', ...api.blocks['jasno/router'].doc, ...moduleForm(api.blocks['jasno/router'].body).map(relative), ''],
-  'testing.d.ts': ['// jasno/testing: mountTest, settled, waitFor (see RECIPES in jasno.d.ts).', ...api.blocks['jasno/testing'].doc, ...moduleForm(api.blocks['jasno/testing'].body).map(relative), ''],
-  'happy-dom.d.ts': [...api.blocks['jasno/testing/happy-dom'].doc, 'export {};', ''],
-  // Element props merge into module 'jasno' as a module augmentation, reached by jasno.d.ts's reference line.
-  'jasno.elements.d.ts': [...elements.header, 'export {};', "declare module './jasno.js' {", ...elements.blocks['jasno'].body.filter((l) => l !== 'export {};').map((l) => (l ? `  ${l}` : l)), '}', ''],
+  'jasno.d.ts': [...api.header, ...moduleForm(api.blocks['@jasno/core'].body), '', 'declare global {', ...globals.split('\n').map((l) => `  ${relative(l)}`), '}', ''],
+  'router.d.ts': ['// @jasno/core/router: types of the router (see RECIPES in jasno.d.ts).', ...api.blocks['@jasno/core/router'].doc, ...moduleForm(api.blocks['@jasno/core/router'].body).map(relative), ''],
+  'testing.d.ts': ['// @jasno/core/testing: mountTest, settled, waitFor (see RECIPES in jasno.d.ts).', ...api.blocks['@jasno/core/testing'].doc, ...moduleForm(api.blocks['@jasno/core/testing'].body).map(relative), ''],
+  'happy-dom.d.ts': [...api.blocks['@jasno/core/testing/happy-dom'].doc, 'export {};', ''],
+  // Element props merge into module '@jasno/core' as a module augmentation, reached by jasno.d.ts's reference line.
+  'jasno.elements.d.ts': [...elements.header, 'export {};', "declare module './jasno.js' {", ...elements.blocks['@jasno/core'].body.filter((l) => l !== 'export {};').map((l) => (l ? `  ${l}` : l)), '}', ''],
 };
 for (const [file, lines] of Object.entries(types)) writeFileSync(join(DIST, file), lines.join('\n'));
 
@@ -128,7 +128,7 @@ cpSync(join(ROOT, 'errors'), join(OUT, 'errors'), { recursive: true });
 cpSync(join(DESIGN, 'AGENTS.md'), join(OUT, 'AGENTS.md'));
 for (const f of ['README.md', 'LICENSE']) cpSync(join(ROOT, '..', f), join(OUT, f));
 const pkg = {
-  name: 'jasno',
+  name: '@jasno/core',
   version: src.version,
   description: 'A TypeScript-first SPA framework for coding agents: plain TypeScript, no DSL, no build configuration.',
   keywords: ['spa', 'framework', 'signals', 'typescript', 'no-dsl', 'coding-agents'],
@@ -139,7 +139,7 @@ const pkg = {
   bugs: 'https://github.com/cesbo/jasno/issues',
   type: 'module',
   engines: src.engines,
-  // "types" first in every conditional entry (M8). 'jasno/internal' is the same file as 'jasno' per condition.
+  // "types" first in every conditional entry (M8). '@jasno/core/internal' is the same file as '@jasno/core' per condition.
   exports: {
     '.': { types: './dist/jasno.d.ts', development: './dist/dev.js', default: './dist/prod.js' },
     './internal': { development: './dist/dev.js', default: './dist/prod.js' },
@@ -149,6 +149,7 @@ const pkg = {
     './package.json': './package.json',
   },
   bin: { jasno: './bin/jasno.js' },
+  publishConfig: { access: 'public' },
   files: ['dist', 'bin', 'errors', 'AGENTS.md'],
   dependencies: src.dependencies,
   peerDependencies: { typescript: '~7.0.2', 'happy-dom': src.peerDependencies['happy-dom'] },

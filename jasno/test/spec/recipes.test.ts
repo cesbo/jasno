@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import {
   catchError, component, computed, createContext, createRoot, css, each, effect, flush, h, linkedSignal, match, onMount,
   provide, resource, selector, show, signal, svg, untracked, useContext, type Read,
-} from 'jasno';
-import { mountTest, settled } from 'jasno/testing';
+} from '@jasno/core';
+import { mountTest, settled } from '@jasno/core/testing';
 import { capture, deferred, tick } from '../helpers.ts';
 
 const key = (k: string, init: KeyboardEventInit = {}) => new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...init });
@@ -149,7 +149,7 @@ test('Forms claim: disabling the focused submit button reports FOCUS_LOST', asyn
   const saving = signal(false);
   const target = document.createElement('div');
   document.body.append(target);
-  const { mount } = await import('jasno');
+  const { mount } = await import('@jasno/core');
   const unmount = mount(() => h.button({ type: 'button', disabled: saving, onclick: () => saving.set(true) }, 'Save'), target);
   flush();
   press(target.querySelector('button')!);
@@ -608,7 +608,7 @@ test('Modal dialog: a dialog in a branch opens itself in onMount and closes itse
   same(document.activeElement, opener);
 });
 
-test('dialog-in-a-branch recipe returns focus to the opener under jasno/testing/happy-dom (no FOCUS_LOST)', async (t) => {
+test('dialog-in-a-branch recipe returns focus to the opener under @jasno/core/testing/happy-dom (no FOCUS_LOST)', async (t) => {
   const cap = capture();
   t.after(() => cap.stop());
   const { view, opener } = branchDialog(t);

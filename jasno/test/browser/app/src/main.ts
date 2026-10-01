@@ -1,4 +1,4 @@
-import { mount } from 'jasno';
+import { mount } from '@jasno/core';
 import { App } from './app.ts';
 import { router } from './routes.ts';
 
