@@ -62,7 +62,7 @@ The package carries its documentation: `AGENTS.md` (the guide, also copied into 
 
 - `jasno/`: the runtime, the CLI and their tests (`npm test`, `npm run check`, `npm run test:browser`, `npm run test:package`, `npm run test:template`)
 - `create-jasno/`: the `npm create jasno` template
-- `design/`: the specification, the changelog of decisions, the agent guide and the public types
+- `design/`: the specification, the agent guide and the public types
 
 ## License
 

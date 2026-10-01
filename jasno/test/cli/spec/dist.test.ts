@@ -1,6 +1,5 @@
 // Conformance probes for jasno dist and jasno preview against design.md (e) dist 1-9, (e) preview, ADR-29, ADR-35 and
-// the (c) dist rows. The findings are fixed or decided (changelog.md "CLI prototype"); tests named "open:" are the
-// deliberate gaps, kept as todo.
+// the (c) dist rows. Tests named "open:" are the deliberate gaps, kept as todo.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';

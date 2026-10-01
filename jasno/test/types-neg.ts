@@ -1,4 +1,4 @@
-// Type-level promises from the changelog (phase-1 criterion 4): every expression marked below must be a type error
+// Type-level promises of the design: every expression marked below must be a type error
 // against the public API (the design's ambient jasno.d.ts). tsc (npm run check, tsconfig.test.json) fails with TS2578
 // when one of them compiles, so a loosened type cannot pass unnoticed. Not a test file: node --test never runs it.
 import {

@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # NO_ACCESSOR
 
-**error**, reported by jasno check: syntax that passes tsc and the stripper, then fails in V8 (§6).
+**error**, reported by jasno check: syntax that passes tsc and the stripper, then fails in V8.
 
 <!-- /generated:catalogue -->
 

@@ -1,6 +1,5 @@
 // Conformance probes for `jasno check` (design.md ADR-24, ADR-26, ADR-33, (c) check rows, (e) check 1-7).
-// Written against the spec (and ADR-24's "no false positive on correct code"); the findings are fixed or decided
-// (changelog.md "CLI prototype").
+// Written against the spec (and ADR-24's "no false positive on correct code").
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';

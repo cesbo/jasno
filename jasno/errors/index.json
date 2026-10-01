@@ -586,7 +586,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check",
-          "when": "syntax that passes tsc and the stripper, then fails in V8 (§6)"
+          "when": "syntax that passes tsc and the stripper, then fails in V8"
         }
       ]
     },
@@ -597,7 +597,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check",
-          "when": "syntax that passes tsc and the stripper, then fails in V8 (§6)"
+          "when": "syntax that passes tsc and the stripper, then fails in V8"
         }
       ]
     },
@@ -685,7 +685,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "check",
-          "when": "new Worker, new SharedWorker or serviceWorker.register of the DOM globals in a browser file (import maps do not apply to workers; v1 has no worker story)"
+          "when": "new Worker, new SharedWorker or serviceWorker.register of the DOM globals in a browser file (import maps do not apply to workers, and jasno has no worker recipe)"
         }
       ]
     },
@@ -905,7 +905,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error / warn",
           "tool": "dist",
-          "when": "index.html carries its own CSP <meta>: with 'strict-dynamic' (error), combined with jasno's hash sources it blocks imports in Chromium and Firefox (§7); without it (warn), browsers enforce both policies and the stricter wins, so the app breaks only after deploy"
+          "when": "index.html carries its own CSP <meta>: with 'strict-dynamic' (error), combined with jasno's hash sources it blocks imports in Chromium and Firefox; without it (warn), browsers enforce both policies and the stricter wins, so the app breaks only after deploy"
         }
       ]
     }

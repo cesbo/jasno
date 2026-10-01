@@ -1,4 +1,4 @@
-// Fixtures for changelog rows whose promised CLI check was only partly tested (the phase-1 criterion-4 audit).
+// Fixtures for design promises whose CLI check was only partly tested elsewhere.
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';

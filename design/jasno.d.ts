@@ -1,6 +1,6 @@
 /// <reference path="./jasno.elements.d.ts" />
-// jasno v3: the complete public API as ambient module declarations (design artifact).
-// Modules: 'jasno' (core), 'jasno/router', 'jasno/testing', 'jasno/testing/happy-dom'. No optional modules in v3.
+// jasno: the complete public API as ambient module declarations.
+// Modules: 'jasno' (core), 'jasno/router', 'jasno/testing', 'jasno/testing/happy-dom'.
 // Rules this file follows: one signature per function (no overloads), every optional prop is `?: X | undefined`
 // (exactOptionalPropertyTypes), element props are closed and generated from lib.dom (tools/gen-elements.cjs).
 // Every snippet in the RECIPES block compiles (tools/agents-samples/recipes.ts).
@@ -166,7 +166,7 @@
    Subscriptions whose callback sets signals go in onMount, never in effect(): a callback that fires during an effect
    run is tracked by that effect and reported (EFFECT_WRITES_STATE). State that must survive a switch (a draft per
    room) lives in a parent Map signal keyed by the param; match bodies and linkedSignal discard theirs.
-   Unsaved changes: a window 'beforeunload' listener in onMount covers tab close; in-app leave guards are not in v1.
+   Unsaved changes: a window 'beforeunload' listener in onMount covers tab close; in-app leave guards are not in 1.0.
    Route tests: history.replaceState(null, '', '/users/1') before mountTest(t, () => App()), await settled() (the
    lazy view), then await router.navigate(url); tests are the only place that touches history. A state that lasts
    while a test holds a loader ("Loading"): await waitFor(() => assert...), since settled() waits for the loader.

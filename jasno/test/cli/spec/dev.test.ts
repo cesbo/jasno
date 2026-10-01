@@ -1,5 +1,4 @@
-// Conformance probes for `jasno dev` against design.md ADR-34, ADR-35, (c) and (e) "jasno dev", with the CLI
-// prototype decisions in changelog.md ("CLI prototype") taken as given. The findings are fixed or decided there.
+// Conformance probes for `jasno dev` against design.md ADR-34, ADR-35, (c) and (e) "jasno dev".
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';

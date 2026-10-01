@@ -131,6 +131,6 @@ const END = '  // </generated:elements>';
 const src = fs.readFileSync(target, 'utf8');
 const a = src.indexOf(START), b = src.indexOf(END);
 if (a < 0 || b < a) throw new Error('markers not found in ' + target);
-const header = `${START} from lib.dom.d.ts (TypeScript 7.0.2) by tools/gen-elements.cjs (v2); do not edit by hand\n`;
+const header = `${START} from lib.dom.d.ts (TypeScript 7.0.2) by tools/gen-elements.cjs; do not edit by hand\n`;
 fs.writeFileSync(target, src.slice(0, a) + header + lines.join('\n') + '\n' + src.slice(b));
 console.log(JSON.stringify({ tags, interfaces: done.size, lines: lines.length }));

@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # CSP_HASH_STRICT_DYNAMIC
 
-**error / warn**, reported by jasno dist: index.html carries its own CSP <meta>: with 'strict-dynamic' (error), combined with jasno's hash sources it blocks imports in Chromium and Firefox (§7); without it (warn), browsers enforce both policies and the stricter wins, so the app breaks only after deploy.
+**error / warn**, reported by jasno dist: index.html carries its own CSP <meta>: with 'strict-dynamic' (error), combined with jasno's hash sources it blocks imports in Chromium and Firefox; without it (warn), browsers enforce both policies and the stricter wins, so the app breaks only after deploy.
 
 <!-- /generated:catalogue -->
 

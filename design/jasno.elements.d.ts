@@ -1,7 +1,7 @@
 // Element props for h.*: GlobalProps, one *Props interface per element class and the H tag table, merged into
 // module 'jasno'. Generated from lib.dom.d.ts by tools/gen-elements.cjs; tsc checks them, so agents rarely need to read them.
 declare module 'jasno' {
-  // <generated:elements> from lib.dom.d.ts (TypeScript 7.0.2) by tools/gen-elements.cjs (v2); do not edit by hand
+  // <generated:elements> from lib.dom.d.ts (TypeScript 7.0.2) by tools/gen-elements.cjs; do not edit by hand
   /** Props every h.* element accepts: class, style, data-/aria- attributes, lowercase on<event> handlers and writable HTMLElement properties (value or Read<T>). */
   export interface GlobalProps<E extends HTMLElement> {
     class?: string | Read<string | undefined> | { readonly [name: string]: boolean | Read<boolean> } | undefined;

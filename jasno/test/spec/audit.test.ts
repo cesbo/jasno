@@ -1,4 +1,4 @@
-// Fixtures for changelog rows whose promised check had no test yet (the phase-1 criterion-4 audit, 2026-09-27).
+// Fixtures for design promises whose check had no test of its own.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';

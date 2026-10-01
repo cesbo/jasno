@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # WORKER_UNSUPPORTED
 
-**error**, reported by jasno check: new Worker, new SharedWorker or serviceWorker.register of the DOM globals in a browser file (import maps do not apply to workers; v1 has no worker story).
+**error**, reported by jasno check: new Worker, new SharedWorker or serviceWorker.register of the DOM globals in a browser file (import maps do not apply to workers, and jasno has no worker recipe).
 
 <!-- /generated:catalogue -->
 
