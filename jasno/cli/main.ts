@@ -11,7 +11,7 @@ import { Reporter } from './report.ts';
 const USAGE = `usage: jasno <command> [options]
   check     type-check both programs and run jasno's rules   [--strict] [--json]
   dev       local dev server                                 [--port 5173] [--host <addr>] [--json]
-  dist      build dist/ (type erasure, hashed names)         [--list] [--keep N] [--condition <name>] [--nonce] [--json]
+  dist      build dist/ (bundled, hashed names)              [--list] [--keep N] [--condition <name>] [--nonce] [--json]
   preview   serve dist/ as a static host would               [--port 4173] [--json]
   explain   print what a diagnostic code means               <CODE> | --list [--json]
 

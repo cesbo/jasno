@@ -865,36 +865,14 @@
         }
       ]
     },
-    "MODULE_BUDGET_EXCEEDED": {
-      "code": "MODULE_BUDGET_EXCEEDED",
-      "rows": [
-        {
-          "source": "jasno check, jasno dev, jasno dist",
-          "severity": "warn > 150, error > 250",
-          "tool": "dist",
-          "when": "the entry's static closure, counted per package/directory"
-        }
-      ]
-    },
-    "LAZY_BUDGET_EXCEEDED": {
-      "code": "LAZY_BUDGET_EXCEEDED",
-      "rows": [
-        {
-          "source": "jasno check, jasno dev, jasno dist",
-          "severity": "warn > 50",
-          "tool": "dist",
-          "when": "a dynamic-import target's static closure"
-        }
-      ]
-    },
     "DYNAMIC_IMPORT_NOT_LITERAL": {
       "code": "DYNAMIC_IMPORT_NOT_LITERAL",
       "rows": [
         {
           "source": "jasno check, jasno dev, jasno dist",
-          "severity": "warn",
+          "severity": "error",
           "tool": "dist",
-          "when": "import(expr): closure unknown, not budgeted"
+          "when": "import(expr): the bundle holds only modules imported by string literals, so its target is not in dist/"
         }
       ]
     },

@@ -163,7 +163,7 @@ test('bin/jasno.js in a project: dist --list exits 0, stdout only; --json makes 
   const r = bin(['dist', '--list'], root);
   assert.equal(r.status, 0, r.err);
   assert.equal(r.err, '');
-  assert.ok(lines(r.out).some((l) => /^dist\/src\/main\.[0-9a-f]{10}\.js {2}<- src\/main\.ts$/.test(l)), r.out);
+  assert.ok(lines(r.out).some((l) => /^dist\/src\/main\.[0-9A-Z]{8}\.js {2}<- src\/main\.ts$/.test(l)), r.out); // bundled by default
   const j = bin(['dist', '--list', '--json'], root);
   assert.equal(j.status, 0);
   assert.ok(lines(j.out).length > 0 && lines(j.out).every(isJson));

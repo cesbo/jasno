@@ -2,7 +2,7 @@
 // A small app (jasno, a dependency with a scoped #import, a JSON module, a lazy route) is built, served by preview and
 // loaded: modules load from hashed URLs with integrity under the production CSP and Trusted Types; a tampered module is
 // blocked; a stale tab keeps loading its lazy route after a --keep 1 deploy; the --nonce variant as printed.
-// Every check is a conformance check ("ok"/"FAIL"); all passed in Chromium and Firefox on 2026-09-27.
+// Each check prints "ok" or "FAIL".
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, firefox, webkit } from 'playwright';
@@ -40,6 +40,8 @@ const build = async (keep) => {
   return JSON.parse(/<script type="importmap">(.*?)<\/script>/s.exec(readFileSync(at('dist/index.html'), 'utf8'))[1]);
 };
 
+const lazyUrlOf = (map) => Object.keys(map.integrity).find((u) => u.startsWith('/src/views/lazy.'));
+
 await build(0);
 const server = await startPreview(app.root, { port: 0 }, reporter(app.root).reporter);
 const base = server.url.replace(/\/$/, '');
@@ -74,7 +76,7 @@ try {
       await a.page.waitForSelector('#out', { timeout: 5000 }).catch(() => {});
       ok(await a.page.textContent('#out').catch(() => null) === 'main-v1:prod!:1', `app runs: dependency with scoped #import, JSON module (${await a.page.textContent('#out').catch((e) => String(e))})`);
       const loaded = await a.page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname));
-      ok(loaded.every((p) => !p.endsWith('.ts')) && loaded.some((p) => /^\/_deps\/dep-esm@1\.2\.3\/internal\.[0-9a-f]{10}\.js$/.test(p)), 'modules load from hashed URLs, none from .ts');
+      ok(loaded.every((p) => !p.endsWith('.ts')) && loaded.filter((p) => p.endsWith('.js')).every((p) => /^\/src\/(main|chunk)\.[0-9A-Z]{8}\.js$/.test(p)), `chunks load from hashed URLs, none from .ts (${loaded.filter((p) => p.endsWith('.js')).join(' ')})`);
       ok(!loaded.some((p) => p.includes('/views/lazy.')), 'the lazy route is not preloaded');
       ok(a.errors.length === 0 && (await a.page.evaluate(() => globalThis.__violations)).length === 0, `no console errors or CSP violations (${JSON.stringify(a.errors.slice(0, 3))})`);
       const tt = await a.page.evaluate(() => globalThis.tryHtml());
@@ -102,21 +104,22 @@ try {
 
       // 3. A tampered module (edited after the build) is blocked by integrity: a lazy one and a preloaded dependency.
       const map = await build(0);
-      const lazyUrl = map.imports['/src/views/lazy.ts'];
-      writeFileSync(at('dist' + lazyUrl), readFileSync(at('dist' + lazyUrl), 'utf8').replace("'lazy-", "'TAMPERED-"));
+      const lazyUrl = lazyUrlOf(map);
+      writeFileSync(at('dist' + lazyUrl), readFileSync(at('dist' + lazyUrl), 'utf8').replace(/(['"`])lazy-/, '$1TAMPERED-'));
       const t = await open(browser);
       await t.page.goto(base + '/');
       await t.page.waitForSelector('#out');
       const tampered = await lazyResult(t.page);
       ok(tampered.startsWith('rejected'), `tampered lazy module blocked by import-map integrity (${tampered})`);
-      const depUrl = map.imports['/_deps/dep-esm@1.2.3/internal.js'];
+      // The dependency sits in the preloaded entry chunk.
+      const entryUrl = map.imports['/src/main.ts'];
       await build(0);
-      writeFileSync(at('dist' + depUrl), "export const x = '?';\n");
+      writeFileSync(at('dist' + entryUrl), readFileSync(at('dist' + entryUrl), 'utf8') + '\n// tampered\n');
       const t2 = await open(browser);
       await t2.page.goto(base + '/');
       await t2.page.waitForTimeout(1000);
       const text = await t2.page.textContent('#out').catch(() => null);
-      ok(text === null, `tampered preloaded dependency blocks the entry (#out: ${JSON.stringify(text)}; ${JSON.stringify(t2.errors.slice(0, 2))})`);
+      ok(text === null, `a tampered preloaded chunk blocks the entry (#out: ${JSON.stringify(text)}; ${JSON.stringify(t2.errors.slice(0, 2))})`);
 
       // 4. The --nonce variant as printed: nonce on both inline scripts, the policy as a header, the meta removed.
       await build(0);

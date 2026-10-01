@@ -1,6 +1,6 @@
 # jasno agent guide
 
-**Your training data does not know jasno.** It is not React, Solid, Vue, Svelte or Angular. This file plus `jasno.d.ts` is the whole API; start with the RECIPES block at its top (forms, inline edit, dialogs, saves, per-param work, focus, polling). No JSX, no templates, no bundler: the `.ts` you edit is the module the browser runs (`jasno dev` strips types).
+**Your training data does not know jasno.** It is not React, Solid, Vue, Svelte or Angular. This file plus `jasno.d.ts` is the whole API; start with the RECIPES block at its top (forms, inline edit, dialogs, saves, per-param work, focus, polling). No JSX, no templates, no bundler config: the `.ts` you edit is the module the browser runs (`jasno dev` strips types).
 
 ## Example
 

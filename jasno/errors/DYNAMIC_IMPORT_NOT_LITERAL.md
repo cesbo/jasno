@@ -1,11 +1,11 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # DYNAMIC_IMPORT_NOT_LITERAL
 
-**warn**, reported by jasno dist: import(expr): closure unknown, not budgeted.
+**error**, reported by jasno dist: import(expr): the bundle holds only modules imported by string literals, so its target is not in dist/.
 
 <!-- /generated:catalogue -->
 
-`import()` is called with a computed specifier (a variable, or a template literal with `${}`), so `jasno dist` cannot tell which module it loads. That module's closure is not budgeted and not listed with the lazy targets in `dist/.jasno/manifest.json`, and a wrong name surfaces only when the import runs in the browser, where a literal one fails the build with `MODULE_NOT_FOUND`. It is a warning; the build succeeds.
+`import()` is called with a computed specifier (a variable, or a template literal with `${}`), so `jasno dist` cannot tell which module it loads. The bundle contains only modules imported by string literals, so the target would not be in `dist/` and the import would fail in the browser: the build fails and nothing is written. A literal import also lets the build check the path (`MODULE_NOT_FOUND`) and give the view its own chunk.
 <!-- design.md: (c) dist, (e) dist 4 -->
 
 ## Fix
@@ -28,4 +28,4 @@ const load = (name: keyof typeof widgets) => widgets[name]();
 
 ## Fixture
 
-`test/cli/spec/dist.test.ts` › DYNAMIC_IMPORT_NOT_LITERAL: import(variable) warns at the call, the build succeeds
+`test/cli/dist.test.ts` › DYNAMIC_IMPORT_NOT_LITERAL: import(variable) fails the build at the call, since its target cannot be in the bundle; nothing written

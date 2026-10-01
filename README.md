@@ -1,8 +1,8 @@
 # jasno
 
-A TypeScript-first framework for single-page apps, designed for coding agents. Plain TypeScript, no DSL: no JSX, no template language, no bundler. Views are typed function calls (`h.div(...)`) that tsc checks like any other code, and the `.ts` file you edit is the module the browser runs.
+A TypeScript-first framework for single-page apps, designed for coding agents. Plain TypeScript, no DSL: no JSX, no template language, no build configuration. Views are typed function calls (`h.div(...)`) that tsc checks like any other code. In development the `.ts` file you edit is the module the browser runs; `jasno dist` bundles it for production.
 
-> **Status: 0.x.** The API may change before 1.0. jasno has been exercised by agent-built apps and a comparison against React and Solid, not yet by production users, and its unbundled delivery has not been measured on real phones.
+> **Status: 0.x.** The API may change before 1.0. jasno has been exercised by agent-built apps and a comparison against React and Solid, not yet by production users, and its load times have not been measured on real phones.
 
 ## Quick start
 
@@ -31,7 +31,7 @@ A function is live and a value is static: `() => count()` updates the text, `cou
 
 ## What you get
 
-- **No build step.** `jasno dev` strips types as it serves; `jasno dist` hashes files, writes the import map, `_headers` and `_redirects`. npm packages are imported by name.
+- **No build configuration.** `jasno dev` strips types as it serves, one module per file. `jasno dist` bundles with esbuild into hashed chunks, one per lazy view, with source maps, integrity, the CSP, `_headers` and `_redirects`. npm packages are imported by name.
 - **Checks.** `jasno check` runs tsc on the browser and test programs plus jasno's own rules. In development, problems are reported with a code; `npm run explain CODE` prints the repair guide.
 - **Accessibility built in.** The router moves focus to each view's heading; lost focus, unnamed controls and a few other mistakes are reported.
 - **Testing.** `jasno/testing` mounts components under `node:test` with happy-dom; the template adds Playwright in Chromium, Firefox and WebKit.

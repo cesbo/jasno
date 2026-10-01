@@ -71,8 +71,9 @@ for (const [name, type] of [['chromium', chromium], ['firefox', firefox], ['webk
     ok(true, 'retry re-runs the navigation');
     if (preview) {
       ok(await page.evaluate(() => window.__JASNO__ === undefined), 'production build: no __JASNO__');
-      const hashed = await page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname).filter((p) => /\.[0-9a-f]{10}\.js$/.test(p)));
-      ok(hashed.some((p) => p.startsWith('/src/views/user.')) && hashed.some((p) => p.startsWith('/jasno/')), `modules load from hashed URLs (${hashed.length})`);
+      // jasno dist bundles by default: the entry, the lazy views and shared chunks, all hashed under /src/.
+      const hashed = await page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname).filter((p) => /\.[0-9A-Z]{8}\.js$/.test(p)));
+      ok(hashed.some((p) => p.startsWith('/src/views/user.')) && hashed.every((p) => p.startsWith('/src/')), `chunks load from hashed URLs (${hashed.length})`);
       ok(!(await page.evaluate(() => performance.getEntriesByType('resource').some((e) => new URL(e.name).pathname.endsWith('.ts')))), 'no .ts request');
     } else {
       const diags = await page.evaluate(() => window.__JASNO__?.diagnostics().map((d) => d.message));

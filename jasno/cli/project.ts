@@ -62,7 +62,7 @@ export function entryImports(html: string): { specifier: string; offset: number 
   return out;
 }
 
-const entryPath = (root: string, spec: string): string => join(root, decodeURIComponent(spec.slice(1)));
+export const entryPath = (root: string, spec: string): string => join(root, decodeURIComponent(spec.slice(1)));
 
 /** The entry files index.html imports (root-relative URLs such as '/src/main.ts'). */
 export function entryFiles(root: string, html: string): string[] {

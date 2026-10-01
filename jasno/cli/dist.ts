@@ -1,51 +1,24 @@
-// jasno dist (design.md (e), ADR-29, ADR-35): type erasure only. Every shipped .js is its .ts with types blanked
-// (same line and column); module names gain a content hash; one inline import map (source URL → hashed URL, bare
-// keys, integrity), modulepreload for the entry's static closure, the production CSP, SPA fallback files.
+// jasno dist (design.md (e), ADR-29, ADR-35): esbuild bundles the module graph jasno resolved. The entry and each lazy
+// view of the app become hashed chunks under src/, shared code goes to src/chunk.<hash>.js; one inline import map (the
+// entry URL, integrity for every chunk), modulepreload for the entry's static chunks, the production CSP and the SPA
+// fallback files.
 import { createHash } from 'node:crypto';
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  importMapIndex, injectHead, isRelative, productionCsp, ready, scriptJson, walk, withoutComments, type Graph, type Mod,
-} from './modules.ts';
-import { browserModules, entryFiles, entryProblems, filesUnder, isTestFile, posixRel, readIndex } from './project.ts';
+import { importMapIndex, injectHead, productionCsp, ready, scriptJson, walk, withoutComments, type Graph } from './modules.ts';
+import { browserModules, entryFiles, entryImports, entryPath, entryProblems, filesUnder, isTestFile, posixRel, readIndex } from './project.ts';
 import { lineCol, type Problem, type Reporter } from './report.ts';
 import { namedPackageOf, prodConditions, readPackage, type PackageJson } from './resolve.ts';
 
 export interface DistOptions { list: boolean; keep: number; conditions: readonly string[]; nonce: boolean }
 
-export const BUDGET = { entryWarn: 150, entryError: 250, lazyWarn: 50 };
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 /** Names jasno dist generates at the root of dist/: public/ files may not take them. */
-const RESERVED = new Set(['index.html', '404.html', '_headers', '_redirects', 'src', '_deps', 'jasno', 'assets', '.jasno']);
+const RESERVED = new Set(['index.html', '404.html', '_headers', '_redirects', 'src', 'assets', '.jasno']);
 
-type Bytes = string | Buffer;
-interface Output { path: string; url: string; content: Bytes; integrity: string; mod: Mod }
-
-const hashOf = (s: Bytes): string => createHash('sha256').update(s).digest('hex').slice(0, 10);
-const integrityOf = (s: Bytes): string => 'sha384-' + createHash('sha384').update(s).digest('base64');
+const integrityOf = (s: Buffer): string => 'sha384-' + createHash('sha384').update(s).digest('base64');
 const byCodePoint = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
-
-/** `src/a/b.ts` → `src/a/b.<hash>.js`; JSON keeps .json. */
-function hashedPath(rel: string, content: Bytes): string {
-  const ext = extname(rel);
-  const out = ext === '.json' ? '.json' : '.js';
-  return `${rel.slice(0, rel.length - ext.length)}.${hashOf(content)}${out}`;
-}
-
-/** Output path (under dist/) of a module before hashing: app files keep their path, packages go to _deps/ or jasno/. */
-function sourcePath(mod: Mod, root: string): string {
-  if (mod.owner.kind === 'app') return posixRel(root, mod.file);
-  const { pkg } = mod.owner;
-  const prefix = pkg.json.name === 'jasno' ? 'jasno' : `_deps/${pkg.json.name ?? 'unnamed'}@${pkg.json.version ?? '0.0.0'}`;
-  return `${prefix}/${posixRel(pkg.dir, mod.file)}`;
-}
-
-const scopeOf = (mod: Mod): string | undefined => {
-  if (mod.owner.kind === 'app') return undefined;
-  const { pkg } = mod.owner;
-  return pkg.json.name === 'jasno' ? '/jasno/' : `/_deps/${pkg.json.name ?? 'unnamed'}@${pkg.json.version ?? '0.0.0'}/`;
-};
 
 /** The string targets a conditions tree selects (first matching key, Node's order), and all of its string targets. */
 function targetsOf(t: unknown, conditions: ReadonlySet<string>): { selected: string[]; all: string[] } {
@@ -121,33 +94,6 @@ function secrets(root: string): Problem[] {
   return out;
 }
 
-/** The static import closure of files (static edges only), in breadth-first order. */
-function staticClosure(g: Graph, files: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const queue = [...files];
-  while (queue.length) {
-    const f = queue.shift()!;
-    if (seen.has(f) || !g.mods.has(f)) continue;
-    seen.add(f);
-    for (const e of g.mods.get(f)!.edges) if (!e.dynamic && e.file) queue.push(e.file);
-  }
-  return [...seen];
-}
-
-/** Module counts per package (dependencies) or directory (the app), for the budget messages. */
-function perGroup(g: Graph, files: readonly string[], root: string): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const f of files) {
-    const mod = g.mods.get(f)!;
-    const key = mod.owner.kind === 'app' ? posixRel(root, dirname(f)) || '.' : mod.owner.pkg.json.name ?? 'unnamed';
-    counts[key] = (counts[key] ?? 0) + 1;
-  }
-  return counts;
-}
-
-const describe = (counts: Record<string, number>): string =>
-  Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ');
-
 /** The pinned stripper's version (amaro's dist/ has its own nameless package.json). */
 function stripperVersion(): string {
   try { return `amaro@${namedPackageOf(fileURLToPath(import.meta.resolve('amaro')))?.json.version ?? '?'}`; } catch { return 'amaro@?'; }
@@ -158,7 +104,7 @@ function headersFile(csp: string): string {
   return [
     rule('/*', { 'Content-Security-Policy': csp, 'X-Content-Type-Options': 'nosniff' }),
     ...['/', '/index.html', '/404.html', '/assets/*'].map((p) => rule(p, { 'Cache-Control': 'no-cache' })),
-    ...['/src/*', '/_deps/*', '/jasno/*'].map((p) => rule(p, { 'Cache-Control': IMMUTABLE })),
+    rule('/src/*', { 'Cache-Control': IMMUTABLE }),
   ].join('');
 }
 
@@ -166,9 +112,73 @@ function headersFile(csp: string): string {
  * A miss under a module or asset directory is a missing file (404), not the app: a stale tab past --keep must not
  * get index.html as JavaScript cached for a year. Everything else falls back to index.html (dist 7).
  */
-const REDIRECTS = ['/src/*', '/_deps/*', '/jasno/*', '/assets/*'].map((p) => `${p} /404.html 404\n`).join('') + '/* /index.html 200\n';
+const REDIRECTS = ['/src/*', '/assets/*'].map((p) => `${p} /404.html 404\n`).join('') + '/* /index.html 200\n';
 
 interface Manifest { stripper: string; deploys: string[][] }
+
+/**
+ * esbuild bundles the graph jasno already resolved, so dev, check and dist agree on every import (the graph answers
+ * onResolve, the stripped source answers onLoad; esbuild neither resolves nor parses TypeScript). The entry and the
+ * app's lazy targets keep their paths under src/ with a content hash; shared code, a package's lazy targets included,
+ * goes to src/chunk.<hash>.js. Identifiers are not minified, so stack traces keep their names, and linked source maps
+ * point at the .ts files. Licence comments of dependencies stay at the end of their chunk.
+ */
+async function bundle(g: Graph, root: string, html: string) {
+  const { build, version } = await import('esbuild');
+  const entries = entryImports(html).map((e) => ({ spec: e.specifier, file: entryPath(root, e.specifier) })).filter((e) => g.mods.has(e.file));
+  const named = new Set(entries.map((e) => e.file));
+  const src = join(root, 'src') + sep;
+  for (const mod of g.mods.values()) for (const e of mod.edges) if (e.dynamic && e.file?.startsWith(src) && g.mods.has(e.file)) named.add(e.file);
+  const out = join(root, 'dist');
+  const result = await build({
+    absWorkingDir: root, entryPoints: [...named], outdir: out, outbase: root, entryNames: '[dir]/[name].[hash]', chunkNames: 'src/chunk.[hash]',
+    bundle: true, splitting: true, format: 'esm', platform: 'browser', target: ['chrome136', 'firefox138', 'safari18.4'],
+    minifyWhitespace: true, minifySyntax: true, charset: 'utf8', legalComments: 'eof', sourcemap: 'linked',
+    write: false, metafile: true, logLevel: 'silent',
+    plugins: [{
+      name: 'jasno-graph',
+      setup(b) {
+        b.onResolve({ filter: /.*/ }, (args) => {
+          if (args.kind === 'entry-point') return { path: args.path };
+          const file = g.mods.get(args.importer)?.edges.find((e) => e.specifier === args.path)?.file;
+          // An import the graph left unresolved (an optional peer's import()) stays as written.
+          return file ? { path: file } : { path: args.path, external: true };
+        });
+        b.onLoad({ filter: /.*/ }, (args) => ({ contents: g.mods.get(args.path)?.scan.code ?? readFileSync(args.path, 'utf8'), loader: extname(args.path) === '.json' ? 'json' : 'js' }));
+      },
+    }],
+  });
+  const prefix = posixRel(root, out) + '/'; // metafile keys are relative to absWorkingDir: dist/src/main.<hash>.js
+  const meta = result.metafile.outputs;
+  const chunks = new Map<string, Buffer>();
+  const sources = new Map<string, string>();
+  const integrity: Record<string, string> = {};
+  for (const f of result.outputFiles) {
+    const path = posixRel(out, f.path);
+    const content = Buffer.from(f.contents);
+    chunks.set(path, content);
+    if (path.endsWith('.js')) integrity['/' + path] = integrityOf(content);
+    sources.set(path, path.endsWith('.map') ? '(source map)' : meta[prefix + path]?.entryPoint ?? '(shared chunk)');
+  }
+  const byEntry = new Map(Object.entries(meta).filter(([, o]) => o.entryPoint).map(([k, o]) => [o.entryPoint!, k.slice(prefix.length)]));
+  const imports: Record<string, string> = {};
+  const preload = new Set<string>();
+  const visit = (path: string): void => {
+    if (preload.has(path)) return;
+    preload.add(path);
+    for (const i of meta[prefix + path]!.imports) if (i.kind === 'import-statement') visit(i.path.slice(prefix.length));
+  };
+  for (const e of entries) {
+    const path = byEntry.get(posixRel(root, e.file))!;
+    imports[e.spec] = '/' + path;
+    visit(path);
+  }
+  return {
+    chunks, sources, map: { imports, integrity },
+    preloads: [...preload].map((p) => ({ url: '/' + p, integrity: integrity['/' + p]! })),
+    modules: Object.keys(result.metafile.inputs).length, bundler: `esbuild@${version}`,
+  };
+}
 
 export async function dist(root: string, opts: DistOptions, reporter: Reporter): Promise<number> {
   await ready;
@@ -201,50 +211,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
     }
     for (const e of mod.edges) {
       if (e.dynamic && e.specifier === undefined) {
-        problems.push({ code: 'DYNAMIC_IMPORT_NOT_LITERAL', severity: 'warn', message: 'import() of a computed specifier: its closure is unknown, not budgeted and not in the import map.', hint: "Import a string literal (() => import('./views/x.ts')).", file: mod.file, ...lineCol(mod.scan.code, e.start) });
-      }
-    }
-  }
-
-  // Hashed outputs, the import map and integrity (dist 2, 3). Types are blanked in .ts; other files ship as bytes.
-  const outputs = new Map<string, Output>();
-  for (const mod of g.mods.values()) {
-    const rel = sourcePath(mod, root);
-    const content: Bytes = /\.m?ts$/.test(mod.file) ? mod.scan.code : readFileSync(mod.file);
-    const path = hashedPath(rel, content);
-    outputs.set(mod.file, { path, url: '/' + path, content, integrity: integrityOf(content), mod });
-  }
-  const imports: Record<string, string> = {};
-  const scopes: Record<string, Record<string, string>> = {};
-  const integrity: Record<string, string> = {};
-  for (const o of outputs.values()) {
-    imports['/' + sourcePath(o.mod, root)] = o.url;
-    integrity[o.url] = o.integrity;
-    for (const e of o.mod.edges) {
-      if (!e.file || !e.specifier || isRelative(e.specifier) || !outputs.has(e.file)) continue;
-      const target = outputs.get(e.file)!.url;
-      const scope = scopeOf(o.mod);
-      if (scope) (scopes[scope] ??= {})[e.specifier] = target;
-      else imports[e.specifier] = target;
-    }
-  }
-
-  // Budgets (ADR-29) and lazy closures for the manifest (dist 4, 9).
-  const entryClosure = staticClosure(g, entries);
-  const entryCounts = perGroup(g, entryClosure, root);
-  const n = entryClosure.length;
-  if (n > BUDGET.entryWarn) {
-    problems.push({ code: 'MODULE_BUDGET_EXCEEDED', severity: n > BUDGET.entryError ? 'error' : 'warn', message: `The entry's static closure has ${n} modules (warn > ${BUDGET.entryWarn}, error > ${BUDGET.entryError}): ${describe(entryCounts)}.`, hint: 'Lazy-load views (route view: () => import(...)) and drop barrel files.', file: entries[0] });
-  }
-  const lazy: Record<string, { modules: number; perPackage: Record<string, number>; closure: string[] }> = {};
-  for (const mod of g.mods.values()) {
-    for (const e of mod.edges) {
-      if (!e.dynamic || !e.file || !outputs.has(e.file) || lazy[outputs.get(e.file)!.url]) continue;
-      const closure = staticClosure(g, [e.file]).filter((f) => !entryClosure.includes(f));
-      const url = outputs.get(e.file)!.url;
-      lazy[url] = { modules: closure.length, perPackage: perGroup(g, closure, root), closure: closure.map((f) => outputs.get(f)!.url) };
-      if (closure.length > BUDGET.lazyWarn) {
-        problems.push({ code: 'LAZY_BUDGET_EXCEEDED', severity: 'warn', message: `import('${e.specifier}') loads ${closure.length} modules beyond the entry (warn > ${BUDGET.lazyWarn}): ${describe(lazy[url].perPackage)}.`, file: mod.file, ...lineCol(mod.scan.code, e.start) });
+        problems.push({ code: 'DYNAMIC_IMPORT_NOT_LITERAL', severity: 'error', message: 'import() of a computed specifier: the bundle holds only modules imported by string literals, so its target is not in dist/.', hint: "Import a string literal (() => import('./views/x.ts')).", file: mod.file, ...lineCol(mod.scan.code, e.start) });
       }
     }
   }
@@ -258,15 +225,16 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   for (const p of problems) reporter.add(p);
   if (problems.some((p) => p.severity === 'error')) { reporter.info('jasno dist: nothing written.'); return 1; }
 
+  const built = await bundle(g, root, html);
+
   // index.html: CSP meta, import map, modulepreload with integrity; the entry script stays inline (dist 3-6).
-  const preloads = entryClosure.map((f) => outputs.get(f)!).filter((o) => !o.path.endsWith('.json'))
-    .map((o) => `<link rel="modulepreload" href="${o.url}" integrity="${o.integrity}">`).join('\n  ');
-  const withMap = injectHead(html, `<!--jasno:csp-->\n  <script type="importmap">${scriptJson({ imports, scopes, integrity })}</script>\n  ${preloads}`);
+  const preloads = built.preloads.map((p) => `<link rel="modulepreload" href="${p.url}" integrity="${p.integrity}">`).join('\n  ');
+  const withMap = injectHead(html, `<!--jasno:csp-->\n  <script type="importmap">${scriptJson(built.map)}</script>\n  ${preloads}`);
   const policy = productionCsp(withMap);
   const page = withMap.replace('<!--jasno:csp-->', () => `<meta http-equiv="Content-Security-Policy" content="${policy}">`);
 
-  const files = new Map<string, { content?: Bytes; from?: string }>();
-  for (const o of outputs.values()) files.set(o.path, { content: o.content });
+  const files = new Map<string, { content?: string | Buffer; from?: string }>();
+  for (const [path, content] of built.chunks) files.set(path, { content });
   for (const f of filesUnder(join(root, 'assets'))) files.set(posixRel(root, f), { from: f });
   for (const f of publicFiles) files.set(posixRel(join(root, 'public'), f), { from: f });
   files.set('index.html', { content: page });
@@ -274,7 +242,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   files.set('_redirects', { content: REDIRECTS });
   files.set('_headers', { content: headersFile(policy) });
 
-  // --keep N: the previous N deploys' hashed files stay, so open tabs keep loading their modules (dist 8).
+  // --keep N: the previous N deploys' hashed files stay, so open tabs keep loading their chunks (dist 8).
   const out = join(root, 'dist');
   let previous: string[][] = [];
   try { previous = (JSON.parse(readFileSync(join(out, '.jasno', 'manifest.json'), 'utf8')) as Manifest).deploys ?? []; } catch { /* first build */ }
@@ -283,21 +251,18 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
     if (files.has(path) || kept.has(path)) continue;
     try { kept.set(path, readFileSync(join(out, ...path.split('/')))); } catch { /* already gone */ }
   }
-  const hashed = [...outputs.values()].map((o) => o.path).sort(byCodePoint);
   const manifest = {
     stripper: stripperVersion(),
+    bundler: built.bundler,
     conditions: { dependencies: [...prodConditions()], imports: [...appConditions] },
-    entry: { modules: n, perPackage: entryCounts },
-    lazy,
-    deploys: [hashed, ...previous.slice(0, opts.keep)],
+    deploys: [[...built.chunks.keys()].sort(byCodePoint), ...previous.slice(0, opts.keep)],
   };
   files.set('.jasno/manifest.json', { content: JSON.stringify(manifest, null, 2) + '\n' });
 
   if (opts.list) {
-    const sourceOf = new Map([...outputs.values()].map((o) => [o.path, posixRel(root, o.mod.file)]));
     for (const path of [...files.keys(), ...kept.keys()].sort(byCodePoint)) {
       const f = files.get(path);
-      const source = f?.from ? posixRel(root, f.from) : sourceOf.get(path) ?? (kept.has(path) ? '(kept from a previous deploy)' : undefined);
+      const source = f?.from ? posixRel(root, f.from) : built.sources.get(path) ?? (kept.has(path) ? '(kept from a previous deploy)' : undefined);
       reporter.info(`dist/${path}${source ? `  <- ${source}` : ''}`, { path: `dist/${path}` });
     }
     return reporter.exitCode();
@@ -306,7 +271,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   // Build next to dist/ and swap, so a failed write never leaves half a deploy.
   const tmp = join(root, `.dist-${process.pid}`);
   rmSync(tmp, { recursive: true, force: true });
-  const write = (path: string, data: Bytes): void => {
+  const write = (path: string, data: string | Buffer): void => {
     const file = join(tmp, ...path.split('/'));
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, data);
@@ -319,7 +284,8 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
-  reporter.info(`jasno dist: ${files.size} files in dist/ (${outputs.size} modules, entry closure ${n})${kept.size ? `, ${kept.size} kept from previous deploys` : ''}.`, { files: files.size, modules: outputs.size, entry: n });
+  const chunks = [...built.chunks.keys()].filter((p) => p.endsWith('.js')).length;
+  reporter.info(`jasno dist: ${files.size} files in dist/ (${built.modules} modules in ${chunks} chunks)${kept.size ? `, ${kept.size} kept from previous deploys` : ''}.`, { files: files.size, modules: built.modules, chunks });
   if (opts.nonce) {
     reporter.info(`Nonce variant for servers (put nonce="<nonce>" on both inline scripts in index.html): script-src 'nonce-<nonce>' 'strict-dynamic'; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'`);
   }

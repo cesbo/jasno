@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
-import { BUDGET, dist, type DistOptions } from '../../cli/dist.ts';
+import { dist, type DistOptions } from '../../cli/dist.ts';
 import { startPreview } from '../../cli/preview.ts';
 import { http, INDEX, project, reporter } from './fixture.ts';
 
@@ -44,63 +44,15 @@ const mapOf = (html: string) => JSON.parse(/<script type="importmap">(.*?)<\/scr
 const listAll = (dir: string, prefix = ''): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
   e.isDirectory() ? listAll(join(dir, e.name), `${prefix}${e.name}/`) : [`${prefix}${e.name}`]);
 
-test('modules are their source with types blanked (same length, lines, columns) under hashed names in the same directory', async () => {
-  const b = await build(FILES);
-  assert.equal(b.code, 0, b.lines.join('\n'));
-  const map = mapOf(b.read('index.html'));
-  const main = map.imports['/src/main.ts']!;
-  assert.match(main, /^\/src\/main\.[0-9a-f]{10}\.js$/);
-  const out = b.read(main.slice(1));
-  const src = FILES['src/main.ts'];
-  assert.equal(out.length, src.length);
-  assert.deepEqual(out.split('\n').map((l) => l.length), src.split('\n').map((l) => l.length));
-  assert.match(out, /const n         = 1; \/\/ kept in place/);
-  assert.equal(map.imports['/src/data.json']!.match(/^\/src\/data\.[0-9a-f]{10}\.json$/)?.length, 1);
-});
-
-test('allowlist: no tests, no .d.ts, no files reachable only through an unselected "imports" target; assets copied unhashed', async () => {
+test('allowlist: no tests, no .d.ts, nothing reachable only through an unselected "imports" target, production conditions; assets copied unhashed', async () => {
   const b = await build(FILES);
   const files = listAll(join(b.root, 'dist'));
-  assert.ok(!files.some((f) => /test|types|config\.dev|fixtures/.test(f)), files.join('\n'));
-  assert.ok(files.some((f) => /^src\/config\.prod\.[0-9a-f]{10}\.js$/.test(f)));
+  const code = files.filter((f) => f.endsWith('.js')).map((f) => b.read(f)).join('\n');
+  assert.ok(/["']\/api["']/.test(code) && !/["']\/mock["']/.test(code) && !code.includes('fixtures'), 'config.prod.ts only');
+  assert.ok(!/mode\s*=\s*["']dev["']/.test(code), 'dependencies resolve with the production conditions (dep-esm/dev.js is out)');
   assert.ok(files.includes('assets/logo.svg'));
   for (const f of ['index.html', '404.html', '_redirects', '_headers', '.jasno/manifest.json']) assert.ok(files.includes(f), f);
-  assert.ok(files.some((f) => /^_deps\/dep-esm@1\.2\.3\/prod\.[0-9a-f]{10}\.js$/.test(f)));
-  assert.ok(files.some((f) => /^jasno\/src\/index\.[0-9a-f]{10}\.js$/.test(f)));
-  assert.ok(!files.some((f) => f.includes('dev-on') || f.includes('dev.js')), 'production conditions only');
-});
-
-test('import map: source URLs and bare keys to hashed URLs, package keys in scopes, sha384 integrity for every module', async () => {
-  const b = await build(FILES);
-  const map = mapOf(b.read('index.html'));
-  assert.match(map.imports['jasno']!, /^\/jasno\/src\/index\./);
-  assert.match(map.imports['dep-esm']!, /^\/_deps\/dep-esm@1\.2\.3\/prod\./);
-  assert.match(map.imports['#config']!, /^\/src\/config\.prod\./);
-  assert.match(map.scopes['/_deps/dep-esm@1.2.3/']!['#internal']!, /^\/_deps\/dep-esm@1\.2\.3\/internal\./);
-  assert.match(map.scopes['/jasno/']!['#dev']!, /^\/jasno\/src\/dev-off\./);
-  const urls = Object.values(map.imports).filter((u) => u.startsWith('/'));
-  for (const url of new Set(urls)) {
-    const body = b.read(url.slice(1));
-    assert.equal(map.integrity[url], 'sha384-' + createHash('sha384').update(body).digest('base64'), url);
-  }
-});
-
-test('modulepreload covers the entry static closure with integrity; lazy targets are left out and listed in the manifest', async () => {
-  const b = await build(FILES);
-  const html = b.read('index.html');
-  const map = mapOf(html);
-  const preloads = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)" integrity="([^"]+)">/g)].map((m) => [m[1]!, m[2]!] as const);
-  const hrefs = preloads.map(([h]) => h);
-  assert.ok(hrefs.includes(map.imports['/src/main.ts']!));
-  assert.ok(hrefs.includes(map.imports['jasno']!));
-  assert.ok(!hrefs.includes(map.imports['/src/views/lazy.ts']!));
-  assert.ok(!hrefs.some((h) => h.endsWith('.json')));
-  for (const [h, i] of preloads) assert.equal(i, map.integrity[h]);
-  const manifest = JSON.parse(b.read('.jasno/manifest.json')) as { stripper: string; lazy: Record<string, { modules: number; closure: string[] }> };
-  const lazy = manifest.lazy[map.imports['/src/views/lazy.ts']!]!;
-  assert.equal(lazy.modules, 2);
-  assert.match(manifest.stripper, /^amaro@\d/);
-  assert.match(html, /<script type="module">import '\/src\/main\.ts';<\/script>/, 'the entry stays inline');
+  assert.ok(files.every((f) => !/test|types|_deps|^jasno\//.test(f)), files.join('\n'));
 });
 
 test('CSP: a meta tag whose hashes cover both inline scripts; _headers repeats it and sets cache rules; SPA fallback files', async () => {
@@ -115,16 +67,8 @@ test('CSP: a meta tag whose hashes cover both inline scripts; _headers repeats i
   assert.ok(headers.includes(`Content-Security-Policy: ${csp}`));
   assert.match(headers, /\/src\/\*\n {2}Cache-Control: public, max-age=31536000, immutable/);
   assert.match(headers, /\/assets\/\*\n {2}Cache-Control: no-cache/);
-  assert.equal(b.read('_redirects'), '/src/* /404.html 404\n/_deps/* /404.html 404\n/jasno/* /404.html 404\n/assets/* /404.html 404\n/* /index.html 200\n');
+  assert.equal(b.read('_redirects'), '/src/* /404.html 404\n/assets/* /404.html 404\n/* /index.html 200\n');
   assert.equal(b.read('404.html'), html);
-});
-
-test('--condition applies to the app\'s "imports" keys', async () => {
-  const b = await build(FILES, { conditions: ['development'] });
-  const map = mapOf(b.read('index.html'));
-  assert.match(map.imports['#config']!, /^\/src\/config\.dev\./);
-  assert.match(map.imports['dep-esm']!, /prod\./, 'dependencies keep the production conditions');
-  assert.match(map.scopes['/jasno/']!['#dev']!, /dev-off/);
 });
 
 test('SECRET_FILE_IN_OUTPUT: a dotfile, .env, *.pem or *.key in src/ or assets/ fails the build and nothing is written', async () => {
@@ -149,46 +93,11 @@ test('DEP_NOT_BROWSER_ESM: CommonJS or process.env in a dependency closure fails
   assert.equal(b.lines.filter((l) => l.includes('DEP_NOT_BROWSER_ESM')).length, 2, b.lines.join('\n'));
 });
 
-test('budgets: MODULE_BUDGET_EXCEEDED (warn, then error) and LAZY_BUDGET_EXCEEDED; DYNAMIC_IMPORT_NOT_LITERAL', async () => {
-  const saved = { ...BUDGET };
-  Object.assign(BUDGET, { entryWarn: 3, entryError: 100, lazyWarn: 1 });
-  try {
-    const b = await build({ ...FILES, 'src/dyn.ts': 'export const load = (name: string) => import(`./views/${name}.ts`);\n' });
-    assert.equal(b.code, 0);
-    assert.ok(b.lines.some((l) => /src\/main\.ts MODULE_BUDGET_EXCEEDED The entry's static closure has \d+ modules/.test(l)), b.lines.join('\n'));
-    assert.ok(b.lines.some((l) => l.includes('LAZY_BUDGET_EXCEEDED')));
-    assert.ok(b.lines.some((l) => l.startsWith('src/dyn.ts:1:46 DYNAMIC_IMPORT_NOT_LITERAL')), b.lines.join('\n'));
-    BUDGET.entryError = 4;
-    const c = await build(FILES);
-    assert.equal(c.code, 1);
-    assert.ok(!existsSync(join(c.root, 'dist')));
-  } finally {
-    Object.assign(BUDGET, saved);
-  }
-});
-
-test('--keep N keeps the previous N deploys\' hashed files so open tabs keep loading', async () => {
-  const b = await build(FILES);
-  const first = mapOf(b.read('index.html')).imports['/src/config.prod.ts']!;
-  const r = reporter(b.root);
-  writeFileSync(join(b.root, 'src/config.prod.ts'), "export default { api: '/v2' };\n");
-  assert.equal(await dist(b.root, { list: false, keep: 1, conditions: [], nonce: false }, r.reporter), 0);
-  const second = mapOf(b.read('index.html')).imports['/src/config.prod.ts']!;
-  assert.notEqual(first, second);
-  assert.ok(existsSync(join(b.root, 'dist', first)), 'kept from the previous deploy');
-  writeFileSync(join(b.root, 'src/config.prod.ts'), "export default { api: '/v3' };\n");
-  assert.equal(await dist(b.root, { list: false, keep: 1, conditions: [], nonce: false }, r.reporter), 0);
-  assert.ok(!existsSync(join(b.root, 'dist', first)), 'two deploys back: removed');
-  assert.ok(existsSync(join(b.root, 'dist', second)));
-  assert.equal(await dist(b.root, { list: false, keep: 0, conditions: [], nonce: false }, r.reporter), 0);
-  assert.ok(!existsSync(join(b.root, 'dist', second)), 'without --keep only this deploy ships');
-});
-
 test('--list prints the exact file list and writes nothing', async () => {
   const b = await build(FILES, { list: true });
   assert.equal(b.code, 0);
   assert.ok(!existsSync(join(b.root, 'dist')));
-  assert.ok(b.lines.some((l) => /^dist\/src\/main\.[0-9a-f]{10}\.js {2}<- src\/main\.ts$/.test(l)), b.lines.join('\n'));
+  assert.ok(b.lines.some((l) => /^dist\/src\/main\.[0-9A-Z]{8}\.js {2}<- src\/main\.ts$/.test(l)), b.lines.join('\n'));
   assert.ok(b.lines.includes('dist/assets/logo.svg  <- assets/logo.svg'));
 });
 
@@ -224,4 +133,82 @@ test('CSP_HASH_STRICT_DYNAMIC: a handwritten CSP <meta> with strict-dynamic fail
   const plain = await build({ ...FILES, 'index.html': meta("script-src 'self'") });
   assert.equal(plain.code, 0, plain.lines.join('\n'));
   assert.ok(plain.lines.some((l) => l.includes('CSP_HASH_STRICT_DYNAMIC') && l.includes('stricter of the two')), plain.lines.join('\n'));
+});
+
+// ---------------------------------------------------------------- chunks, the import map, resolution, --keep
+// The lazy view shares dep-esm with the entry, so a shared chunk exists.
+const BFILES = { ...FILES, 'src/views/lazy.ts': "import { helper } from './helper.ts';\nimport { mode } from 'dep-esm';\nexport default (x: string): string => helper(x) + mode;\n" };
+const jsFiles = (root: string) => listAll(join(root, 'dist')).filter((f) => f.endsWith('.js'));
+
+test('the entry and the app\'s lazy view are hashed chunks under src/, shared code is src/chunk.<hash>.js, each with a linked source map', async () => {
+  const b = await build(BFILES);
+  assert.equal(b.code, 0, b.lines.join('\n'));
+  const js = jsFiles(b.root);
+  assert.ok(js.some((f) => /^src\/main\.[0-9A-Z]{8}\.js$/.test(f)), js.join('\n'));
+  assert.ok(js.some((f) => /^src\/views\/lazy\.[0-9A-Z]{8}\.js$/.test(f)), js.join('\n'));
+  assert.ok(js.every((f) => /^src\/(main|views\/lazy|chunk)\.[0-9A-Z]{8}\.js$/.test(f)), `no per-file outputs, no _deps/ or jasno/:\n${js.join('\n')}`);
+  const all = listAll(join(b.root, 'dist'));
+  for (const f of js) {
+    assert.ok(all.includes(`${f}.map`), `${f}.map`);
+    assert.match(b.read(f), new RegExp(`sourceMappingURL=${f.split('/').pop()!.replace(/\./g, '\\.')}\\.map\\n?$`));
+  }
+  assert.ok(b.lines.some((l) => /^jasno dist: \d+ files in dist\/ \(\d+ modules in \d+ chunks\)\.$/.test(l)), b.lines.join('\n'));
+});
+
+test('the import map maps the entry URL and pins every chunk with sha384; modulepreload is the entry\'s static chunk closure with integrity; the CSP hashes both inline scripts', async () => {
+  const b = await build(BFILES);
+  const html = b.read('index.html');
+  const map = mapOf(html);
+  const js = jsFiles(b.root);
+  assert.deepEqual(Object.keys(map.imports), ['/src/main.ts']);
+  const entry = map.imports['/src/main.ts']!;
+  assert.match(entry, /^\/src\/main\.[0-9A-Z]{8}\.js$/);
+  assert.deepEqual(Object.keys(map.integrity).sort(), js.map((f) => '/' + f).sort());
+  for (const [url, sri] of Object.entries(map.integrity)) {
+    assert.equal(sri, 'sha384-' + createHash('sha384').update(readFileSync(join(b.root, 'dist', url))).digest('base64'), url);
+  }
+  const preloads = new Map([...html.matchAll(/<link rel="modulepreload" href="([^"]+)" integrity="([^"]+)">/g)].map((m) => [m[1]!, m[2]!]));
+  const statics = [...b.read(entry.slice(1)).matchAll(/from\s*"\.\/(chunk\.[0-9A-Z]{8}\.js)"/g)].map((m) => `/src/${m[1]}`);
+  assert.ok(statics.length > 0);
+  for (const url of [entry, ...statics]) assert.equal(preloads.get(url), map.integrity[url], url);
+  assert.ok(![...preloads.keys()].some((u) => u.includes('/views/lazy.')), 'the lazy view is fetched on demand');
+  const csp = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(html)![1]!;
+  for (const m of html.matchAll(/<script type="(?:importmap|module)">([\s\S]*?)<\/script>/g)) {
+    assert.ok(csp.includes(`'sha256-${createHash('sha256').update(m[1]!).digest('base64')}'`), m[1]);
+  }
+  assert.match(html, /<script type="module">import '\/src\/main\.ts';<\/script>/, 'the entry script stays as written');
+});
+
+test('imports resolve as jasno check and dev resolve them (package conditions, a package #import, the app\'s #config, JSON), and the lazy chunk loads', async () => {
+  const run = async (b: Awaited<ReturnType<typeof build>>) => {
+    const mod = await import(join(b.root, 'dist', mapOf(b.read('index.html')).imports['/src/main.ts']!));
+    return { mode: mod.mode, api: mod.config.api, fixtures: mod.config.fixtures, data: mod.data, lazy: (await mod.view()).default('ok'), n: mod.n };
+  };
+  assert.deepEqual(await run(await build(BFILES)), { mode: 'prod!', api: '/api', fixtures: undefined, data: { a: 1 }, lazy: 'okprod!', n: 1 });
+  const dev = await run(await build(BFILES, { conditions: ['development'] }));
+  assert.deepEqual([dev.api, dev.fixtures, dev.mode], ['/mock', [1, 2], 'prod!'], '--condition reaches the app\'s imports only');
+});
+
+test('DYNAMIC_IMPORT_NOT_LITERAL: import(variable) fails the build at the call, since its target cannot be in the bundle; nothing written', async () => {
+  const b = await build({ ...BFILES, 'src/dyn.ts': 'export const load = (name: string) => import(`./views/${name}.ts`);\n' });
+  assert.equal(b.code, 1);
+  assert.ok(b.lines.some((l) => l.startsWith('src/dyn.ts:1:46 DYNAMIC_IMPORT_NOT_LITERAL')), b.lines.join('\n'));
+  assert.ok(!existsSync(join(b.root, 'dist')));
+});
+
+test('--keep 1 keeps the previous deploy\'s chunks; --list prints exactly what a build writes; the manifest names the bundler', async () => {
+  const b = await build(BFILES);
+  const first = mapOf(b.read('index.html')).imports['/src/main.ts']!;
+  writeFileSync(join(b.root, 'src/config.prod.ts'), "export default { api: '/v2' };\n");
+  const r = reporter(b.root);
+  assert.equal(await dist(b.root, { list: true, keep: 1, conditions: [], nonce: false }, r.reporter), 0);
+  const listed = r.lines.filter((l) => l.startsWith('dist/')).map((l) => l.split('  ')[0]!.slice('dist/'.length)).sort();
+  assert.ok(r.lines.some((l) => /^dist\/src\/main\.[0-9A-Z]{8}\.js {2}<- src\/main\.ts$/.test(l)), r.lines.join('\n'));
+  assert.ok(r.lines.some((l) => /^dist\/src\/chunk\.[0-9A-Z]{8}\.js {2}<- \(shared chunk\)$/.test(l)), r.lines.join('\n'));
+  assert.equal(await dist(b.root, { list: false, keep: 1, conditions: [], nonce: false }, reporter(b.root).reporter), 0);
+  assert.deepEqual(listAll(join(b.root, 'dist')).sort(), listed);
+  const second = mapOf(b.read('index.html')).imports['/src/main.ts']!;
+  assert.notEqual(first, second);
+  assert.ok(existsSync(join(b.root, 'dist', first)), 'kept from the previous deploy');
+  assert.match(JSON.parse(b.read('.jasno/manifest.json')).bundler, /^esbuild@\d+\.\d+\.\d+$/);
 });
