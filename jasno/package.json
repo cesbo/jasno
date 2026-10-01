@@ -1,6 +1,6 @@
 {
   "name": "jasno",
-  "version": "0.1.0-proto",
+  "version": "0.1.0",
   "description": "jasno runtime prototype: signals, typed tag functions, no bundler.",
   "type": "module",
   "engines": {

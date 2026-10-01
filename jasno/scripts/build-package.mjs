@@ -6,7 +6,7 @@
 //   dist/testing.js, testing-requires-dev.js, happy-dom.js
 //   dist/cli.js, bin/jasno.js     the CLI (typescript, amaro and es-module-lexer resolve from the project)
 //   dist/*.d.ts                   module-form types generated from the curated design/jasno.d.ts (RECIPES included)
-//   errors/, AGENTS.md, package.json
+//   errors/, AGENTS.md, package.json, and the repository's README.md and LICENSE
 // --pack also writes release/jasno-<version>.tgz.
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -126,10 +126,17 @@ process.exitCode = await main(process.argv.slice(2));
 `, { mode: 0o755 });
 cpSync(join(ROOT, 'errors'), join(OUT, 'errors'), { recursive: true });
 cpSync(join(DESIGN, 'AGENTS.md'), join(OUT, 'AGENTS.md'));
+for (const f of ['README.md', 'LICENSE']) cpSync(join(ROOT, '..', f), join(OUT, f));
 const pkg = {
   name: 'jasno',
   version: src.version,
   description: 'A TypeScript-first SPA framework for coding agents: signals, typed tag functions, no bundler.',
+  keywords: ['spa', 'framework', 'signals', 'typescript', 'no-bundler', 'coding-agents'],
+  license: 'MIT',
+  author: 'Andrei Dyldin',
+  homepage: 'https://github.com/cesbo/jasno#readme',
+  repository: { type: 'git', url: 'git+https://github.com/cesbo/jasno.git', directory: 'jasno' },
+  bugs: 'https://github.com/cesbo/jasno/issues',
   type: 'module',
   engines: src.engines,
   // "types" first in every conditional entry (M8). 'jasno/internal' is the same file as 'jasno' per condition.

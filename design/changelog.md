@@ -639,3 +639,14 @@ Every suite ran once on the edges of `engines` (`^24.12.0 || >=26.0.0`), locally
 |---|---|---|---|---|
 | DF-1 | repair guides, owner | design | accepted | `public/` is copied as is, dotfiles included, so `public/.well-known/` (security.txt, app association files) is published; the owner's call, as frameworks copy their public directory verbatim. `.env*`, `*.pem` and `*.key` still fail in every published directory, and dotfiles in `src/` and `assets/` still fail. `jasno dev` serves dot paths only from `public/` and never `.env*`; `jasno preview` hides only `.jasno/`, which `public/` may not take. Closes open question 26. |
 | DF-2 | ADR-36 | consistency | accepted | AGENTS.md sent agents to `npx jasno explain CODE`, the one `npx jasno` left in the docs. The template has an `explain` script and AGENTS.md says `npm run explain CODE` (npm passes the code through without `--`; AGENTS.md is 8,189 bytes). |
+
+## Release preparation (2026-10-01)
+
+Owner's decisions: MIT licence, author Andrei Dyldin, repository `https://github.com/cesbo/jasno` (not public yet, so its links answer 404 until it is). `jasno` and `create-jasno` were still free on npm on 2026-10-01. Nothing is published.
+
+| ID | Source | Severity | Outcome | What / why |
+|---|---|---|---|---|
+| RP-1 | release | blocker | accepted | `LICENSE` (MIT) at the repository root; `build-package.mjs` copies it and the root `README.md` into the jasno package, and `create-jasno` keeps a copy that `test:template` compares with the root one. Without a licence the package could not legally be used. |
+| RP-2 | release | blocker | accepted | `README.md`: what jasno is, the 0.x status (API may change, no production users yet, unbundled delivery not measured on phones), quick start, one example (type-checked against `jasno.d.ts` and run under happy-dom once), commands, where the docs are, requirements. `create-jasno` has a short README of its own. `test:package` and `test:template` fail when a tarball lacks README or LICENSE. |
+| RP-3 | release | metadata | accepted | Both packages declare `license`, `author`, `homepage`, `repository` (with `directory`), `bugs` and `keywords`. |
+| RP-4 | release | version | accepted | `0.1.0-proto` becomes `0.1.0` in jasno, its runtime `version` and `create-jasno`. v1's open criteria (TS 7.1 API, floor browsers, module budget on phones) stay for 1.0. |

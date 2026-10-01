@@ -24,8 +24,9 @@ const design = readFileSync(join(ROOT, '..', 'design', 'AGENTS.md'), 'utf8');
 if (agents !== `<!-- jasno:begin -->\n${design}<!-- jasno:end -->\n`) throw new Error('create-jasno/template/AGENTS.md differs from design/AGENTS.md');
 const [packed] = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json'], { cwd: CREATE, encoding: 'utf8' }));
 const inPack = new Set(packed.files.map((f) => f.path));
-const missing = walk(join(CREATE, 'template')).map((f) => relative(CREATE, f)).filter((f) => !inPack.has(f));
+const missing = [...walk(join(CREATE, 'template')).map((f) => relative(CREATE, f)), 'README.md', 'LICENSE'].filter((f) => !inPack.has(f));
 if (missing.length) throw new Error(`create-jasno does not pack: ${missing.join(', ')}`);
+if (readFileSync(join(CREATE, 'LICENSE'), 'utf8') !== readFileSync(join(ROOT, '..', 'LICENSE'), 'utf8')) throw new Error('create-jasno/LICENSE differs from LICENSE');
 
 run('node', ['scripts/build-package.mjs', '--pack'], ROOT);
 const tgz = join(ROOT, 'release', `jasno-${jasno.version}.tgz`);

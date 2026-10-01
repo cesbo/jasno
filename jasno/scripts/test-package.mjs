@@ -24,6 +24,8 @@ const tgz = join(ROOT, 'release', `jasno-${version}.tgz`);
 const files = execFileSync('tar', ['-tzf', tgz], { encoding: 'utf8' }).trim().split('\n');
 const stray = files.filter((f) => /\.ts$/.test(f) && !/\.d\.ts$/.test(f) || /test/.test(f.replace('testing', '')));
 if (stray.length) throw new Error(`the tarball ships sources or tests: ${stray.join(', ')}`);
+const absent = ['package/README.md', 'package/LICENSE'].filter((f) => !files.includes(f));
+if (absent.length) throw new Error(`the tarball lacks ${absent.join(', ')}`);
 console.log(`tarball: ${files.length} files, no sources or tests`);
 
 const dir = mkdtempSync(join(tmpdir(), 'jasno-release-'));
