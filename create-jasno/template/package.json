@@ -5,6 +5,7 @@
   "engines": { "node": "^24.12.0 || >=26.0.0" },
   "scripts": {
     "check": "jasno check",
+    "explain": "jasno explain",
     "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
     "dev": "jasno dev",
     "dist": "jasno dist",

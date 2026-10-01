@@ -192,8 +192,8 @@ test('--list prints the exact file list and writes nothing', async () => {
   assert.ok(b.lines.includes('dist/assets/logo.svg  <- assets/logo.svg'));
 });
 
-test('jasno preview serves dist/ as a static host: files, _headers, the _redirects SPA fallback, never dotfiles, loopback Host only', async () => {
-  const b = await build(FILES);
+test('jasno preview serves dist/ as a static host: files, _headers, the _redirects SPA fallback, never .jasno/, loopback Host only', async () => {
+  const b = await build({ ...FILES, 'public/.well-known/security.txt': 'Contact: mailto:security@example.com\n' });
   const server = await startPreview(b.root, { port: 0 }, reporter(b.root).reporter);
   try {
     const base = server.url.replace(/\/$/, '');
@@ -209,6 +209,7 @@ test('jasno preview serves dist/ as a static host: files, _headers, the _redirec
     assert.equal((await http(base + '/')).headers['cache-control'], 'no-cache');
     const manifest = await http(base + '/.jasno/manifest.json');
     assert.ok(!manifest.body.includes('stripper'));
+    assert.match((await http(base + '/.well-known/security.txt')).body, /^Contact: /);
     assert.equal((await http(base + '/', { headers: { host: 'evil.example' } })).status, 403);
   } finally {
     await server.close();

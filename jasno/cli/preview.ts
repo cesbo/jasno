@@ -53,8 +53,10 @@ export async function startPreview(root: string, opts: { port: number }, reporte
   if (!read('index.html')) throw new Error('no dist/index.html; run npm run dist first');
 
   const fileAt = (path: string): string | undefined => {
-    // Static hosts consume _headers and _redirects; they never serve them.
-    if (path.split('/').some((s) => s.startsWith('.')) || path === '/_headers' || path === '/_redirects') return undefined;
+    // Static hosts consume _headers and _redirects; they never serve them. .jasno/ is jasno dist's own state; other dot
+    // paths are public/ files (.well-known/).
+    const segs = path.split('/');
+    if (segs.some((s) => s === '.' || s === '..') || segs[1] === '.jasno' || path === '/_headers' || path === '/_redirects') return undefined;
     let file = join(dir, ...path.split('/'));
     try {
       if (statSync(file).isDirectory()) file = join(file, 'index.html');

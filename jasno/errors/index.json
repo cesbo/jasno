@@ -850,7 +850,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "error",
           "tool": "dist",
-          "when": "an allowlisted directory (src/, assets/, public/) contains .env*, *.pem, *.key or a dotfile"
+          "when": "an allowlisted directory (src/, assets/, public/) contains .env*, *.pem or *.key, or src/ or assets/ contains a dotfile (public/ dotfiles such as .well-known/ are published)"
         }
       ]
     },

@@ -26,14 +26,14 @@ export const readIndex = (root: string): string | undefined => {
 
 export const isTestFile = (f: string): boolean => /\.test\.ts$/.test(f);
 
-/** Every file under dir (no dot entries, no node_modules), sorted. */
-export function filesUnder(dir: string): string[] {
+/** Every file under dir (no node_modules, and no dot entries unless dotfiles), sorted. */
+export function filesUnder(dir: string, dotfiles = false): string[] {
   const out: string[] = [];
   const visit = (d: string): void => {
     let entries;
     try { entries = readdirSync(d, { withFileTypes: true }); } catch { return; }
     for (const e of entries) {
-      if (e.name.startsWith('.') || e.name === 'node_modules') continue;
+      if ((!dotfiles && e.name.startsWith('.')) || e.name === 'node_modules') continue;
       const p = join(d, e.name);
       if (e.isDirectory()) visit(p);
       else if (e.isFile()) out.push(p);

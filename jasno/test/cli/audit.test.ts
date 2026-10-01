@@ -1,6 +1,6 @@
 // Fixtures for changelog rows whose promised CLI check was only partly tested (the phase-1 criterion-4 audit).
 import assert from 'node:assert/strict';
-import { mkdirSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 import { check } from '../../cli/check.ts';
@@ -42,9 +42,12 @@ test('CL-20: jasno dist reports FILE_NOT_PUBLISHED for a module outside src/, an
   assert.ok(clash.lines.some((l) => l.startsWith('public/_redirects FILE_NOT_PUBLISHED')), clash.lines.join('\n'));
 });
 
-test('CL-22, C3: public/ files are published at the root; a dotfile in public/ is SECRET_FILE_IN_OUTPUT', async () => {
-  const ok = await build({ ...APP, 'public/robots.txt': 'User-agent: *\n' });
+test('CL-22, C3: public/ files are published at the root, dotfiles included; .env* in public/ is SECRET_FILE_IN_OUTPUT', async () => {
+  const ok = await build({ ...APP, 'public/robots.txt': 'User-agent: *\n', 'public/.well-known/security.txt': 'Contact: mailto:security@example.com\n' });
   assert.equal(ok.code, 0, ok.lines.join('\n'));
+  assert.ok(existsSync(join(ok.root, 'dist', '.well-known', 'security.txt')));
+  const state = await build({ ...APP, 'public/.jasno/manifest.json': '{}' });
+  assert.ok(state.lines.some((l) => l.startsWith('public/.jasno/manifest.json FILE_NOT_PUBLISHED')), state.lines.join('\n'));
   const secret = await build({ ...APP, 'public/.env': 'KEY=1\n' });
   assert.equal(secret.code, 1);
   assert.ok(secret.lines.some((l) => l.startsWith('public/.env SECRET_FILE_IN_OUTPUT')), secret.lines.join('\n'));

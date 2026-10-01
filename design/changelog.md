@@ -632,3 +632,10 @@ Every suite ran once on the edges of `engines` (`^24.12.0 || >=26.0.0`), locally
 | ID | Source | Severity | Outcome | What / why |
 |---|---|---|---|---|
 | NM-1 | Node matrix | bug | accepted | CL-18 made `#/…` keys in `imports` invalid because the Node of the time (24.12, 25.1) rejected them; Node 24.21 and 26.10 resolve them, so jasno refused imports that Node runs. The resolver now accepts them, as current Node does (`#` and a trailing `/` stay invalid), and the probe compares with Node only where the running Node accepts them. On 24.12 jasno resolves a `#/` key that Node itself rejects; a project that relies on one needs a newer 24.x. |
+
+## Public dotfiles and the explain script (2026-09-30)
+
+| ID | Source | Severity | Outcome | What / why |
+|---|---|---|---|---|
+| DF-1 | repair guides, owner | design | accepted | `public/` is copied as is, dotfiles included, so `public/.well-known/` (security.txt, app association files) is published; the owner's call, as frameworks copy their public directory verbatim. `.env*`, `*.pem` and `*.key` still fail in every published directory, and dotfiles in `src/` and `assets/` still fail. `jasno dev` serves dot paths only from `public/` and never `.env*`; `jasno preview` hides only `.jasno/`, which `public/` may not take. Closes open question 26. |
+| DF-2 | ADR-36 | consistency | accepted | AGENTS.md sent agents to `npx jasno explain CODE`, the one `npx jasno` left in the docs. The template has an `explain` script and AGENTS.md says `npm run explain CODE` (npm passes the code through without `--`; AGENTS.md is 8,189 bytes). |

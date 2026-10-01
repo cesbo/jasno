@@ -115,7 +115,7 @@ Warnings, uncaught effect errors and leaked effects fail the test: fix them. Mod
 2. `npm test`: `node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none "src/**/*.test.ts"`.
 3. `npx playwright test` against `npm run dev`: `getByRole`, focus, keyboard.
 
-If a rung cannot run, say so; never claim it passed. State: `window.__JASNO__.diagnostics()`; fixes: `npx jasno explain CODE`.
+If a rung cannot run, say so; never claim it passed. State: `window.__JASNO__.diagnostics()`; fixes: `npm run explain CODE`.
 
 ## Top mistakes (tsc accepts these)
 

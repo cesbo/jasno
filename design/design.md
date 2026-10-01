@@ -1,12 +1,12 @@
 # jasno design record, v3
 
-Date: 2026-09-26. Inputs: the research digest (`r1/digest.md`, cited as §0–§18), design v1, four agent usability runs on v1 (contacts, todo-timers, dashboard, wizard: fresh agents with only AGENTS.md + jasno.d.ts, then a semantic review each), five adversarial critiques (reactivity R/m, TypeScript TS, agent red team A/G, toolchain C/M/m, scope S), and for v3 two usability runs on v2 (kanban, chat, with a semantic review each; the Enter-key bug was reproduced in Chromium) plus a consistency check of v2 (V2-01..V2-19). Every feedback item is listed with its outcome in `changelog.md`. Every type-level claim was checked with TypeScript 7.0.2 (`tsc -v` printed `Version 7.0.2`) on Node 25.1.0; evidence is in the appendix.
+Date: 2026-09-26. Inputs: the research digest (`research/digest.md`, cited as §0–§18), design v1, four agent usability runs on v1 (contacts, todo-timers, dashboard, wizard: fresh agents with only AGENTS.md + jasno.d.ts, then a semantic review each), five adversarial critiques (reactivity R/m, TypeScript TS, agent red team A/G, toolchain C/M/m, scope S), and for v3 two usability runs on v2 (kanban, chat, with a semantic review each; the Enter-key bug was reproduced in Chromium) plus a consistency check of v2 (V2-01..V2-19). Every feedback item is listed with its outcome in `changelog.md`. Every type-level claim was checked with TypeScript 7.0.2 (`tsc -v` printed `Version 7.0.2`) on Node 25.1.0; evidence is in the appendix.
 
 | File | What it is |
 |---|---|
 | `jasno.d.ts` | The complete public API: `jasno`, `jasno/router`, `jasno/testing`, `jasno/testing/happy-dom`, the `window.__JASNO__` type, and a RECIPES block (patterns that are not one function). 49.5 KB; it references `jasno.elements.d.ts`. |
 | `jasno.elements.d.ts` | The generated element props (`GlobalProps`, one `*Props` interface per element class, the `H` tag table), merged into module `jasno`; 49.8 KB that tsc checks and agents rarely need to read. |
-| `AGENTS.md` | The agent guide shipped in the package (8,187 bytes, ASCII). With `jasno.d.ts` (and the `jasno.elements.d.ts` it references, which tsc needs and agents rarely read) it is everything a fresh agent gets. |
+| `AGENTS.md` | The agent guide shipped in the package (8,189 bytes, ASCII). With `jasno.d.ts` (and the `jasno.elements.d.ts` it references, which tsc needs and agents rarely read) it is everything a fresh agent gets. |
 | `example/` | A multi-file app (router with a param route, lazy views, notFound, resources, keyed lists, a form, context, cleanup, an SVG icon, `selector`, a toast region) and two `node:test` files. Its fetch functions are imported as `#api`, which `package.json` maps to `api.mock.ts` under the `development` condition, so the app runs under `jasno dev` and in tests without a backend. |
 | `tools/agents-samples/` | Every AGENTS.md sample and every RECIPES snippet as compiling files; `jasno/test/cli/spec/check.test.ts` runs them through `jasno check --strict`. |
 | `changelog.md` | Every feedback item: id/source, severity, accepted, rejected or deferred, what changed or why not (v2 items first, then the v3 section). |
@@ -249,7 +249,7 @@ Each ADR: decision, rationale (digest sections and feedback ids), rejected alter
 - **Rejected.** A hand-written closed SVG attribute table (maintenance); `h.custom(tag, props)` for custom elements (S2's second half; deferred: no usability or eval task used a web component, and `document.createElement` plus `onMount`/`effect` is the documented workaround).
 
 ### ADR-29 Honest unbundled delivery (v2)
-- **Decision.** `jasno dist` still only erases types. v2: content hashes go into file names in the same directory (`src/views/user.3f2c1a9b0d.js`), so relative resolution and line/column mapping hold and immutable caching is expressible per path; published files come from an allowlist (index.html, `assets/**`, non-test `src/**/*.ts` stripped, dependency closures, jasno's own files), never dotfiles; `--keep N` keeps the previous deploys' hashed files; `_redirects` and `404.html` provide the SPA fallback; `jasno dist --list` prints what ships.
+- **Decision.** `jasno dist` still only erases types. v2: content hashes go into file names in the same directory (`src/views/user.3f2c1a9b0d.js`), so relative resolution and line/column mapping hold and immutable caching is expressible per path; published files come from an allowlist (index.html, `assets/**`, non-test `src/**/*.ts` stripped, dependency closures, jasno's own files), never `.env*`, `*.pem`, `*.key` or a dotfile from `src/` or `assets/` (`public/` is copied as is, `.well-known/` included); `--keep N` keeps the previous deploys' hashed files; `_redirects` and `404.html` provide the SPA fallback; `jasno dist --list` prints what ships.
 - **Rationale.** M1 (`?v=` cannot serve two versions; a stale tab failed integrity on the first lazy route after a deploy), C3 (critical, verified: the prototype published `.env`, `.git/config` and test files), M5.
 - **Rejected.** `?v=` query busting (M1); publishing everything except a denylist (C3: a denylist misses the next secret); a `--blank-comments` option for now (2026-09-27, deferred to phase 4: the byte win is real on comment-heavy files, 32% of brotli in the §7 measurement, but a correct comment blanker needs a tokenizer that tells a regex from a division; the candidate is the project's own TypeScript API, whose syntax tree gives exact comment ranges; it returns when the module budget or the eval shows shipped comment bytes mattering).
 
@@ -274,7 +274,7 @@ Each ADR: decision, rationale (digest sections and feedback ids), rejected alter
 - **Rejected.** Moving focus automatically into every `show`/`match` swap (the right target is app-specific; a wrong automatic target is worse than a reported loss); leaving focus entirely to apps (every usability review found focus loss).
 
 ### ADR-34 The dev server is local, allowlisted and CSP-identical (new)
-- **Decision.** `jasno dev` binds `127.0.0.1`/`::1` (`--host` opts in with a warning), serves an allowlist (index.html, `src/`, `assets/`, the packages the module graph resolves, jasno's files), rejects dot segments, answers 403 unless `Host` is a loopback name, `*.localhost` or an IP literal (with `--host` also the machine's own name), accepts `/__jasno/log` only from its own origin with a size cap and strips control characters before printing, sends the production CSP (Trusted Types included; its own inline scripts by hash), serves `index.html` for extension-less HTML requests (SPA fallback), watches only served files, skips live reload under `navigator.webdriver`, and verifies a recorded server with `GET /__jasno/ping` before reusing it.
+- **Decision.** `jasno dev` binds `127.0.0.1`/`::1` (`--host` opts in with a warning), serves an allowlist (index.html, `src/`, `assets/`, the packages the module graph resolves, jasno's files), rejects `.`, `..` and `.env*` segments and serves other dot paths only from `public/`, answers 403 unless `Host` is a loopback name, `*.localhost` or an IP literal (with `--host` also the machine's own name), accepts `/__jasno/log` only from its own origin with a size cap and strips control characters before printing, sends the production CSP (Trusted Types included; its own inline scripts by hash), serves `index.html` for extension-less HTML requests (SPA fallback), watches only served files, skips live reload under `navigator.webdriver`, and verifies a recorded server with `GET /__jasno/ping` before reusing it.
 - **Rationale.** C2 (critical, verified: the prototype listened on all interfaces and served `.env` and `.git/config`, also to a forged `Host`), A34/M4 (`innerHTML` worked in dev and threw in production), M5, m3, m4.
 - **Rejected.** Serving the whole project directory behind a traversal guard (the prototype leaked `.env` and `.git`, C2); a dev server without the production CSP (A34: Trusted Types violations surfaced only after deploy).
 
@@ -598,7 +598,7 @@ Unexpected warn/error diagnostics fail a test with their own code (an `Aggregate
 | `TSCONFIG_DRIFT` | error | check | a required compiler option missing or changed in either config, `esnext.disposable` in `lib`, test files included in the browser program, `types` other than `[]` there, test or e2e files with no `tsconfig.test.json` (a project without them needs none), or package.json without `"type": "module"` |
 | `MODULE_NOT_FOUND` | error | check, dev, dist | the entry `index.html` imports names no file (check; a missing relative import inside `src/` is tsc's TS2307 there); dev and dist: a relative or root-relative import in the module graph names no file (dev prints it when it builds the import map; dist fails), and dist also when `index.html` has no inline module script; a `.js` specifier whose `.ts` exists is `TS_EXTENSION` instead |
 | `DEP_NOT_BROWSER_ESM` | error | dev, dist | a dependency's static closure contains CommonJS, an unguarded `process.env` read (a `typeof process` guard is fine) or an unresolvable bare import, or an installed dependency has no entry for the `browser`/`import`/`default` conditions (an optional peer behind `import()` inside a dependency is not checked) |
-| `SECRET_FILE_IN_OUTPUT` | error | dist | an allowlisted directory (`src/`, `assets/`, `public/`) contains `.env*`, `*.pem`, `*.key` or a dotfile |
+| `SECRET_FILE_IN_OUTPUT` | error | dist | an allowlisted directory (`src/`, `assets/`, `public/`) contains `.env*`, `*.pem` or `*.key`, or `src/` or `assets/` contains a dotfile (`public/` dotfiles such as `.well-known/` are published) |
 | `FILE_NOT_PUBLISHED` | error | check, dist | browser code imports a module jasno dist does not publish (outside `src/`, or a `*.test.ts` file; check reports it at the import); dist also when `src/`, `assets/` or `public/` contains a symlink, or a `public/` file takes a name dist generates |
 | `MODULE_BUDGET_EXCEEDED` | warn > 150, error > 250 | dist | the entry's static closure, counted per package/directory |
 | `LAZY_BUDGET_EXCEEDED` | warn > 50 | dist | a dynamic-import target's static closure |
@@ -661,7 +661,7 @@ No bundling, concatenation, minification, renaming of code or transformation bey
 9. Budgets (ADR-29) and `dist/.jasno/manifest.json` (lazy closures, per-package counts, the stripper version).
 
 ### `jasno preview`
-A static server over `dist/` that applies `_headers`, `_redirects` and the CSP exactly as a static host would: files first, then `_redirects` (200 rewrites, 3xx, 404), then `404.html`; it never serves `_headers`, `_redirects` or dotfiles, and revalidates with a weak ETag (304). It exists for the CI rung "`npm run dist && JASNO_E2E=preview npm run e2e`", the only rung that exercises the shipped artifact (M4).
+A static server over `dist/` that applies `_headers`, `_redirects` and the CSP exactly as a static host would: files first, then `_redirects` (200 rewrites, 3xx, 404), then `404.html`; it never serves `_headers`, `_redirects` or `.jasno/`, and revalidates with a weak ETag (304). It exists for the CI rung "`npm run dist && JASNO_E2E=preview npm run e2e`", the only rung that exercises the shipped artifact (M4).
 
 ### `jasno explain CODE`
 Prints `node_modules/jasno/errors/CODE.md`: what happened, why, the default fix, the deliberate variant, a before/after example. Until `errors/CODE.md` exists (a v1 exit criterion, 15.7) it prints the code's catalogue rows (a code in two tables, such as `SIGNAL_COERCED`, prints both). `--list` prints every code with its summary, in code-point order; `--json` prints the catalogue `errors/index.json` for tools. Works offline.
@@ -757,6 +757,7 @@ Conventions: `export const Name = component(function Name(p: NameProps): Node { 
   "imports": { "#config": { "development": "./src/config.dev.ts", "default": "./src/config.prod.ts" } },
   "scripts": {
     "check": "jasno check",
+    "explain": "jasno explain",
     "test": "node --conditions=development --import jasno/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
     "dev": "jasno dev",
     "dist": "jasno dist",
@@ -841,7 +842,6 @@ Ladder (each rung exits non-zero on failure; stop at the first failing rung; a r
 23. `router.back()` with the Navigation API treats a previous same-origin entry whose path matches a route as the app's. Since 2026-09-28 the entry must also be `sameDocument` (an earlier page load in the tab was traversed to: comparison P-B8), which also excludes a same-origin page outside the SPA; what remains is an entry this document created with `history.pushState` outside the router, which AGENTS.md forbids.
 24. `settled()` sees only promises that handlers return: measure in the eval how often agents start work in a handler without returning it, and how often a test then asserts before that work finished (`settled()` resolves early, so no `SETTLE_TIMEOUT` fires).
 25. Test-order dependence: plain module variables and detached roots survive between tests (B19.5); the prototype's CI runs every suite in shuffled order to measure it.
-26. `SECRET_FILE_IN_OUTPUT` refuses every dotfile, so `public/.well-known/` (security.txt, app association files) cannot be published; allow that one directory, or keep the rule strict? (found by the repair-guide writers, 2026-09-30)
 
 ---
 

@@ -245,13 +245,17 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     }
     let path: string;
     try { path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname); } catch { return send(res, req, 400, TYPES['.txt']!, 'bad path'); }
-    if (path.includes('\0') || path.includes('\\') || path.split('/').some((s) => s.startsWith('.'))) return notFound(req, res, path);
+    const segs = path.split('/');
+    if (path.includes('\0') || path.includes('\\') || segs.some((s) => s === '.' || s === '..' || /^\.env/i.test(s))) return notFound(req, res, path);
+    // Other dot segments reach only public/, which jasno dist copies with its dotfiles (.well-known/).
+    const dotted = segs.some((s) => s.startsWith('.'));
     const isLog = path === '/__jasno/log' && req.method === 'POST';
     if (!isLog && req.method !== 'GET' && req.method !== 'HEAD') return send(res, req, 405, TYPES['.txt']!, 'GET only');
     if (path.startsWith('/__jasno/')) return internal(req, res, path);
     if (path === '/' || path === '/index.html') return serveIndex(req, res);
     const under = (prefix: string): boolean => path === prefix || path.startsWith(prefix + '/');
     const served = under('/src') || under('/assets') || under('/@jasno') || under('/@dep');
+    if (dotted && served) return notFound(req, res, path);
     // A static host has no empty segments: /src/x.ts/ and /src//x.ts are not /src/x.ts.
     if (served && path.slice(1).split('/').includes('')) return notFound(req, res, path);
     if (path.startsWith('/@jasno/') || path.startsWith('/@dep/')) return packageFile(req, res, path);

@@ -43,6 +43,9 @@ before(async () => {
     'src/bad.ts': 'const x = ;\n',
     'src/.env': 'SECRET=2',
     'assets/logo.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
+    'assets/.hidden': 'no',
+    'public/.well-known/security.txt': 'Contact: mailto:security@example.com\n',
+    'public/.env.local': 'SECRET=3',
     ...esmDep,
   });
   const r = reporter(app.root);
@@ -118,12 +121,18 @@ test('Host: IP literals always pass (rebinding needs a name); --host adds the ma
   }
 });
 
-test('allowlist: dotfiles, package.json, tsconfig and node_modules are never served', async () => {
-  for (const path of ['/.env', '/src/.env', '/package.json', '/tsconfig.json', '/node_modules/dep-esm/dev.js', '/%2eenv', '/src/%2e%2e/package.json', '/@dep/dep-esm@1.2.3/.secret', '/@dep/dep-esm@1.2.3/package.json/../.secret']) {
+test('allowlist: .env*, dotfiles outside public/, package.json, tsconfig and node_modules are never served', async () => {
+  for (const path of ['/.env', '/src/.env', '/.env.local', '/assets/.hidden', '/package.json', '/tsconfig.json', '/node_modules/dep-esm/dev.js', '/%2eenv', '/src/%2e%2e/package.json', '/@dep/dep-esm@1.2.3/.secret', '/@dep/dep-esm@1.2.3/package.json/../.secret']) {
     const res = await get(path);
     assert.equal(res.status, 404, path);
     assert.ok(!res.body.includes('SECRET'), path);
   }
+});
+
+test('public/ dotfiles are served at the root, as jasno dist publishes them (.well-known/)', async () => {
+  const res = await get('/.well-known/security.txt');
+  assert.equal(res.status, 200);
+  assert.match(res.body, /^Contact: /);
 });
 
 test('dependency and jasno files are served under /@dep/<name>@<version>/ and /@jasno/', async () => {

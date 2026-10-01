@@ -17,7 +17,7 @@ export interface DistOptions { list: boolean; keep: number; conditions: readonly
 export const BUDGET = { entryWarn: 150, entryError: 250, lazyWarn: 50 };
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 /** Names jasno dist generates at the root of dist/: public/ files may not take them. */
-const RESERVED = new Set(['index.html', '404.html', '_headers', '_redirects', 'src', '_deps', 'jasno', 'assets']);
+const RESERVED = new Set(['index.html', '404.html', '_headers', '_redirects', 'src', '_deps', 'jasno', 'assets', '.jasno']);
 
 type Bytes = string | Buffer;
 interface Output { path: string; url: string; content: Bytes; integrity: string; mod: Mod }
@@ -97,24 +97,27 @@ function unselectedFiles(root: string, pkg: PackageJson, appConditions: Readonly
 }
 
 /**
- * SECRET_FILE_IN_OUTPUT: .env*, *.pem, *.key or any dotfile in a published directory (ADR-29, C3); a symlink there
- * is FILE_NOT_PUBLISHED (dist publishes regular files only, so a link would silently drop or leak its target).
+ * SECRET_FILE_IN_OUTPUT: .env*, *.pem or *.key in a published directory, or any dotfile in src/ or assets/ (ADR-29,
+ * C3); public/ is copied as is, so its dotfiles (.well-known/) are published. A symlink there is FILE_NOT_PUBLISHED
+ * (dist publishes regular files only, so a link would silently drop or leak its target).
  */
 function secrets(root: string): Problem[] {
   const out: Problem[] = [];
-  const visit = (d: string): void => {
+  const visit = (d: string, dotfiles: boolean): void => {
     let entries;
     try { entries = readdirSync(d, { withFileTypes: true }); } catch { return; }
     for (const e of entries) {
       const p = join(d, e.name);
-      if (e.name.startsWith('.') || /\.(pem|key)$/i.test(e.name)) {
-        out.push({ code: 'SECRET_FILE_IN_OUTPUT', severity: 'error', message: `${posixRel(root, p)} is in a published directory; jasno dist never ships dotfiles, .env*, *.pem or *.key.`, hint: 'Move it out of src/, assets/ and public/.', file: p });
+      if (/^\.env/i.test(e.name) || /\.(pem|key)$/i.test(e.name) || (!dotfiles && e.name.startsWith('.'))) {
+        out.push({ code: 'SECRET_FILE_IN_OUTPUT', severity: 'error', message: `${posixRel(root, p)} is in a published directory; jasno dist never ships .env*, *.pem or *.key, nor dotfiles from src/ and assets/.`, hint: 'Move it out of src/, assets/ and public/.', file: p });
       } else if (e.isSymbolicLink()) {
         out.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', message: `${posixRel(root, p)} is a symlink; jasno dist publishes regular files only.`, hint: 'Copy the file into the directory instead of linking it.', file: p });
-      } else if (e.isDirectory()) visit(p);
+      } else if (e.isDirectory()) visit(p, dotfiles);
     }
   };
-  for (const d of ['src', 'assets', 'public']) visit(join(root, d));
+  visit(join(root, 'src'), false);
+  visit(join(root, 'assets'), false);
+  visit(join(root, 'public'), true);
   return out;
 }
 
@@ -247,7 +250,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   }
 
   // public/ files go to the root of dist/ unhashed (robots.txt, favicon.ico); they may not take a generated name.
-  const publicFiles = filesUnder(join(root, 'public'));
+  const publicFiles = filesUnder(join(root, 'public'), true);
   for (const f of publicFiles) {
     const top = posixRel(join(root, 'public'), f).split('/')[0]!;
     if (RESERVED.has(top)) problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: f, message: `public/${top} would replace what jasno dist generates at /${top}.`, hint: 'Rename it.' });
