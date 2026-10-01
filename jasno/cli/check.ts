@@ -100,7 +100,7 @@ function drift(root: string, pkg: PackageJson, nodeFiles: readonly string[], bro
   if (pkg.type !== 'module') add(join(root, 'package.json'), 'package.json has no "type": "module"; every import then fails with TS1295.', 'Add "type": "module".');
   const browser = join(root, 'tsconfig.json');
   const test = join(root, 'tsconfig.test.json');
-  if (!existsSync(browser)) { add(browser, 'No tsconfig.json (the browser program).', 'Start from npm create jasno, or copy its tsconfig.json.'); return out; }
+  if (!existsSync(browser)) { add(browser, 'No tsconfig.json (the browser program).', 'Start from npm create @jasno, or copy its tsconfig.json.'); return out; }
   for (const file of [browser, test]) {
     if (!existsSync(file)) continue;
     let cfg: TsConfig;

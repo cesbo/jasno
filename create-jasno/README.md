@@ -1,9 +1,9 @@
-# create-jasno
+# @jasno/create
 
 Scaffolds a [jasno](https://github.com/cesbo/jasno) app.
 
 ```sh
-npm create jasno my-app
+npm create @jasno my-app
 cd my-app
 npm install
 npx playwright install

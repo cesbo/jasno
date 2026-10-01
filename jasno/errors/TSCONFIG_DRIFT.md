@@ -9,7 +9,7 @@ One of the project's TypeScript configs differs from what jasno requires, so typ
 
 ## Fix
 
-Set each option the message names, or copy the configs that `npm create jasno` writes:
+Set each option the message names, or copy the configs that `npm create @jasno` writes:
 
 ```json
 // tsconfig.json: the browser program (src without tests)

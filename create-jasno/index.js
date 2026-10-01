@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// npm create jasno <directory> [--jasno <spec>]: scaffolds a jasno app from template/, the minimal working subset of
+// npm create @jasno <directory> [--jasno <spec>]: scaffolds a jasno app from template/, the minimal working subset of
 // the layout in design.md (f). --jasno overrides the jasno dependency (default: this package's version, exactly).
 import { cpSync, existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
@@ -8,7 +8,7 @@ import { parseArgs } from 'node:util';
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: { jasno: { type: 'string' }, help: { type: 'boolean', short: 'h' } } });
 if (values.help || positionals.length !== 1) {
-  console.log('usage: npm create jasno <directory>');
+  console.log('usage: npm create @jasno <directory>');
   process.exit(values.help ? 0 : 1);
 }
 const self = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));

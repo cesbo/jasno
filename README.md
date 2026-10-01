@@ -7,7 +7,7 @@ A TypeScript-first framework for single-page apps, designed for coding agents. P
 ## Quick start
 
 ```sh
-npm create jasno my-app
+npm create @jasno my-app
 cd my-app
 npm install
 npx playwright install
@@ -63,7 +63,7 @@ The package carries its documentation: `AGENTS.md` (the guide, also copied into 
 ## Repository
 
 - `jasno/`: the runtime, the CLI and their tests (`npm test`, `npm run check`, `npm run test:browser`, `npm run test:package`, `npm run test:template`)
-- `create-jasno/`: the `npm create jasno` template
+- `create-jasno/`: the `npm create @jasno` template (the `@jasno/create` package)
 - `design/`: the specification, the agent guide and the public types
 
 ## License

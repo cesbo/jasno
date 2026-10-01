@@ -12,7 +12,7 @@ A test imported `@jasno/core/testing`, but Node resolved it without the `develop
 
 ## Fix
 
-- Run tests with `npm test`: the script that `npm create jasno` writes passes `--conditions=development`.
+- Run tests with `npm test`: the script that `npm create @jasno` writes passes `--conditions=development`.
 - To run one file by hand, pass the same flags: `node --conditions=development --import @jasno/core/testing/happy-dom --test src/views/user.test.ts`.
 - A tool that starts Node itself (an editor's test runner, a CI step that calls `node --test`): set `NODE_OPTIONS=--conditions=development` for it.
 
@@ -24,7 +24,7 @@ A test imported `@jasno/core/testing`, but Node resolved it without the `develop
 ```
 
 ```json
-// Right: the script npm create jasno writes
+// Right: the script npm create @jasno writes
 { "scripts": { "test": "node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"" } }
 ```
 
