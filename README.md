@@ -50,7 +50,7 @@ A function is live and a value is static: `() => count()` updates the text, `cou
 
 ## Documentation
 
-The package carries its documentation: `AGENTS.md` (the guide, also copied into every new project) and `dist/jasno.d.ts` (the whole API, with a RECIPES block of common patterns). The design and its decisions are in [`design/`](https://github.com/cesbo/jasno/tree/main/design) in the repository.
+The package carries its documentation: `AGENTS.md` (the guide, also copied into every new project) and `dist/jasno.d.ts` (the whole API, with a RECIPES block of common patterns). The design and its decisions are in [`design/`](https://github.com/cesbo/jasno/tree/HEAD/design) in the repository.
 
 ## Requirements
 
