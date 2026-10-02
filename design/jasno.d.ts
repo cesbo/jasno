@@ -13,8 +13,18 @@
        h.label(null, 'Email ', h.input({ type: 'email', required: true, value: email,
          oninput: (e) => { email.set(e.currentTarget.value); emailOk.set(e.currentTarget.validity.valid); } })),
        h.button({ type: 'submit', 'aria-disabled': saving }, 'Save'))       // guard with if (saving()) return
+   Two-way binding: spread bindValue(read, set) into an input, textarea or select ({ value, oninput }), bindNumber
+   into a type: 'number' input ('' and an unfinished entry set undefined, undefined shows as '', the typed text is
+   kept while it means the same number) and bindChecked into a checkbox ({ checked, onchange }). set is any
+   function, so a form that keeps one draft object binds a key: bindValue(() => draft().name, (v) => patch('name', v)).
+     h.label(null, 'Seats ', h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats, seats.set) })),
+     h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree, agree.set) }), ' I agree'),
    Radio group: one signal; checked: () => plan() === 'pro', onchange: () => plan.set('pro').
-   Numbers: e.currentTarget.valueAsNumber. Never disable or remove the focused element (FOCUS_LOST): keep the
+   An error native constraints cannot express (a cross-field rule, a value outside a table) becomes the control's
+   custom validity, so submit is blocked and the browser focuses the field: keep the element in a const and
+     effect(() => seatsInput.setCustomValidity(seatsError() ?? ''));
+   (a component with an optional error prop creates that effect only when the prop is given: an effect that reads
+   no signal warns EFFECT_NO_DEPS). Never disable or remove the focused element (FOCUS_LOST): keep the
    button enabled with 'aria-disabled', or move focus to the result in onMount. Playwright's click() waits for an
    aria-disabled element to become enabled: test an ignored second press with click({ force: true }) or
    dispatchEvent('click').
@@ -386,6 +396,30 @@ declare module '@jasno/core' {
   export type StyleProps = { readonly [K in CssProperty]?: MaybeRead<string | null | undefined> | undefined } & {
     readonly [custom: `--${string}`]: MaybeRead<string | null | undefined> | undefined;
   };
+
+  // ---------------------------------------------------------------- two-way binding (B15.12)
+
+  /** What bindValue returns: spread it into the props of h.input, h.textarea or h.select. */
+  export interface ValueBinding {
+    readonly value: Read<string>;
+    readonly oninput: (event: { readonly currentTarget: { readonly value: string } }) => void;
+  }
+  /** Two-way binding of a text control: value live from read, set(currentTarget.value) on every input event (a select fires input too). h.input({ ...bindValue(q, q.set), 'aria-label': 'Search' }); a draft object: bindValue(() => draft().name, (v) => patch('name', v)). */
+  export function bindValue(read: Read<string>, set: (value: string) => void): ValueBinding;
+  /** What bindNumber returns: spread it into the props of h.input({ type: 'number' }). */
+  export interface NumberBinding {
+    readonly value: Read<string>;
+    readonly oninput: (event: { readonly currentTarget: { readonly value: string; readonly valueAsNumber: number } }) => void;
+  }
+  /** Two-way binding of a number input: '' and an unfinished entry (NaN) set undefined, undefined shows as '', and the text the field holds is kept while it still means the current value (typing 1.50 is not rewritten to 1.5). The setter must accept undefined: signal<number | undefined>(1). */
+  export function bindNumber(read: Read<number | undefined>, set: (value: number | undefined) => void): NumberBinding;
+  /** What bindChecked returns: spread it into the props of h.input({ type: 'checkbox' }). */
+  export interface CheckedBinding {
+    readonly checked: Read<boolean>;
+    readonly onchange: (event: { readonly currentTarget: { readonly checked: boolean } }) => void;
+  }
+  /** Two-way binding of a checkbox: checked live from read, set(currentTarget.checked) on change. A radio group stays two props: checked: () => plan() === 'pro', onchange: () => plan.set('pro'). */
+  export function bindChecked(read: Read<boolean>, set: (checked: boolean) => void): CheckedBinding;
 
   // ---------------------------------------------------------------- context
 

@@ -1,5 +1,5 @@
 // Every snippet of the RECIPES block at the top of jasno.d.ts, in context. Must compile with 0 errors.
-import { component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type Read } from '@jasno/core';
+import { bindChecked, bindNumber, bindValue, component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type Read } from '@jasno/core';
 import { createRouter, route, type ViewProps } from '@jasno/core/router';
 import { addNote, getUser, listCards, listNotes, makeChart, saveTitle, search, subscribePresence, type Card } from './api.ts';
 import { router } from './routes.ts';
@@ -10,17 +10,28 @@ export const EmailForm = component(function EmailForm(p: { save: (email: string)
   const emailOk = signal(false);
   const saving = signal(false);
   const plan = signal<'free' | 'pro'>('free');
+  const seats = signal<number | undefined>(1);
+  const agree = signal(false);
+  const country = signal('nl');
+  const seatsError = computed(() => { const n = seats(); return n !== undefined && n > 100 ? 'At most 100 seats' : undefined; });
   const save = async () => { if (saving()) return; saving.set(true); try { await p.save(email()); } finally { saving.set(false); } };
+  const seatsInput = h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats, seats.set) });
+  effect(() => seatsInput.setCustomValidity(seatsError() ?? ''));
   return h.form({ onsubmit: (e) => { e.preventDefault(); return save(); } },
     h.label(null, 'Email ', h.input({ type: 'email', required: true, value: email,
       oninput: (e) => { email.set(e.currentTarget.value); emailOk.set(e.currentTarget.validity.valid); } })),
     h.label(null, h.input({ type: 'radio', name: 'plan', checked: () => plan() === 'pro', onchange: () => plan.set('pro') }), 'Pro'),
-    h.input({ type: 'number', 'aria-label': 'Seats', oninput: (e) => console.log(e.currentTarget.valueAsNumber) }),
+    h.label(null, 'Seats ', seatsInput),
+    h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree, agree.set) }), ' I agree'),
+    h.label(null, 'Country ', h.select({ ...bindValue(country, country.set) }, h.option({ value: 'nl' }, 'Netherlands'), h.option({ value: 'de' }, 'Germany'))),
     show(emailOk, () => 'valid'),
     h.button({ type: 'submit', 'aria-disabled': saving }, 'Save'))       // guard with if (saving()) return
 });
 export const Draft = component(function Draft(p: { card: Read<Card> }): Node {
   return h.input({ value: untracked(p.card).title, 'aria-label': 'Title' });
+});
+export const DraftName = component(function DraftName(p: { draft: Read<{ readonly name: string }>; patch: (key: 'name', value: string) => void }): Node {
+  return h.input({ ...bindValue(() => p.draft().name, (v) => p.patch('name', v)), 'aria-label': 'Name' });
 });
 
 // Inline edit

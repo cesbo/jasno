@@ -3,8 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  catchError, component, computed, createContext, createRoot, css, each, effect, flush, h, linkedSignal, match, onMount,
-  provide, resource, selector, show, signal, svg, untracked, useContext, type Read,
+  bindChecked, bindNumber, bindValue, catchError, component, computed, createContext, createRoot, css, each, effect, flush, h,
+  linkedSignal, match, onMount, provide, resource, selector, show, signal, svg, untracked, useContext, type Read,
 } from '@jasno/core';
 import { mountTest, settled } from '@jasno/core/testing';
 import { capture, deferred, tick } from '../helpers.ts';
@@ -119,15 +119,57 @@ test('Forms: radio group bound to one signal (checked: () => plan() === x, oncha
   assert.deepEqual([free!.checked, pro!.checked], [true, false]);
 });
 
-test('Forms: numbers through e.currentTarget.valueAsNumber', (t) => {
-  const n = signal(0);
-  const view = mountTest(t, () => h.label(null, 'Qty', h.input({ type: 'number', min: '0', value: () => String(n()), oninput: (e) => n.set(e.currentTarget.valueAsNumber) })));
+test('Forms: the two-way binding lines verbatim (bindNumber, bindChecked, bindValue on a select): zero diagnostics, \'\' reads undefined', (t) => {
+  const seats = signal<number | undefined>(1);
+  const agree = signal(false);
+  const country = signal('nl');
+  const view = mountTest(t, () => h.fieldset(null,
+    h.label(null, 'Seats ', h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats, seats.set) })),
+    h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree, agree.set) }), ' I agree'),
+    h.label(null, 'Country ', h.select({ ...bindValue(country, country.set) }, h.option({ value: 'nl' }, 'Netherlands'), h.option({ value: 'de' }, 'Germany')))));
+  const [number, box] = [...view.root.querySelectorAll('input')] as HTMLInputElement[];
+  const select = view.root.querySelector('select')!;
+  assert.equal(number!.value, '1');
+  number!.value = '12';
+  number!.dispatchEvent(new Event('input'));
+  flush();
+  assert.equal(seats(), 12);
+  number!.value = '';
+  number!.dispatchEvent(new Event('input'));
+  flush();
+  assert.equal(seats(), undefined);
+  assert.equal(number!.validity.valueMissing, true, 'an empty required number is still caught natively');
+  box!.click();
+  flush();
+  assert.equal(agree(), true);
+  select.value = 'de';
+  select.dispatchEvent(new Event('input'));
+  flush();
+  assert.equal(country(), 'de');
+});
+
+test('Forms: a live error string as the control\'s custom validity blocks submit until it clears', (t) => {
+  const seats = signal<number | undefined>(200);
+  const seatsError = computed(() => { const n = seats(); return n !== undefined && n > 100 ? 'At most 100 seats' : undefined; });
+  let submitted = 0;
+  const view = mountTest(t, () => {
+    const seatsInput = h.input({ type: 'number', 'aria-label': 'Seats', ...bindNumber(seats, seats.set) });
+    effect(() => seatsInput.setCustomValidity(seatsError() ?? ''));
+    return h.form({ onsubmit: (e) => { e.preventDefault(); submitted++; } }, seatsInput, h.button({ type: 'submit' }, 'Save'));
+  });
+  const form = view.root.querySelector('form')!;
   const input = view.root.querySelector('input')!;
-  input.value = '12';
+  assert.equal(input.validationMessage, 'At most 100 seats');
+  form.requestSubmit();
+  flush();
+  assert.equal(submitted, 0, 'invalid: no submit event');
+  input.value = '5';
   input.dispatchEvent(new Event('input'));
   flush();
-  assert.equal(n(), 12);
-  assert.equal(input.value, '12');
+  assert.equal(input.validity.valid, true);
+  form.requestSubmit();
+  flush();
+  assert.equal(submitted, 1);
 });
 
 test('Forms: moving focus to the result in onMount after the form is removed reports nothing', async (t) => {

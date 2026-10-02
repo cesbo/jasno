@@ -7,10 +7,10 @@ import { describeElement } from './dom.ts';
 export {
   computed, createContext, createRoot, effect, flush, linkedSignal, onMount, provide, selector, signal, untracked, useContext,
 } from './core.ts';
-export { catchError, component, css, each, h, match, mount, show, svg } from './dom.ts';
+export { bindChecked, bindNumber, bindValue, catchError, component, css, each, h, match, mount, show, svg } from './dom.ts';
 export { resource } from './resource.ts';
 
-export const version = '0.1.3';
+export const version = '0.1.4';
 
 // window.__JASNO__ (design.md (d)); graph() and why() are minimal in the prototype.
 if (DEV && typeof globalThis === 'object') {

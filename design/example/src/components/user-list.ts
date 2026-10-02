@@ -1,4 +1,4 @@
-import { component, computed, css, each, flush, h, linkedSignal, selector, show, signal, type Read } from '@jasno/core';
+import { bindValue, component, computed, css, each, flush, h, linkedSignal, selector, show, signal, type Read } from '@jasno/core';
 import type { User } from '../api.ts';
 
 export interface UserListProps {
@@ -50,7 +50,7 @@ export const UserList = component(function UserList(p: UserListProps): Node {
 
   return h.div({ class: 'user-list' },
     h.label(null, 'Filter ',
-      h.input({ type: 'search', value: query, oninput: (e) => query.set(e.currentTarget.value) })),
+      h.input({ type: 'search', ...bindValue(query, query.set) })),
     h.p({ 'aria-live': 'polite' }, () => `${matches().length} of ${p.users().length} people`),
     list,
     show(() => matches().length > limit(), () => h.button({ type: 'button', onclick: showMore }, 'Show more')),

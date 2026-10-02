@@ -808,3 +808,40 @@ function hasName(el: Element): boolean {
 export function describeElement(n: Node): { name: string; ownerPath: string } {
   return { name: (n as Element).localName ?? n.nodeName, ownerPath: pathOfNode(n) };
 }
+
+// ---------------------------------------------------------------- two-way binding (B15.12)
+
+/** `{ value, oninput }` for an input, textarea or select bound to a string (a select fires input too). */
+export function bindValue(read: () => string, set: (value: string) => void): { value: () => string; oninput: (e: { currentTarget: { value: string } }) => void } {
+  return { value: read, oninput: (e) => set(e.currentTarget.value) };
+}
+
+/**
+ * `{ value, oninput }` for a type="number" input bound to a number: '' and NaN read as undefined, which shows as ''.
+ * The text the field holds is kept while it still means the current value, so typing "1.50" is not rewritten to "1.5"
+ * under the caret; once another value has been shown the text is forgotten.
+ */
+export function bindNumber(read: () => number | undefined, set: (value: number | undefined) => void): { value: () => string; oninput: (e: { currentTarget: { value: string; valueAsNumber: number } }) => void } {
+  let text: string | undefined; // what the field showed when set() last ran
+  let shown: number | undefined;
+  return {
+    value: () => {
+      const n = read();
+      if (text !== undefined && n === shown) return text;
+      text = undefined;
+      return n === undefined ? '' : String(n);
+    },
+    oninput: (e) => {
+      const el = e.currentTarget;
+      const n = el.value === '' || Number.isNaN(el.valueAsNumber) ? undefined : el.valueAsNumber;
+      text = el.value;
+      shown = n;
+      set(n);
+    },
+  };
+}
+
+/** `{ checked, onchange }` for a checkbox bound to a boolean. */
+export function bindChecked(read: () => boolean, set: (checked: boolean) => void): { checked: () => boolean; onchange: (e: { currentTarget: { checked: boolean } }) => void } {
+  return { checked: read, onchange: (e) => set(e.currentTarget.checked) };
+}

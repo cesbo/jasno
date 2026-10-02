@@ -1,4 +1,4 @@
-import { component, computed, h, signal, useContext } from '@jasno/core';
+import { bindValue, component, computed, h, signal, useContext } from '@jasno/core';
 import { ToastContext } from '../toast.ts';
 
 export interface NoteFormProps {
@@ -38,8 +38,7 @@ export const NoteForm = component(function NoteForm(p: NoteFormProps): Node {
         required: true,
         maxLength: MAX,
         rows: 3,
-        value: text,
-        oninput: (e) => text.set(e.currentTarget.value),
+        ...bindValue(text, text.set),
       })),
     h.p({ class: { warn: () => left() < 20 } }, () => `${left()} characters left`),
     h.button({ type: 'submit', 'aria-disabled': saving }, () => (saving() ? 'Saving…' : 'Add note')),

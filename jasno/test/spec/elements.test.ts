@@ -2,8 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  catchError, component, computed, createContext, each, effect, flush, h, mount, onMount, provide, show, signal, svg,
-  useContext, css,
+  bindChecked, bindNumber, bindValue, catchError, component, computed, createContext, each, effect, flush, h, mount, onMount,
+  provide, show, signal, svg, useContext, css,
 } from '@jasno/core';
 import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
@@ -424,6 +424,81 @@ test('B15.4 value is assigned at creation even when it reads the same: an option
   assert.equal(select.options[0]!.getAttribute('value'), '');
   assert.equal(select.value, '');
   assert.equal(select.validity.valueMissing, true);
+});
+
+// ================================================================ B15.12 two-way binding
+
+test('B15.12 bindValue: value live, set on input; one binding serves input, textarea and select', (t) => {
+  const text = signal('a');
+  const picked = signal('x');
+  const view = mountTest(t, () => h.label(null, 'Name',
+    h.input({ ...bindValue(text, text.set) }),
+    h.textarea({ ...bindValue(text, text.set) }),
+    h.select({ ...bindValue(picked, picked.set) }, h.option({ value: 'x' }, 'X'), h.option({ value: 'y' }, 'Y'))));
+  const input = view.root.querySelector('input')!;
+  const area = view.root.querySelector('textarea')!;
+  const select = view.root.querySelector('select')!;
+  assert.deepEqual([input.value, area.value, select.value], ['a', 'a', 'x']);
+  input.value = 'typed';
+  input.dispatchEvent(new Event('input'));
+  flush();
+  assert.equal(text(), 'typed');
+  assert.equal(area.value, 'typed');
+  select.value = 'y';
+  select.dispatchEvent(new Event('input')); // HTML's select update notification: input, then change
+  flush();
+  assert.equal(picked(), 'y');
+  text.set('outside');
+  flush();
+  assert.deepEqual([input.value, area.value], ['outside', 'outside']);
+});
+
+test('B15.12 bindNumber: \'\' and NaN set undefined, undefined shows as \'\', the field\'s text is kept while it means the current value', (t) => {
+  const n = signal<number | undefined>(undefined);
+  const view = mountTest(t, () => h.label(null, 'Qty', h.input({ type: 'number', ...bindNumber(n, n.set) })));
+  const input = view.root.querySelector('input')!;
+  assert.equal(input.value, '');
+  const type = (v: string): void => { input.value = v; input.dispatchEvent(new Event('input')); flush(); };
+  type('12');
+  assert.equal(n(), 12);
+  const log = spy(input, 'value');
+  input.value = '1.50';
+  log.writes.length = 0; // the test's own assignment
+  input.dispatchEvent(new Event('input'));
+  flush();
+  assert.equal(n(), 1.5);
+  assert.deepEqual(log.writes, [], 'not rewritten to "1.5" under the caret');
+  assert.equal(input.value, '1.50');
+  type('');
+  assert.equal(n(), undefined);
+  type('abc'); // happy-dom keeps the text, browsers read \'\' for it: NaN either way
+  assert.equal(n(), undefined);
+  log.writes.length = 0;
+  n.set(3);
+  flush();
+  assert.deepEqual(log.writes, ['3']);
+  n.set(undefined);
+  flush();
+  assert.equal(input.value, '');
+  type('2.0');
+  n.set(7);
+  flush();
+  n.set(2);
+  flush();
+  assert.equal(input.value, '2', 'the remembered text is forgotten once another value was shown');
+});
+
+test('B15.12 bindChecked: checked live, set on change', (t) => {
+  const on = signal(false);
+  const view = mountTest(t, () => h.label(null, h.input({ type: 'checkbox', ...bindChecked(on, on.set) }), 'On'));
+  const box = view.root.querySelector('input')!;
+  assert.equal(box.checked, false);
+  box.click();
+  flush();
+  assert.equal(on(), true);
+  on.set(false);
+  flush();
+  assert.equal(box.checked, false);
 });
 
 // ================================================================ B15.5 undefined

@@ -2,7 +2,7 @@
 // against the public API (the design's ambient jasno.d.ts). tsc (npm run check, tsconfig.test.json) fails with TS2578
 // when one of them compiles, so a loosened type cannot pass unnoticed. Not a test file: node --test never runs it.
 import {
-  batch, catchError, component, createContext, css, each, h, match, provide, resource, signal, useState,
+  batch, bindNumber, bindValue, catchError, component, createContext, css, each, h, match, provide, resource, signal, useState,
   type Read, type WritableSignal,
 } from '@jasno/core';
 import { createRouter, route } from '@jasno/core/router';
@@ -21,6 +21,10 @@ const Untyped = createContext('Untyped');
 const router = createRouter([route('/', { view: async () => ({ default: Page }) })], { error: () => h.p(null, 'error'), notFound: () => h.p(null, 'not found') });
 
 export function negatives(): void {
+  // @ts-expect-error B15.12: a number field can be empty, so the setter must accept undefined (signal<number | undefined>)
+  bindNumber(count, count.set);
+  // @ts-expect-error B15.12: binding props fit only controls with a value (input, textarea, select)
+  h.div({ ...bindValue(title, title.set) });
   // @ts-expect-error V2-01: the first argument is props or null; children come after it
   h.header(nav);
   // @ts-expect-error V2-08, TS-01: a called signal is a snapshot; data props take Read<T>
