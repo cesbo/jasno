@@ -152,7 +152,10 @@ const pkg = {
   publishConfig: { access: 'public' },
   files: ['dist', 'bin', 'errors', 'AGENTS.md'],
   dependencies: src.dependencies,
-  peerDependencies: { typescript: '~7.0.2', 'happy-dom': src.peerDependencies['happy-dom'] },
+  // No typescript peer: only jasno check needs it, and it gates the version itself (TS_VERSION_UNSUPPORTED). npm
+  // refuses a peer whose installed version is out of range even when it is optional, so an app on another TypeScript
+  // that embeds the runtime (Vite, TS 5.9) could not install the package at all.
+  peerDependencies: { 'happy-dom': src.peerDependencies['happy-dom'] },
   peerDependenciesMeta: { 'happy-dom': { optional: true } },
 };
 writeFileSync(join(OUT, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
