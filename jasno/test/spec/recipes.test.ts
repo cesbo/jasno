@@ -1130,9 +1130,9 @@ test('Enter-to-send in a textarea: requestSubmit on Enter, not on Shift+Enter or
   same(document.activeElement, ta);
 });
 
-test('Icons: svg() inside a named button; attributes set with setAttribute in the SVG namespace', (t) => {
+test('Icons: svg.* inside a named button; attributes set with setAttribute in the SVG namespace', (t) => {
   const view = mountTest(t, () => h.button({ type: 'button', 'aria-label': 'Add' },
-    svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' }))));
+    svg.svg({ viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' }))));
   const s = view.root.querySelector('svg')!;
   assert.equal(s.namespaceURI, 'http://www.w3.org/2000/svg');
   assert.equal(s.getAttribute('viewBox'), '0 0 24 24');

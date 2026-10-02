@@ -67,7 +67,15 @@ function element(tag: string, props: Props | null, children: Child[]): HTMLEleme
   return el;
 }
 
-export function svg(tag: string, attributes: Props | null, ...children: Child[]): SVGElement {
+/** svg.tag(attributes | null, ...children) (B15.11): the element in the SVG namespace, attributes set with setAttribute. */
+export const svg = new Proxy({} as Record<string, (attributes: Props | null, ...children: Child[]) => SVGElement>, {
+  get(cache: Record<string, unknown>, tag) {
+    if (typeof tag !== 'string' || tag === 'then') return undefined;
+    return (cache[tag] ??= (attributes: Props | null, ...children: Child[]) => svgElement(tag, attributes, children));
+  },
+});
+
+function svgElement(tag: string, attributes: Props | null, children: Child[]): SVGElement {
   const el = document.createElementNS(SVG_NS, tag);
   if (DEV) noteElement(el);
   for (const key in attributes) {

@@ -10,7 +10,7 @@ export {
 export { catchError, component, css, each, h, match, mount, show, svg } from './dom.ts';
 export { resource } from './resource.ts';
 
-export const version = '0.1.1';
+export const version = '0.1.2';
 
 // window.__JASNO__ (design.md (d)); graph() and why() are minimal in the prototype.
 if (DEV && typeof globalThis === 'object') {

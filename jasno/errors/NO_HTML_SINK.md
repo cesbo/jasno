@@ -12,7 +12,7 @@ Browser code writes an HTML string into the page: it assigns `innerHTML`, `outer
 
 - Build the markup with `h.*`: text children are escaped, and `h.*` returns the element to insert or return.
 - Plain text: pass it as a child, or set `textContent`.
-- Icons and drawings: `svg('svg', { viewBox: '0 0 24 24' }, svg('path', { d: '...' }))`.
+- Icons and drawings: `svg.svg({ viewBox: '0 0 24 24' }, svg.path({ d: '...' }))`.
 - Emptying an element: `el.replaceChildren()` instead of `el.innerHTML = ''`.
 
 There is no escape hatch: `trusted-types 'none'` forbids creating a policy. Reading `innerHTML` is fine.

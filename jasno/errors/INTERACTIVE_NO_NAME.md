@@ -29,7 +29,7 @@ One warning can stand for several controls of the same component (its `count` sa
 import { component, h, signal, svg } from '@jasno/core';
 
 const icon = (): SVGSVGElement =>
-  svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' }));
+  svg.svg({ viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' }));
 
 // Wrong: an unlabelled input and an icon-only button
 export const FilterWrong = component(function FilterWrong(): Node {

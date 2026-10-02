@@ -906,8 +906,8 @@ test('B15.10: aria-labelledby to an element named by alt/aria-label counts as a 
 test('B15.11 svg: createElementNS; attributes via setAttribute; live values; null/undefined remove; on* listeners', (t) => {
   const d = signal<string | null | undefined>('M0 0');
   const log: string[] = [];
-  const view = mountTest(t, () => svg('svg', { viewBox: '0 0 1 1', 'aria-hidden': 'true', width: 0, height: undefined, onclick: (e) => log.push(e.type) },
-    svg('path', { d, class: 'p' }), () => 'txt'));
+  const view = mountTest(t, () => svg.svg({ viewBox: '0 0 1 1', 'aria-hidden': 'true', width: 0, height: undefined, onclick: (e) => log.push(e.type) },
+    svg.path({ d, class: 'p' }), () => 'txt'));
   const s = view.root.querySelector('svg')!;
   const path = view.root.querySelector('path')!;
   assert.equal(s.namespaceURI, 'http://www.w3.org/2000/svg');
@@ -929,7 +929,7 @@ test('B15.11 svg: createElementNS; attributes via setAttribute; live values; nul
 test('B15.11 svg bindings skip Object.is-equal values; svg handlers run untracked with no owner', (t) => {
   const n = signal(1);
   let owner: unknown = 'unset';
-  const view = mountTest(t, () => svg('svg', { 'data-x': () => (n() > 0 ? 'p' : 'n'), onclick: () => { n(); try { useContext(createContext<number>('X')); } catch (e) { owner = codeOf(e); } } }));
+  const view = mountTest(t, () => svg.svg({ 'data-x': () => (n() > 0 ? 'p' : 'n'), onclick: () => { n(); try { useContext(createContext<number>('X')); } catch (e) { owner = codeOf(e); } } }));
   const s = view.root.querySelector('svg')!;
   s.setAttribute('data-x', 'ext');
   n.set(2); flush();
@@ -940,9 +940,9 @@ test('B15.11 svg bindings skip Object.is-equal values; svg handlers run untracke
 
 test('B15.11 svg children follow B15.6: NODE_MOVED for a node with a parent', () => {
   const cap = capture();
-  const p = svg('path', null);
-  const g = svg('g', null, p);
-  svg('svg', null, p);
+  const p = svg.path(null);
+  const g = svg.g(null, p);
+  svg.svg(null, p);
   cap.stop();
   assert.equal(g.childNodes.length, 0);
   assert.deepEqual(cap.codes(), ['NODE_MOVED']);

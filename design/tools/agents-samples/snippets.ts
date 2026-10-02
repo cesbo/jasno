@@ -17,7 +17,7 @@ export const Profile = component(function Profile(p: { id: Read<string>; userId:
   return h.div({ class: 'card', style: { marginTop: '4px', '--gap': () => g() } },
     show(() => user.hasValue() && user.value(), (u) => h.h2(null, () => u().name), () => h.p({ role: 'status' }, 'Loading')),
     h.p(null, count), h.p(null, draft, seed),
-    svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' })),
+    svg.svg({ viewBox: '0 0 24 24', 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' })),
     catchError(() => Chart(), (_err, reset) => Retry({ reset })),
     match(() => (count() > 0 ? 'some' : 'none'), (k) => h.span(null, k)),
     each(items, { key: (t) => t, render: (item, index, key) => h.li(null, () => item(), index, key) }),

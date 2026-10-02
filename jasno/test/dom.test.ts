@@ -99,14 +99,23 @@ test('B15.6 children: null/booleans render nothing, numbers print, function chil
   assert.equal(view.root.textContent, 'a2 b c n=2');
 });
 
-test('B15.11 svg(): attributes with setAttribute, live when a function', (t) => {
+test('B15.11 svg.*: attributes with setAttribute, live when a function', (t) => {
   const d = signal('M0 0');
-  const view = mountTest(t, () => svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, svg('path', { d, 'stroke-width': 2 })));
+  const view = mountTest(t, () => svg.svg({ viewBox: '0 0 24 24', 'aria-hidden': 'true' }, svg.path({ d, 'stroke-width': 2 })));
   const path = view.root.querySelector('path')!;
   assert.equal(path.namespaceURI, 'http://www.w3.org/2000/svg');
   assert.equal(path.getAttribute('stroke-width'), '2');
   d.set('M1 1'); flush();
   assert.equal(path.getAttribute('d'), 'M1 1');
+});
+
+test('h and svg tag namespaces: one cached function per tag; then and symbols are undefined, so neither looks like a promise', async () => {
+  for (const ns of [h, svg] as unknown as Record<PropertyKey, unknown>[]) {
+    assert.equal(ns['p'], ns['p']);
+    assert.equal(ns['then'], undefined);
+    assert.equal(ns[Symbol.toPrimitive], undefined);
+    assert.equal(await Promise.resolve(ns), ns, 'awaiting the namespace returns it');
+  }
 });
 
 test('B15.7 handlers run untracked with no owner; a returned promise is awaited by settled()', async (t) => {

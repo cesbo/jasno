@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # CURRENT_TARGET_AFTER_AWAIT
 
-**error**, reported by jasno check: <param>.currentTarget that an await or for await precedes on some path (an await in a block that returns or throws precedes only that block) in an on* handler: an on* prop or method of an h.*/svg props object, an addEventListener callback or an el.onx = ... assignment (the DOM sets it to null).
+**error**, reported by jasno check: <param>.currentTarget that an await or for await precedes on some path (an await in a block that returns or throws precedes only that block) in an on* handler: an on* prop or method of an h.*/svg.* props object, an addEventListener callback or an el.onx = ... assignment (the DOM sets it to null).
 
 <!-- /generated:catalogue -->
 
@@ -13,7 +13,7 @@ An async event handler reads `e.currentTarget` after an `await`. The DOM sets `c
 - Copy the element to a const before the first `await` (`const form = e.currentTarget;`) and use the const afterwards.
 - An `await` inside a block that ends in `return` or `throw` (an early exit) counts only for code inside that block.
 
-The rule checks `on*` props and methods of `h.*` and `svg()` props objects, `addEventListener` callbacks and `el.onclick = ...` assignments.
+The rule checks `on*` props and methods of `h.*` and `svg.*` props objects, `addEventListener` callbacks and `el.onclick = ...` assignments.
 
 ## Example
 

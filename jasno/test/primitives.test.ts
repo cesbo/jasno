@@ -30,7 +30,7 @@ test(`every h tag (${Object.keys(TAG_PROPS).length}) mounts with 0 diagnostics`,
 });
 
 test('svg mounts with 0 diagnostics', async (t) => {
-  await clean(t, () => svg('svg', { viewBox: '0 0 10 10', role: 'img', 'aria-label': 'Dot' }, svg('circle', { cx: 5, cy: 5, r: () => 4 })));
+  await clean(t, () => svg.svg({ viewBox: '0 0 10 10', role: 'img', 'aria-label': 'Dot' }, svg.circle({ cx: 5, cy: 5, r: () => 4 })));
 });
 
 test('signal, computed, linkedSignal, untracked, flush: live text and props', async (t) => {

@@ -236,7 +236,7 @@ export const Picker = component(function Picker(p: { items: Read<readonly { id: 
   const el = h.div(null);
   onMount(() => { const w = makeChart(el); effect(() => w.update(items())); return () => w.destroy(); });
   return h.div(null, el,
-    svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' })),
+    svg.svg({ viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' })),
     h.button({ onclick: () => document.startViewTransition(() => { items.set([1]); flush(); }) }, 'Animate'),
     h.ul(null, each(p.items, { key: (t) => t.id, render: (todo) =>
       h.li({ class: { selected: () => isSelected(todo().id) } },

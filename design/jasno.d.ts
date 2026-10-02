@@ -199,7 +199,7 @@
      messages.update((a) => [...a, m]); if (stick) { flush(); list.scrollTop = list.scrollHeight; }
    Enter-to-send in a textarea: if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
    then e.preventDefault(); form.requestSubmit(). (229 is Safari's keydown for the Enter that commits IME text.)
-   Icons: svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' })).
+   Icons: svg.svg({ viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' })).
    Animation: CSS @starting-style + transition-behavior: allow-discrete; document.startViewTransition(() => { s.set(v); flush(); }).
    Widgets: onMount(() => { const w = makeChart(el); effect(() => w.update(data())); return () => w.destroy(); }).
 
@@ -341,7 +341,7 @@ declare module '@jasno/core' {
   export type TextChild = string | number | bigint | boolean | null | undefined;
   /** A function child is live TEXT; returning nodes is a type error (lists use each(), switches use show() or match()). */
   export type LiveText = Read<TextChild | { readonly 'jasno: a function child is live text; lists use each(), switches use show() or match()': never }>;
-  /** Anything accepted as a child of h.* or svg() or returned by show/match/each callbacks. */
+  /** Anything accepted as a child of h.* or svg.* or returned by show/match/each callbacks. */
   export type Child = Node | TextChild | LiveText | readonly Child[];
   /** Type of on<event> props: event.currentTarget is the element (capture it before any await); a signal is rejected, so onclick: count is a type error. */
   export type Handler<Ev, E> = ((event: Ev & { readonly currentTarget: E }) => void) & {
@@ -351,12 +351,14 @@ declare module '@jasno/core' {
   export function component<A extends [] | [props: unknown] | [props?: unknown]>(fn: (...args: A) => Node): (...args: A) => Node;
   /** Element factories: h.div(props | null, ...children) returns the real element. Props are closed; function values are live except on<event> handlers. */
   export const h: H;
-  /** Attributes of svg(): any attribute name, set with setAttribute (live when a function); on<event> handlers get a plain Event. */
+  /** Attributes of svg.*: any attribute name, set with setAttribute (live when a function); on<event> handlers get a plain Event. */
   export interface SvgAttributes {
     readonly [attribute: string]: MaybeRead<string | number | null | undefined> | ((event: Event) => void);
   }
-  /** SVG elements with open attributes: svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' })). */
-  export function svg<K extends keyof SVGElementTagNameMap>(tag: K, attributes: SvgAttributes | null, ...children: Child[]): SVGElementTagNameMap[K];
+  /** The SVG tag functions behind svg: svg.path(attributes | null, ...children) creates the element in the SVG namespace; attributes are open. */
+  export type Svg = { readonly [K in keyof SVGElementTagNameMap]: (attributes: SvgAttributes | null, ...children: Child[]) => SVGElementTagNameMap[K] };
+  /** SVG elements with open attributes: svg.svg({ viewBox: '0 0 24 24', 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' })). */
+  export const svg: Svg;
   /** Renders then(value) while when() is truthy, else otherwise(); rebuilt only when truthiness flips (everything created inside dies then). value is a live Read of the narrowed value. */
   export function show<T>(when: Read<T>, then: (value: Read<Truthy<T>>) => Child, otherwise?: () => Child): Node;
   /** Rebuilds its region whenever key() changes (Object.is): tabs, status switches, dynamic components. Keys are primitives or components; render must return something for every key. */

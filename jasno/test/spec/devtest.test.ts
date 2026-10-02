@@ -347,7 +347,7 @@ test('B12.8/ADR-24 false-positive hunt: building every HTML element with typical
       h.select({ value: 'b', 'aria-label': 's' }, h.option({ value: 'a' }, 'a'), h.option({ value: 'b' }, 'b')),
       h.textarea({ value: 't', 'aria-label': 't' }),
       h.form({ onsubmit: (e: Event) => e.preventDefault() }, h.button({ type: 'submit' }, 'Save')),
-      svg('svg', { viewBox: '0 0 1 1' }, svg('circle', { r: 1 })),
+      svg.svg({ viewBox: '0 0 1 1' }, svg.circle({ r: 1 })),
     );
     return h.div(null, ...nodes);
   });
@@ -387,7 +387,7 @@ test('B12.9 mounting every built-in with no user reads yields zero diagnostics (
         (_e, reset) => h.button({ onclick: () => { fail.set(false); reset(); } }, 'Retry')),
       show(() => r.hasValue(), () => h.p(null, () => String(r.value()))),
       h.p({ class: { sel: () => isSel('a') } }, () => String(local())),
-      svg('svg', { viewBox: '0 0 1 1', 'aria-hidden': 'true' }, svg('rect', { width: () => id() })),
+      svg.svg({ viewBox: '0 0 1 1', 'aria-hidden': 'true' }, svg.rect({ width: () => id() })),
       h.input({ 'aria-label': 'Name', value: () => String(id()) }),
     ));
   });

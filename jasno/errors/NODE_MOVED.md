@@ -13,7 +13,7 @@ A node that already had a parent was passed as a child again. A DOM node can be 
 
 ## Fix
 
-- For content used in several places, write a function that creates a new node for each use (`const icon = () => svg(...)`) and call it at each place.
+- For content used in several places, write a function that creates a new node for each use (`const icon = () => svg.svg(...)`) and call it at each place.
 - If a component puts a node it received (`p.icon`) in two places, render it once, or take a function prop (`icon: () => Node`) and call it for each place.
 - Build nodes where they are used instead of taking them from elsewhere in the document.
 
@@ -24,13 +24,13 @@ import { component, h, svg } from '@jasno/core';
 
 // Wrong: one icon node appended to two buttons; the first button loses it
 export const ToolbarWrong = component(function ToolbarWrong(): Node {
-  const icon = svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' }));
+  const icon = svg.svg({ viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' }));
   return h.div(null, h.button({ type: 'button' }, icon, 'Zoom out'), h.button({ type: 'button' }, icon, 'Collapse'));
 });
 
 // Right: a function that creates a new node for each use
 export const Toolbar = component(function Toolbar(): Node {
-  const icon = () => svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M4 12h16' }));
+  const icon = () => svg.svg({ viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': 'true' }, svg.path({ d: 'M4 12h16' }));
   return h.div(null, h.button({ type: 'button' }, icon(), 'Zoom out'), h.button({ type: 'button' }, icon(), 'Collapse'));
 });
 ```

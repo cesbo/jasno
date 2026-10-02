@@ -79,12 +79,12 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
   }
   const isJasno = (node: N | undefined, exported: string): boolean => !!node && node.kind === K.Identifier && jasno.get(node.text) === exported;
 
-  /** An h.* or svg() props object: its on* entries are event handlers. */
+  /** An h.* or svg.* props object: its on* entries are event handlers. */
   const isPropsObject = (obj: N | undefined): boolean => {
     const call = obj?.parent as N | undefined;
     if (!obj || obj.kind !== K.ObjectLiteralExpression || call?.kind !== K.CallExpression || !(call.arguments as N[]).includes(obj)) return false;
     const callee = call.expression as N;
-    return (callee.kind === K.PropertyAccessExpression && isJasno(callee.expression, 'h')) || isJasno(callee, 'svg');
+    return callee.kind === K.PropertyAccessExpression && (isJasno(callee.expression, 'h') || isJasno(callee.expression, 'svg'));
   };
   const EVENT_NAME = /^on[a-z]+$/;
   function isHandler(fn: N): boolean {
