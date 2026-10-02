@@ -37,7 +37,7 @@ A function is live and a value is static: `() => count()` updates the text, `cou
 - **Checks.** `jasno check` runs tsc on the browser and test programs plus jasno's own rules. In development, problems are reported with a code; `npm run explain CODE` prints the repair guide.
 - **Accessibility built in.** The router moves focus to each view's heading; lost focus, unnamed controls and a few other mistakes are reported.
 - **Testing.** `@jasno/core/testing` mounts components under `node:test` with happy-dom; the template adds Playwright in Chromium, Firefox and WebKit.
-- **Small.** The production runtime with the router is about 17 KB gzipped.
+- **Small.** The production runtime with the router is about 16 KB gzipped.
 
 ## Commands
 

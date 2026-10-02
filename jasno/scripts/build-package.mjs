@@ -1,18 +1,18 @@
 // node scripts/build-package.mjs [--pack]: builds the publishable jasno package into release/ (gitignored).
 // The repository runs jasno from its TypeScript sources; Node refuses to strip types under node_modules, so an
 // installed package must ship JavaScript. release/ gets:
-//   dist/dev.js, dist/prod.js     the public API plus the internals (src/bundle.ts); prod is minified, DEV inlined
+//   dist/dev.js, dist/prod.js     the public API plus the internals (src/bundle.ts); prod is minified, its dev code gone
 //   dist/router{,.dev}.js         @jasno/core/router; its internals come from '@jasno/core/internal', the same file as '@jasno/core'
 //   dist/testing.js, testing-requires-dev.js, happy-dom.js
-//   dist/cli.js, bin/jasno.js     the CLI (typescript, amaro and es-module-lexer resolve from the project)
+//   dist/cli.js, bin/jasno.js     the CLI (typescript, amaro, es-module-lexer and rolldown resolve from the project)
 //   dist/*.d.ts                   module-form types generated from the curated design/jasno.d.ts (RECIPES included)
 //   errors/, AGENTS.md, package.json, and the repository's README.md and LICENSE
 // --pack also writes release/jasno-<version>.tgz.
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';
+import { rolldown } from 'rolldown';
 import { init, parse } from 'es-module-lexer';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -31,31 +31,31 @@ mkdirSync(DIST, { recursive: true });
 
 const INTERNAL = /^\.\/(core|dom|diag|resource|index|internal)\.ts$/;
 /** router/testing builds: the shared modules are external, imported from '@jasno/core/internal'. */
-const shareInternals = { name: 'jasno-internal', setup(b) {
-  b.onResolve({ filter: INTERNAL }, () => ({ path: '@jasno/core/internal', external: true }));
-} };
-/** esbuild folds neither an imported constant nor a top-level const: the import goes and `define` substitutes DEV at
- * parse time, so minify drops the dev-only code. */
-const inlineDev = { name: 'jasno-dev', setup(b) {
-  b.onLoad({ filter: /[\\/]src[\\/][^\\/]+\.ts$/ }, (args) => {
-    const code = readFileSync(args.path, 'utf8');
-    return { contents: code.replace("import { DEV } from '#dev';", ''), loader: 'ts' };
+const shareInternals = { name: 'jasno-internal', resolveId: (source) => (INTERNAL.test(source) ? { id: '@jasno/core/internal', external: true } : null) };
+/** One file per entry. The '#dev' and '#props' imports resolve by condition (package.json "imports"), and Rolldown
+ * folds the imported DEV constant, so the production minify drops the dev-only code. */
+async function bundle(entry, out, { dev = false, platform = 'neutral', plugins = [], external, minify = !dev } = {}) {
+  const b = await rolldown({
+    input: join(ROOT, entry), cwd: ROOT, platform, plugins, external, logLevel: 'warn',
+    resolve: { conditionNames: dev ? ['development', 'import', 'default'] : ['import', 'default'] },
+    transform: { target: 'es2024' },
   });
-} };
-const common = { bundle: true, format: 'esm', target: 'es2024', legalComments: 'none', logLevel: 'warning', absWorkingDir: ROOT };
-const browser = (entry, out, dev, plugins = []) => build({
-  ...common, entryPoints: [entry], outfile: join(DIST, out), platform: 'neutral',
-  conditions: dev ? ['development'] : [], minify: !dev, define: { DEV: String(dev) }, plugins: [...plugins, inlineDev],
-});
+  try {
+    await b.write({ file: join(DIST, out), format: 'esm', codeSplitting: false, minify, comments: false });
+  } finally {
+    await b.close();
+  }
+}
+const bare = (id) => !id.startsWith('.') && !id.startsWith('#') && !isAbsolute(id);
 await Promise.all([
-  browser('src/bundle.ts', 'dev.js', true),
-  browser('src/bundle.ts', 'prod.js', false),
-  browser('src/router.ts', 'router.dev.js', true, [shareInternals]),
-  browser('src/router.ts', 'router.js', false, [shareInternals]),
-  browser('src/testing.ts', 'testing.js', true, [shareInternals]),
-  browser('src/testing-requires-dev.ts', 'testing-requires-dev.js', false, [shareInternals]),
-  build({ ...common, entryPoints: ['src/happy-dom.ts'], outfile: join(DIST, 'happy-dom.js'), platform: 'node', external: ['happy-dom'] }),
-  build({ ...common, entryPoints: ['cli/main.ts'], outfile: join(DIST, 'cli.js'), platform: 'node', packages: 'external' }),
+  bundle('src/bundle.ts', 'dev.js', { dev: true }),
+  bundle('src/bundle.ts', 'prod.js'),
+  bundle('src/router.ts', 'router.dev.js', { dev: true, plugins: [shareInternals] }),
+  bundle('src/router.ts', 'router.js', { plugins: [shareInternals] }),
+  bundle('src/testing.ts', 'testing.js', { dev: true, plugins: [shareInternals] }),
+  bundle('src/testing-requires-dev.ts', 'testing-requires-dev.js', { plugins: [shareInternals] }),
+  bundle('src/happy-dom.ts', 'happy-dom.js', { platform: 'node', external: ['happy-dom'], minify: false }),
+  bundle('cli/main.ts', 'cli.js', { platform: 'node', external: bare, minify: false }),
 ]);
 
 // Every name router and testing import from '@jasno/core/internal' must be exported by both bundles (a missing one would
@@ -65,7 +65,7 @@ const exportsOf = (file) => new Set(parse(readFileSync(join(DIST, file), "utf8")
 const dev = exportsOf('dev.js'), prod = exportsOf('prod.js');
 for (const file of ['router.dev.js', 'router.js', 'testing.js', 'testing-requires-dev.js']) {
   const code = readFileSync(join(DIST, file), 'utf8');
-  for (const m of code.matchAll(/import\s*\{([^}]*)\}\s*from\s*"@jasno\/core\/internal"/g)) {
+  for (const m of code.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']@jasno\/core\/internal["']/g)) {
     for (const part of m[1].split(',')) {
       const name = part.trim().split(/\s+as\s+/)[0];
       if (name && !(dev.has(name) && prod.has(name))) throw new Error(`${file} imports ${name} from @jasno/core/internal, which the bundles do not export`);
