@@ -48,8 +48,8 @@ test('allowlist: no tests, no .d.ts, nothing reachable only through an unselecte
   const b = await build(FILES);
   const files = listAll(join(b.root, 'dist'));
   const code = files.filter((f) => f.endsWith('.js')).map((f) => b.read(f)).join('\n');
-  assert.ok(/["']\/api["']/.test(code) && !/["']\/mock["']/.test(code) && !code.includes('fixtures'), 'config.prod.ts only');
-  assert.ok(!/mode\s*=\s*["']dev["']/.test(code), 'dependencies resolve with the production conditions (dep-esm/dev.js is out)');
+  assert.ok(/["'`]\/api["'`]/.test(code) && !/["'`]\/mock["'`]/.test(code) && !code.includes('fixtures'), 'config.prod.ts only');
+  assert.ok(!/mode\s*=\s*["'`]dev["'`]/.test(code), 'dependencies resolve with the production conditions (dep-esm/dev.js is out)');
   assert.ok(files.includes('assets/logo.svg'));
   for (const f of ['index.html', '404.html', '_redirects', '_headers', '.jasno/manifest.json']) assert.ok(files.includes(f), f);
   assert.ok(files.every((f) => !/test|types|_deps|^jasno\//.test(f)), files.join('\n'));
@@ -97,7 +97,7 @@ test('--list prints the exact file list and writes nothing', async () => {
   const b = await build(FILES, { list: true });
   assert.equal(b.code, 0);
   assert.ok(!existsSync(join(b.root, 'dist')));
-  assert.ok(b.lines.some((l) => /^dist\/src\/main\.[0-9A-Z]{8}\.js {2}<- src\/main\.ts$/.test(l)), b.lines.join('\n'));
+  assert.ok(b.lines.some((l) => /^dist\/src\/main\.[0-9a-z]{8}\.js {2}<- src\/main\.ts$/.test(l)), b.lines.join('\n'));
   assert.ok(b.lines.includes('dist/assets/logo.svg  <- assets/logo.svg'));
 });
 
@@ -144,9 +144,9 @@ test('the entry and the app\'s lazy view are hashed chunks under src/, shared co
   const b = await build(BFILES);
   assert.equal(b.code, 0, b.lines.join('\n'));
   const js = jsFiles(b.root);
-  assert.ok(js.some((f) => /^src\/main\.[0-9A-Z]{8}\.js$/.test(f)), js.join('\n'));
-  assert.ok(js.some((f) => /^src\/views\/lazy\.[0-9A-Z]{8}\.js$/.test(f)), js.join('\n'));
-  assert.ok(js.every((f) => /^src\/(main|views\/lazy|chunk)\.[0-9A-Z]{8}\.js$/.test(f)), `no per-file outputs, no _deps/ or jasno/:\n${js.join('\n')}`);
+  assert.ok(js.some((f) => /^src\/main\.[0-9a-z]{8}\.js$/.test(f)), js.join('\n'));
+  assert.ok(js.some((f) => /^src\/views\/lazy\.[0-9a-z]{8}\.js$/.test(f)), js.join('\n'));
+  assert.ok(js.every((f) => /^src\/(main|views\/lazy|chunk)\.[0-9a-z]{8}\.js$/.test(f)), `no per-file outputs, no _deps/ or jasno/:\n${js.join('\n')}`);
   const all = listAll(join(b.root, 'dist'));
   for (const f of js) {
     assert.ok(all.includes(`${f}.map`), `${f}.map`);
@@ -162,13 +162,13 @@ test('the import map maps the entry URL and pins every chunk with sha384; module
   const js = jsFiles(b.root);
   assert.deepEqual(Object.keys(map.imports), ['/src/main.ts']);
   const entry = map.imports['/src/main.ts']!;
-  assert.match(entry, /^\/src\/main\.[0-9A-Z]{8}\.js$/);
+  assert.match(entry, /^\/src\/main\.[0-9a-z]{8}\.js$/);
   assert.deepEqual(Object.keys(map.integrity).sort(), js.map((f) => '/' + f).sort());
   for (const [url, sri] of Object.entries(map.integrity)) {
     assert.equal(sri, 'sha384-' + createHash('sha384').update(readFileSync(join(b.root, 'dist', url))).digest('base64'), url);
   }
   const preloads = new Map([...html.matchAll(/<link rel="modulepreload" href="([^"]+)" integrity="([^"]+)">/g)].map((m) => [m[1]!, m[2]!]));
-  const statics = [...b.read(entry.slice(1)).matchAll(/from\s*"\.\/(chunk\.[0-9A-Z]{8}\.js)"/g)].map((m) => `/src/${m[1]}`);
+  const statics = [...b.read(entry.slice(1)).matchAll(/from\s*"\.\/(chunk\.[0-9a-z]{8}\.js)"/g)].map((m) => `/src/${m[1]}`);
   assert.ok(statics.length > 0);
   for (const url of [entry, ...statics]) assert.equal(preloads.get(url), map.integrity[url], url);
   assert.ok(![...preloads.keys()].some((u) => u.includes('/views/lazy.')), 'the lazy view is fetched on demand');
@@ -203,12 +203,24 @@ test('--keep 1 keeps the previous deploy\'s chunks; --list prints exactly what a
   const r = reporter(b.root);
   assert.equal(await dist(b.root, { list: true, keep: 1, conditions: [], nonce: false }, r.reporter), 0);
   const listed = r.lines.filter((l) => l.startsWith('dist/')).map((l) => l.split('  ')[0]!.slice('dist/'.length)).sort();
-  assert.ok(r.lines.some((l) => /^dist\/src\/main\.[0-9A-Z]{8}\.js {2}<- src\/main\.ts$/.test(l)), r.lines.join('\n'));
-  assert.ok(r.lines.some((l) => /^dist\/src\/chunk\.[0-9A-Z]{8}\.js {2}<- \(shared chunk\)$/.test(l)), r.lines.join('\n'));
+  assert.ok(r.lines.some((l) => /^dist\/src\/main\.[0-9a-z]{8}\.js {2}<- src\/main\.ts$/.test(l)), r.lines.join('\n'));
+  assert.ok(r.lines.some((l) => /^dist\/src\/chunk\.[0-9a-z]{8}\.js {2}<- \(shared chunk\)$/.test(l)), r.lines.join('\n'));
   assert.equal(await dist(b.root, { list: false, keep: 1, conditions: [], nonce: false }, reporter(b.root).reporter), 0);
   assert.deepEqual(listAll(join(b.root, 'dist')).sort(), listed);
   const second = mapOf(b.read('index.html')).imports['/src/main.ts']!;
   assert.notEqual(first, second);
   assert.ok(existsSync(join(b.root, 'dist', first)), 'kept from the previous deploy');
-  assert.match(JSON.parse(b.read('.jasno/manifest.json')).bundler, /^esbuild@\d+\.\d+\.\d+$/);
+  assert.match(JSON.parse(b.read('.jasno/manifest.json')).bundler, /^rolldown@\d+\.\d+\.\d+$/);
+});
+
+test('a dependency\'s licence comment stays in the bundle; non-ASCII text ships as UTF-8, not \\u escapes', async () => {
+  const b = await build({
+    ...FILES,
+    'src/main.ts': FILES['src/main.ts'] + "export const hello = 'Привет';\n",
+    'node_modules/dep-esm/prod.js': "/*! dep-esm 1.2.3 | MIT */\n" + FILES['node_modules/dep-esm/prod.js'],
+  });
+  assert.equal(b.code, 0, b.lines.join('\n'));
+  const code = listAll(join(b.root, 'dist')).filter((f) => f.endsWith('.js')).map((f) => b.read(f)).join('\n');
+  assert.ok(code.includes('dep-esm 1.2.3 | MIT'), 'licence comment kept');
+  assert.ok(code.includes('Привет') && !code.includes('\\u041f'), 'UTF-8 kept');
 });

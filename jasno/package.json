@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.12.0",
+    "esbuild": "0.28.2",
     "happy-dom": "20.14.5",
     "playwright": "1.63.0",
     "typescript": "7.0.2"
@@ -53,6 +54,6 @@
   "dependencies": {
     "amaro": "1.2.1",
     "es-module-lexer": "3.0.2",
-    "esbuild": "0.28.2"
+    "rolldown": "1.2.12"
   }
 }

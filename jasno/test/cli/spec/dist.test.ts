@@ -38,13 +38,13 @@ const mapOf = (html: string): ImportMap => JSON.parse(/<script type="importmap">
 const sha256b64 = (s: string) => createHash('sha256').update(s).digest('base64');
 const listAll = (dir: string, prefix = ''): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
   e.isDirectory() ? listAll(join(dir, e.name), `${prefix}${e.name}/`) : [`${prefix}${e.name}`]);
-const hashedName = /\.[0-9A-Z]{8}\.js$/;
+const hashedName = /\.[0-9a-z]{8}\.js$/;
 
 const PKG = (extra: object = {}) => JSON.stringify({ name: 'app', type: 'module', ...extra });
 const dep = (name: string, version: string, extra: object = {}) => JSON.stringify({ name, version, type: 'module', ...extra });
 
 // ---------------------------------------------------------------------------------------------------------------
-// TypeScript the stripper has to get right before esbuild sees it.
+// TypeScript the stripper has to get right before Rolldown sees it.
 
 const TRICKY: Files = {
   'src/generics.ts': "export const id = <T,>(x: T): T => x;\nexport const f = async <T extends object>(x: T) => x;\nexport const m = new Map<string, number>();\n",
@@ -60,7 +60,7 @@ const TRICKY: Files = {
   'src/this.ts': 'export function t(this: Window, a?: number, ...r: string[]): a is 1 { return a === 1; }\nexport class C<T> implements Iterable<T> { #x: T[] = []; [Symbol.iterator]() { return this.#x[Symbol.iterator](); } }\n',
 };
 
-test('tricky TypeScript strips to JavaScript that esbuild bundles, and the bundle runs', async () => {
+test('tricky TypeScript strips to JavaScript that Rolldown bundles, and the bundle runs', async () => {
   const main = Object.keys(TRICKY).filter((f) => !['src/types.ts'].includes(f)).map((f, i) => `import * as m${i} from './${f.slice(4)}';\nexport { m${i} };`).join('\n') + '\nexport const all = 1;\n';
   const b = await build({ 'package.json': PKG(), 'index.html': INDEX, 'src/main.ts': main, ...TRICKY });
   assert.equal(b.code, 0, b.lines.join('\n'));

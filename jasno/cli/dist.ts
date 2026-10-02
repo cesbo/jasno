@@ -1,4 +1,4 @@
-// jasno dist (design.md (e), ADR-29, ADR-35): esbuild bundles the module graph jasno resolved. The entry and each lazy
+// jasno dist (design.md (e), ADR-29, ADR-35): Rolldown bundles the module graph jasno resolved. The entry and each lazy
 // view of the app become hashed chunks under src/, shared code goes to src/chunk.<hash>.js; one inline import map (the
 // entry URL, integrity for every chunk), modulepreload for the entry's static chunks, the production CSP and the SPA
 // fallback files.
@@ -117,66 +117,73 @@ const REDIRECTS = ['/src/*', '/assets/*'].map((p) => `${p} /404.html 404\n`).joi
 interface Manifest { stripper: string; deploys: string[][] }
 
 /**
- * esbuild bundles the graph jasno already resolved, so dev, check and dist agree on every import (the graph answers
- * onResolve, the stripped source answers onLoad; esbuild neither resolves nor parses TypeScript). The entry and the
+ * Rolldown bundles the graph jasno already resolved, so dev, check and dist agree on every import (the graph answers
+ * resolveId, the stripped source answers load; Rolldown neither resolves nor parses TypeScript). The entry and the
  * app's lazy targets keep their paths under src/ with a content hash; shared code, a package's lazy targets included,
- * goes to src/chunk.<hash>.js. Identifiers are not minified, so stack traces keep their names, and linked source maps
+ * goes to src/chunk.<hash>.js. Identifiers are not mangled, so stack traces keep their names, and linked source maps
  * point at the .ts files. Licence comments of dependencies stay at the end of their chunk.
  */
 async function bundle(g: Graph, root: string, html: string) {
-  const { build, version } = await import('esbuild');
+  const { rolldown, VERSION } = await import('rolldown');
   const entries = entryImports(html).map((e) => ({ spec: e.specifier, file: entryPath(root, e.specifier) })).filter((e) => g.mods.has(e.file));
   const named = new Set(entries.map((e) => e.file));
   const src = join(root, 'src') + sep;
   for (const mod of g.mods.values()) for (const e of mod.edges) if (e.dynamic && e.file?.startsWith(src) && g.mods.has(e.file)) named.add(e.file);
-  const out = join(root, 'dist');
-  const result = await build({
-    absWorkingDir: root, entryPoints: [...named], outdir: out, outbase: root, entryNames: '[dir]/[name].[hash]', chunkNames: 'src/chunk.[hash]',
-    bundle: true, splitting: true, format: 'esm', platform: 'browser', target: ['chrome136', 'firefox138', 'safari18.4'],
-    minifyWhitespace: true, minifySyntax: true, charset: 'utf8', legalComments: 'eof', sourcemap: 'linked',
-    write: false, metafile: true, logLevel: 'silent',
+  const build = await rolldown({
+    input: Object.fromEntries([...named].map((f) => [posixRel(root, f).replace(/\.[^./]+$/, ''), f])),
+    cwd: root, platform: 'browser', logLevel: 'silent',
     plugins: [{
       name: 'jasno-graph',
-      setup(b) {
-        b.onResolve({ filter: /.*/ }, (args) => {
-          if (args.kind === 'entry-point') return { path: args.path };
-          const file = g.mods.get(args.importer)?.edges.find((e) => e.specifier === args.path)?.file;
-          // An import the graph left unresolved (an optional peer's import()) stays as written.
-          return file ? { path: file } : { path: args.path, external: true };
-        });
-        b.onLoad({ filter: /.*/ }, (args) => ({ contents: g.mods.get(args.path)?.scan.code ?? readFileSync(args.path, 'utf8'), loader: extname(args.path) === '.json' ? 'json' : 'js' }));
+      resolveId(source, importer) {
+        if (!importer) return source;
+        // An import the graph left unresolved (an optional peer's import()) stays as written.
+        return g.mods.get(importer)?.edges.find((e) => e.specifier === source)?.file ?? { id: source, external: true };
       },
+      load: (id) => ({ code: g.mods.get(id)?.scan.code ?? readFileSync(id, 'utf8'), moduleType: extname(id) === '.json' ? 'json' : 'js' }),
     }],
   });
-  const prefix = posixRel(root, out) + '/'; // metafile keys are relative to absWorkingDir: dist/src/main.<hash>.js
-  const meta = result.metafile.outputs;
+  let output;
+  try {
+    ({ output } = await build.generate({
+      format: 'esm', entryFileNames: '[name].[hash].js', chunkFileNames: 'src/chunk.[hash].js', hashCharacters: 'base36', sourcemap: true,
+      minify: { compress: true, mangle: false, codegen: { removeWhitespace: true, legalComments: 'eof' } },
+      comments: { legal: true, annotation: false, jsdoc: false },
+    }));
+  } finally {
+    await build.close();
+  }
   const chunks = new Map<string, Buffer>();
   const sources = new Map<string, string>();
   const integrity: Record<string, string> = {};
-  for (const f of result.outputFiles) {
-    const path = posixRel(out, f.path);
-    const content = Buffer.from(f.contents);
-    chunks.set(path, content);
-    if (path.endsWith('.js')) integrity['/' + path] = integrityOf(content);
-    sources.set(path, path.endsWith('.map') ? '(source map)' : meta[prefix + path]?.entryPoint ?? '(shared chunk)');
+  const staticImports = new Map<string, readonly string[]>();
+  const byEntry = new Map<string, string>();
+  const modules = new Set<string>();
+  for (const o of output) {
+    const content = Buffer.from(o.type === 'chunk' ? o.code : o.source);
+    chunks.set(o.fileName, content);
+    if (o.type === 'asset') { sources.set(o.fileName, '(source map)'); continue; }
+    integrity['/' + o.fileName] = integrityOf(content);
+    staticImports.set(o.fileName, o.imports);
+    for (const id of o.moduleIds) modules.add(id);
+    if (o.isEntry && o.facadeModuleId) byEntry.set(o.facadeModuleId, o.fileName);
+    sources.set(o.fileName, o.isEntry && o.facadeModuleId ? posixRel(root, o.facadeModuleId) : '(shared chunk)');
   }
-  const byEntry = new Map(Object.entries(meta).filter(([, o]) => o.entryPoint).map(([k, o]) => [o.entryPoint!, k.slice(prefix.length)]));
   const imports: Record<string, string> = {};
   const preload = new Set<string>();
   const visit = (path: string): void => {
     if (preload.has(path)) return;
     preload.add(path);
-    for (const i of meta[prefix + path]!.imports) if (i.kind === 'import-statement') visit(i.path.slice(prefix.length));
+    for (const i of staticImports.get(path) ?? []) visit(i);
   };
   for (const e of entries) {
-    const path = byEntry.get(posixRel(root, e.file))!;
+    const path = byEntry.get(e.file)!;
     imports[e.spec] = '/' + path;
     visit(path);
   }
   return {
     chunks, sources, map: { imports, integrity },
     preloads: [...preload].map((p) => ({ url: '/' + p, integrity: integrity['/' + p]! })),
-    modules: Object.keys(result.metafile.inputs).length, bundler: `esbuild@${version}`,
+    modules: modules.size, bundler: `rolldown@${VERSION}`,
   };
 }
 

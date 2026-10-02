@@ -76,7 +76,7 @@ try {
       await a.page.waitForSelector('#out', { timeout: 5000 }).catch(() => {});
       ok(await a.page.textContent('#out').catch(() => null) === 'main-v1:prod!:1', `app runs: dependency with scoped #import, JSON module (${await a.page.textContent('#out').catch((e) => String(e))})`);
       const loaded = await a.page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname));
-      ok(loaded.every((p) => !p.endsWith('.ts')) && loaded.filter((p) => p.endsWith('.js')).every((p) => /^\/src\/(main|chunk)\.[0-9A-Z]{8}\.js$/.test(p)), `chunks load from hashed URLs, none from .ts (${loaded.filter((p) => p.endsWith('.js')).join(' ')})`);
+      ok(loaded.every((p) => !p.endsWith('.ts')) && loaded.filter((p) => p.endsWith('.js')).every((p) => /^\/src\/(main|chunk)\.[0-9a-z]{8}\.js$/.test(p)), `chunks load from hashed URLs, none from .ts (${loaded.filter((p) => p.endsWith('.js')).join(' ')})`);
       ok(!loaded.some((p) => p.includes('/views/lazy.')), 'the lazy route is not preloaded');
       ok(a.errors.length === 0 && (await a.page.evaluate(() => globalThis.__violations)).length === 0, `no console errors or CSP violations (${JSON.stringify(a.errors.slice(0, 3))})`);
       const tt = await a.page.evaluate(() => globalThis.tryHtml());
