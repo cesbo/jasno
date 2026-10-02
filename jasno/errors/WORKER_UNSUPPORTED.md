@@ -6,7 +6,7 @@
 <!-- /generated:catalogue -->
 
 A browser file creates a `Worker` or `SharedWorker`, or registers a service worker with `navigator.serviceWorker.register`. jasno resolves `@jasno/core`, your dependencies and `#imports` keys through the page's import map, and import maps do not apply to workers, so worker code cannot import them; jasno v1 has no supported way to build or ship workers. A class of your own named `Worker` is not reported.
-<!-- design.md: (c) jasno check table; (e) jasno check 3; (h) non-goals; (i) open question 6 -->
+<!-- design.md: (c) jasno check table; (e) jasno check 3; (h) non-goals; (i) open question 5 -->
 
 ## Fix
 

@@ -221,9 +221,9 @@ Each ADR gives the decision, the rationale and the rejected alternatives.
 - **Rejected.** `jasno vendor` building single files (a second build step and a second copy of each package); `#name` imports for packages (fights the prior, adds a hallucination surface).
 
 ### ADR-36 Package `@jasno/core`, CLI `jasno`, commands through npm scripts
-- **Decision.** The npm package is `@jasno/core`, in the project's `@jasno` scope; the framework and its CLI keep the name `jasno`, and new projects start with `npm create @jasno` (the `@jasno/create` package). AGENTS.md and diagnostics use `npm run check`, `npm test`, `npm run dev` and `npm run explain`, which resolve only the local binary, never `npx jasno`.
-- **Rationale.** `jasno` means "clearly" in Polish, Czech, Slovak and Serbo-Croatian (Russian "ясно"). npm refuses the unscoped name `jasno` as too similar to `esno`, `nano` and `asn1` (its typosquatting rule), so nobody can publish it: an agent that writes `jasno` by mistake gets an install error, not someone else's package. A scope is exempt from that rule and belongs to the project. When the name was chosen, jasno.dev and jasno.org had no DNS records (jasno.io was registered), and GitHub had only a few zero-star repositories with the name, so models carry no API prior for it.
-- **Rejected.** A personal scope (`@<user>/jasno` in every import); another unscoped name (the same similarity rule may refuse it, and it is found out only at publish time); `ff` (the npm name is taken by a 2012 flow-control package with no bin, so `npx ff` in a fresh sandbox would fetch it; it also matches `effect`, `diff` and `buffer` under grep), `clearbox` (Clearbox AI and other projects use the name; longer CLI), `tochno` (Russian only; tochno.st exists), `yasno` (a Ukrainian energy brand), `unbuilt` (unbuilt.app, a frontend tool), `kerf` (the Kerf database language; `kerfjs` is taken), `overt`/`lucid`/`plumb`/`verbatim`/`legible`/`candor` (taken on npm); `npx jasno` in docs (a fresh sandbox would fetch a package from npm instead of using the local binary).
+- **Decision.** The npm package is `@jasno/core`; the framework and its CLI are `jasno`, and new projects start with `npm create @jasno` (the `@jasno/create` package). AGENTS.md and diagnostics use `npm run check`, `npm test`, `npm run dev` and `npm run explain`, never `npx jasno`.
+- **Rationale.** npm refuses the unscoped name `jasno` as too close to existing names, so a mistyped `npm i jasno` fails instead of installing someone else's package. In a fresh sandbox `npx jasno` would fetch a package from npm; npm scripts run only the local binary.
+- **Rejected.** Another unscoped name (npm's similarity rule may refuse it as well, and that shows only at publish time).
 
 ### Eval arms
 - **Decision.** The variants an eval could have compared are decided as the design has them: A `h.div(props, ...children)`; B lowercase `onclick`; C Angular names where the meaning matches, jasno names otherwise; D `Read<T>` data props; E microtask flush (ADR-10); F the full `resource` status set; G `each(list, { key, render })`; H frozen signal values. Agent-built apps showed no leaked idioms or variant-specific failures, but no run compared two variants of one arm. A variant that later data shows to cost agents changes through the version policy (a stub with the replacement name, plus a codemod).
@@ -749,29 +749,28 @@ Ladder (each rung exits non-zero on failure; stop at the first failing rung; a r
 
 ## (i) Open questions
 
-1. **Package name checks.** The package is `@jasno/core` (ADR-36); before docs freeze, run a trademark check and measure how often agents write the bare `jasno` or misspell it (for example as `json`).
-2. Eval outcomes for arms A–H. Flush timing remains the costliest to reverse.
-3. Frozen signal values: does the mutation-bug reduction outweigh the `signal<T, T>` friction in generic code (arm H)?
-4. `jasno check` type-aware rules on TS 7.1 (beta 2026-10-06, stable 2026-11-24): move to the stable API entry point and widen the pin.
-5. Real-device load times of the bundled build (mid-range Android, Safari 27, Firefox): the lab measurement had no phones.
-6. Workers: keep `WORKER_UNSUPPORTED`, or support one recipe (`new Worker(import.meta.resolve('./w.ts'), { type: 'module' })`, import-free worker closure, one named Trusted Types policy)?
-7. Screen readers: double announcements with intercepted navigations plus `ariaNotify`; the heading-text announcement for title-less routes needs AT testing.
-8. `FOCUS_LOST` noise in real Playwright runs (Chrome focuses buttons on click, Safari does not): measure; demote to info only if correct apps trigger it.
-9. Do agents over-apply `untracked` once warnings fail tests? Measure by call counts.
-10. Cost of the dev-only `Symbol.toPrimitive` prototype swap per signal.
-11. Preloading lazy-route closures: the router sees `() => import(...)`, not the specifier; `jasno dist` could key the manifest by route pattern.
-12. Nested layouts: is `/section/:tab(a|b)` plus `match` enough, or do real apps need layout routes?
-13. Resource parity with Angular 22: value clearing on new params, `value()` throwing in `error`, `set()` being a no-op while idle.
-14. happy-dom lacks the Navigation API; should rung 3 cover the Navigation path per route?
-15. Does `mountTest`'s automatic first flush hide ordering bugs that the production microtask flush would show?
-16. `: Node` convention: drop it if a TS release stops reporting the routes↔views cycle.
-17. `INTERACTIVE_NO_NAME` fidelity against Playwright's accessible-name computation. Playwright's locators disagree among themselves: for a `<select>` wrapped in its `<label>`, `getByRole` and Chromium name it by the label text, while `getByLabel(…, { exact: true })` compares the label text with the option texts included.
-18. Firefox's per-module cost (~20× Chromium warm) in `jasno dev`.
-19. Dependencies whose conditional exports differ between `development` and `default`: confirm dev/prod parity per package in `jasno preview`.
-20. A custom-element factory (`h.custom`) once an eval task uses web components.
-21. A linkedSignal whose `computation` reads `previous` (`computed` has no `previous`): TS cannot infer the type from a return that depends on it; the JSDoc asks for a return annotation. Revisit if TypeScript improves this inference.
-22. `KEY_ACTIVATES_NEW_FOCUS` covers Enter only. Space activates buttons on `keyup`, and WebKit's behaviour for both keys was not measured (the WebKit build would not launch in the kanban review): extend the check once measured.
-23. `router.back()` with the Navigation API treats a previous same-origin entry whose path matches a route as the app's. The entry must also be `sameDocument`, which excludes an earlier page load in the tab and a same-origin page outside the SPA; what remains is an entry this document created with `history.pushState` outside the router, which AGENTS.md forbids.
-24. `settled()` sees only promises that handlers return: measure in the eval how often agents start work in a handler without returning it, and how often a test then asserts before that work finished (`settled()` resolves early, so no `SETTLE_TIMEOUT` fires).
-25. Test-order dependence: plain module variables and detached roots survive between tests (B19.5); measure it by running the suites in shuffled order.
+1. Eval outcomes for arms A–H. Flush timing remains the costliest to reverse.
+2. Frozen signal values: does the mutation-bug reduction outweigh the `signal<T, T>` friction in generic code (arm H)?
+3. `jasno check` type-aware rules on TS 7.1 (beta 2026-10-06, stable 2026-11-24): move to the stable API entry point and widen the pin.
+4. Real-device load times of the bundled build (mid-range Android, Safari 27, Firefox): the lab measurement had no phones.
+5. Workers: keep `WORKER_UNSUPPORTED`, or support one recipe (`new Worker(import.meta.resolve('./w.ts'), { type: 'module' })`, import-free worker closure, one named Trusted Types policy)?
+6. Screen readers: double announcements with intercepted navigations plus `ariaNotify`; the heading-text announcement for title-less routes needs AT testing.
+7. `FOCUS_LOST` noise in real Playwright runs (Chrome focuses buttons on click, Safari does not): measure; demote to info only if correct apps trigger it.
+8. Do agents over-apply `untracked` once warnings fail tests? Measure by call counts.
+9. Cost of the dev-only `Symbol.toPrimitive` prototype swap per signal.
+10. Preloading lazy-route closures: the router sees `() => import(...)`, not the specifier; `jasno dist` could key the manifest by route pattern.
+11. Nested layouts: is `/section/:tab(a|b)` plus `match` enough, or do real apps need layout routes?
+12. Resource parity with Angular 22: value clearing on new params, `value()` throwing in `error`, `set()` being a no-op while idle.
+13. happy-dom lacks the Navigation API; should rung 3 cover the Navigation path per route?
+14. Does `mountTest`'s automatic first flush hide ordering bugs that the production microtask flush would show?
+15. `: Node` convention: drop it if a TS release stops reporting the routes↔views cycle.
+16. `INTERACTIVE_NO_NAME` fidelity against Playwright's accessible-name computation. Playwright's locators disagree among themselves: for a `<select>` wrapped in its `<label>`, `getByRole` and Chromium name it by the label text, while `getByLabel(…, { exact: true })` compares the label text with the option texts included.
+17. Firefox's per-module cost (~20× Chromium warm) in `jasno dev`.
+18. Dependencies whose conditional exports differ between `development` and `default`: confirm dev/prod parity per package in `jasno preview`.
+19. A custom-element factory (`h.custom`) once an eval task uses web components.
+20. A linkedSignal whose `computation` reads `previous` (`computed` has no `previous`): TS cannot infer the type from a return that depends on it; the JSDoc asks for a return annotation. Revisit if TypeScript improves this inference.
+21. `KEY_ACTIVATES_NEW_FOCUS` covers Enter only. Space activates buttons on `keyup`, and WebKit's behaviour for both keys was not measured (the WebKit build would not launch in the kanban review): extend the check once measured.
+22. `router.back()` with the Navigation API treats a previous same-origin entry whose path matches a route as the app's. The entry must also be `sameDocument`, which excludes an earlier page load in the tab and a same-origin page outside the SPA; what remains is an entry this document created with `history.pushState` outside the router, which AGENTS.md forbids.
+23. `settled()` sees only promises that handlers return: measure in the eval how often agents start work in a handler without returning it, and how often a test then asserts before that work finished (`settled()` resolves early, so no `SETTLE_TIMEOUT` fires).
+24. Test-order dependence: plain module variables and detached roots survive between tests (B19.5); measure it by running the suites in shuffled order.
 
