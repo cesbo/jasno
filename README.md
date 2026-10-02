@@ -1,6 +1,6 @@
 # jasno
 
-A TypeScript-first framework for single-page apps, designed for coding agents. Plain TypeScript, no DSL: no JSX, no template language, no build configuration. Views are typed function calls (`h.div(...)`) that tsc checks like any other code. In development the `.ts` file you edit is the module the browser runs; `jasno dist` bundles it for production.
+A TypeScript-first framework for single-page apps. Plain TypeScript, no DSL: no JSX, no template language, no build configuration. Views are typed function calls (`h.div(...)`) that tsc checks like any other code. In development the `.ts` file you edit is the module the browser runs; `jasno dist` bundles it for production.
 
 > **Status: 0.x.** The API may change before 1.0. jasno has been exercised by agent-built apps and a comparison against React and Solid, not yet by production users, and its load times have not been measured on real phones.
 
