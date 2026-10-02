@@ -2,7 +2,7 @@
 import { parseArgs } from 'node:util';
 import { check } from './check.ts';
 import { dev } from './dev.ts';
-import { dist } from './dist.ts';
+import { dist, validPrefix } from './dist.ts';
 import { explain } from './explain.ts';
 import { preview } from './preview.ts';
 import { loadProject, ProjectError } from './project.ts';
@@ -11,19 +11,21 @@ import { Reporter } from './report.ts';
 const USAGE = `usage: jasno <command> [options]
   check     type-check both programs and run jasno's rules   [--strict] [--json]
   dev       local dev server                                 [--port 5173] [--host <addr>] [--json]
-  dist      build dist/ (bundled, hashed names)              [--list] [--keep N] [--condition <name>] [--nonce] [--json]
+  dist      build dist/ (bundled, hashed names)              [--list] [--keep N] [--condition <name>] [--nonce]
+                                                             [--prefix /control/assets/] [--json]
   preview   serve dist/ as a static host would               [--port 4173] [--json]
   explain   print what a diagnostic code means               <CODE> | --list [--json]
 
   --strict        warnings fail too (CI)
   --condition     an extra condition for the app's package.json "imports" only (#api -> the mock with
-                  development); jasno itself ships its production build, so window.__JASNO__ is undefined`;
+                  development); jasno itself ships its production build, so window.__JASNO__ is undefined
+  --prefix        the URL path src/ and assets/ are published under (index.html stays at the root)`;
 
 const COMMON = { json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' } } as const;
 const OPTIONS = {
   check: { ...COMMON, strict: { type: 'boolean' } },
   dev: { ...COMMON, port: { type: 'string' }, host: { type: 'string' } },
-  dist: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' } },
+  dist: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' }, prefix: { type: 'string' } },
   preview: { ...COMMON, port: { type: 'string' } },
   explain: { ...COMMON, list: { type: 'boolean' } },
 } as const;
@@ -72,7 +74,9 @@ export async function main(argv: readonly string[], cwd = process.cwd()): Promis
     case 'dist': {
       const keep = v.keep === undefined ? 0 : Number(v.keep);
       if (!Number.isInteger(keep) || keep < 0) return fail('jasno dist: --keep must be a whole number');
-      return dist(project.root, { list: v.list === true, keep, conditions: (v.condition as string[] | undefined) ?? [], nonce: v.nonce === true }, reporter);
+      const prefix = v.prefix as string | undefined;
+      if (prefix !== undefined && !validPrefix(prefix)) return fail(`jasno dist: --prefix must be a URL path with a trailing slash, such as /control/assets/ (got "${prefix}")`);
+      return dist(project.root, { list: v.list === true, keep, conditions: (v.condition as string[] | undefined) ?? [], nonce: v.nonce === true, prefix }, reporter);
     }
     case 'preview': {
       const p = port(4173);

@@ -1,7 +1,8 @@
 // jasno dist + jasno preview in real browsers (Chromium, Firefox): node test/cli/spec/dist-browser.mjs
 // A small app (jasno, a dependency with a scoped #import, a JSON module, a lazy route) is built, served by preview and
 // loaded: modules load from hashed URLs with integrity under the production CSP and Trusted Types; a tampered module is
-// blocked; a stale tab keeps loading its lazy route after a --keep 1 deploy; the --nonce variant as printed.
+// blocked; a stale tab keeps loading its lazy route after a --keep 1 deploy; the --nonce variant as printed; a
+// --prefix /control/assets/ build (dist 10) loads its chunks and its stylesheet from under the prefix.
 // Each check prints "ok" or "FAIL".
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -13,7 +14,8 @@ import { INDEX, project, reporter } from '../fixture.ts';
 const lazySrc = (v) => `import { helper } from './helper.ts';\nexport default 'lazy-${v}:' + helper(2);\n`;
 const app = project({
   'package.json': JSON.stringify({ name: 'app', type: 'module', dependencies: { 'dep-esm': '1' } }),
-  'index.html': INDEX,
+  'index.html': INDEX.replace('<!--jasno:head-->', '<link rel="stylesheet" href="/assets/app.css">\n  <!--jasno:head-->'),
+  'assets/app.css': '#out { color: rgb(1, 2, 3); }\n',
   'src/main.ts': [
     "import { h, mount } from '@jasno/core';",
     "import { mode } from 'dep-esm';",
@@ -33,9 +35,9 @@ const app = project({
 });
 const at = (p) => join(app.root, p);
 const edit = (p, text) => writeFileSync(at(p), text);
-const build = async (keep) => {
+const build = async (keep, prefix) => {
   const r = reporter(app.root);
-  const code = await dist(app.root, { list: false, keep, conditions: [], nonce: false }, r.reporter);
+  const code = await dist(app.root, { list: false, keep, conditions: [], nonce: false, prefix }, r.reporter);
   if (code !== 0) throw new Error(r.lines.join('\n'));
   return JSON.parse(/<script type="importmap">(.*?)<\/script>/s.exec(readFileSync(at('dist/index.html'), 'utf8'))[1]);
 };
@@ -133,7 +135,21 @@ try {
       ok(await lazyResult(n.page) === 'lazy-v3:2', 'nonce variant: the lazy route loads');
       const v = await n.page.evaluate(() => globalThis.__violations);
       ok(v.length === 0 && n.errors.length === 0, `nonce variant: no CSP violations or console errors (${v.length}: ${JSON.stringify(v.slice(0, 2))} ${JSON.stringify(n.errors.slice(0, 2))})`);
-      for (const x of [a, stale, fresh, stale2, t, t2, n]) await x.ctx.close();
+
+      // 5. --prefix: chunks, the lazy route and the stylesheet index.html links load from under /control/assets/.
+      await build(0, '/control/assets/');
+      const pre = await open(browser);
+      await pre.page.goto(base + '/');
+      await pre.page.waitForSelector('#out', { timeout: 5000 }).catch(() => {});
+      ok(await pre.page.textContent('#out').catch(() => null) === 'main-v1:prod!:1', 'prefix: the app runs');
+      ok(await lazyResult(pre.page) === 'lazy-v3:2', 'prefix: the lazy route loads');
+      ok(await pre.page.evaluate(() => getComputedStyle(document.getElementById('out')).color) === 'rgb(1, 2, 3)', 'prefix: the stylesheet loads through the rewritten link');
+      // Firefox requests /favicon.ico on its own; that is the browser's, not the app's.
+      const urls = (await pre.page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname))).filter((p) => p !== '/favicon.ico');
+      ok(urls.length > 2 && urls.every((p) => p.startsWith('/control/assets/')), `prefix: every resource is under the prefix (${urls.join(' ')})`);
+      const pv = await pre.page.evaluate(() => globalThis.__violations);
+      ok(pv.length === 0 && pre.errors.length === 0, `prefix: no CSP violations or console errors (${JSON.stringify(pv.slice(0, 2))} ${JSON.stringify(pre.errors.slice(0, 2))})`);
+      for (const x of [a, stale, fresh, stale2, t, t2, n, pre]) await x.ctx.close();
     } catch (e) {
       failed++;
       out.push(`FAIL exception: ${String(e).split('\n')[0]}`);

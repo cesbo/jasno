@@ -11,7 +11,14 @@ import { browserModules, entryFiles, entryImports, entryPath, entryProblems, fil
 import { lineCol, type Problem, type Reporter } from './report.ts';
 import { namedPackageOf, prodConditions, readPackage, type PackageJson } from './resolve.ts';
 
-export interface DistOptions { list: boolean; keep: number; conditions: readonly string[]; nonce: boolean }
+export interface DistOptions {
+  list: boolean; keep: number; conditions: readonly string[]; nonce: boolean;
+  /** URL path that src/ and assets/ are published under ('/control/assets/'); '/' when omitted (dist 10). */
+  prefix?: string | undefined;
+}
+
+/** A --prefix value: '/', or '/'-separated segments with a trailing slash ('/control/assets/'); no '.', '..' or '//'. */
+export const validPrefix = (p: string): boolean => /^\/(?:[A-Za-z0-9_~-][A-Za-z0-9._~-]*\/)*$/.test(p);
 
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 /** Names jasno dist generates at the root of dist/: public/ files may not take them. */
@@ -99,12 +106,12 @@ function stripperVersion(): string {
   try { return `amaro@${namedPackageOf(fileURLToPath(import.meta.resolve('amaro')))?.json.version ?? '?'}`; } catch { return 'amaro@?'; }
 }
 
-function headersFile(csp: string): string {
+function headersFile(csp: string, prefix: string): string {
   const rule = (path: string, headers: Record<string, string>): string => `${path}\n${Object.entries(headers).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n`;
   return [
     rule('/*', { 'Content-Security-Policy': csp, 'X-Content-Type-Options': 'nosniff' }),
-    ...['/', '/index.html', '/404.html', '/assets/*'].map((p) => rule(p, { 'Cache-Control': 'no-cache' })),
-    rule('/src/*', { 'Cache-Control': IMMUTABLE }),
+    ...['/', '/index.html', '/404.html', `${prefix}assets/*`].map((p) => rule(p, { 'Cache-Control': 'no-cache' })),
+    rule(`${prefix}src/*`, { 'Cache-Control': IMMUTABLE }),
   ].join('');
 }
 
@@ -112,7 +119,20 @@ function headersFile(csp: string): string {
  * A miss under a module or asset directory is a missing file (404), not the app: a stale tab past --keep must not
  * get index.html as JavaScript cached for a year. Everything else falls back to index.html (dist 7).
  */
-const REDIRECTS = ['/src/*', '/assets/*'].map((p) => `${p} /404.html 404\n`).join('') + '/* /index.html 200\n';
+const redirectsFile = (prefix: string): string =>
+  [`${prefix}src/*`, `${prefix}assets/*`].map((p) => `${p} /404.html 404\n`).join('') + '/* /index.html 200\n';
+
+/**
+ * index.html's own href/src values under /assets/ move with the prefix (dist 10). Only start tags are touched:
+ * comments and script bodies stay as written (the entry's import '/src/main.ts' goes through the import map).
+ */
+const prefixAssets = (html: string, prefix: string): string =>
+  prefix === '/' ? html : html.replace(/<!--[\s\S]*?-->|(<script\b[^>]*>)[\s\S]*?<\/script\s*>|<[A-Za-z][^>]*>/gi, (m, scriptTag?: string) => {
+    if (m.startsWith('<!--')) return m;
+    const tag = scriptTag ?? m;
+    const out = tag.replace(/(\s(?:href|src)\s*=\s*["']?)\/assets\//gi, (_, a: string) => `${a}${prefix}assets/`);
+    return out + m.slice(tag.length);
+  });
 
 interface Manifest { stripper: string; deploys: string[][] }
 
@@ -123,7 +143,7 @@ interface Manifest { stripper: string; deploys: string[][] }
  * goes to src/chunk.<hash>.js. Identifiers are not mangled, so stack traces keep their names, and linked source maps
  * point at the .ts files. Licence comments of dependencies stay at the end of their chunk.
  */
-async function bundle(g: Graph, root: string, html: string) {
+async function bundle(g: Graph, root: string, html: string, dir: string) {
   const { rolldown, VERSION } = await import('rolldown');
   const entries = entryImports(html).map((e) => ({ spec: e.specifier, file: entryPath(root, e.specifier) })).filter((e) => g.mods.has(e.file));
   const named = new Set(entries.map((e) => e.file));
@@ -158,15 +178,16 @@ async function bundle(g: Graph, root: string, html: string) {
   const staticImports = new Map<string, readonly string[]>();
   const byEntry = new Map<string, string>();
   const modules = new Set<string>();
+  // Chunks import each other by relative URLs, so the src/ tree moves under the prefix (dir) as it is.
   for (const o of output) {
     const content = Buffer.from(o.type === 'chunk' ? o.code : o.source);
-    chunks.set(o.fileName, content);
-    if (o.type === 'asset') { sources.set(o.fileName, '(source map)'); continue; }
-    integrity['/' + o.fileName] = integrityOf(content);
+    chunks.set(dir + o.fileName, content);
+    if (o.type === 'asset') { sources.set(dir + o.fileName, '(source map)'); continue; }
+    integrity['/' + dir + o.fileName] = integrityOf(content);
     staticImports.set(o.fileName, o.imports);
     for (const id of o.moduleIds) modules.add(id);
     if (o.isEntry && o.facadeModuleId) byEntry.set(o.facadeModuleId, o.fileName);
-    sources.set(o.fileName, o.isEntry && o.facadeModuleId ? posixRel(root, o.facadeModuleId) : '(shared chunk)');
+    sources.set(dir + o.fileName, o.isEntry && o.facadeModuleId ? posixRel(root, o.facadeModuleId) : '(shared chunk)');
   }
   const imports: Record<string, string> = {};
   const preload = new Set<string>();
@@ -177,12 +198,12 @@ async function bundle(g: Graph, root: string, html: string) {
   };
   for (const e of entries) {
     const path = byEntry.get(e.file)!;
-    imports[e.spec] = '/' + path;
+    imports[e.spec] = '/' + dir + path;
     visit(path);
   }
   return {
     chunks, sources, map: { imports, integrity },
-    preloads: [...preload].map((p) => ({ url: '/' + p, integrity: integrity['/' + p]! })),
+    preloads: [...preload].map((p) => ({ url: '/' + dir + p, integrity: integrity['/' + dir + p]! })),
     modules: modules.size, bundler: `rolldown@${VERSION}`,
   };
 }
@@ -191,6 +212,8 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   await ready;
   const html = readIndex(root);
   if (html === undefined) { reporter.info(`jasno dist: no index.html in ${root}.`); return 1; }
+  const prefix = opts.prefix ?? '/';
+  const dir = prefix.slice(1); // where src/ and assets/ go inside dist/: '' or 'control/assets/'
   const pkg = readPackage(root) ?? {};
   const index = join(root, 'index.html');
   const problems: Problem[] = [...secrets(root), ...entryProblems(root, html)];
@@ -225,29 +248,30 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
 
   // public/ files go to the root of dist/ unhashed (robots.txt, favicon.ico); they may not take a generated name.
   const publicFiles = filesUnder(join(root, 'public'), true);
+  const reserved = dir ? new Set([...RESERVED, dir.split('/')[0]!]) : RESERVED;
   for (const f of publicFiles) {
     const top = posixRel(join(root, 'public'), f).split('/')[0]!;
-    if (RESERVED.has(top)) problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: f, message: `public/${top} would replace what jasno dist generates at /${top}.`, hint: 'Rename it.' });
+    if (reserved.has(top)) problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: f, message: `public/${top} would replace what jasno dist generates at /${top}.`, hint: 'Rename it.' });
   }
   for (const p of problems) reporter.add(p);
   if (problems.some((p) => p.severity === 'error')) { reporter.info('jasno dist: nothing written.'); return 1; }
 
-  const built = await bundle(g, root, html);
+  const built = await bundle(g, root, html, dir);
 
   // index.html: CSP meta, import map, modulepreload with integrity; the entry script stays inline (dist 3-6).
   const preloads = built.preloads.map((p) => `<link rel="modulepreload" href="${p.url}" integrity="${p.integrity}">`).join('\n  ');
-  const withMap = injectHead(html, `<!--jasno:csp-->\n  <script type="importmap">${scriptJson(built.map)}</script>\n  ${preloads}`);
+  const withMap = injectHead(prefixAssets(html, prefix), `<!--jasno:csp-->\n  <script type="importmap">${scriptJson(built.map)}</script>\n  ${preloads}`);
   const policy = productionCsp(withMap);
   const page = withMap.replace('<!--jasno:csp-->', () => `<meta http-equiv="Content-Security-Policy" content="${policy}">`);
 
   const files = new Map<string, { content?: string | Buffer; from?: string }>();
   for (const [path, content] of built.chunks) files.set(path, { content });
-  for (const f of filesUnder(join(root, 'assets'))) files.set(posixRel(root, f), { from: f });
+  for (const f of filesUnder(join(root, 'assets'))) files.set(dir + posixRel(root, f), { from: f });
   for (const f of publicFiles) files.set(posixRel(join(root, 'public'), f), { from: f });
   files.set('index.html', { content: page });
   files.set('404.html', { content: page });
-  files.set('_redirects', { content: REDIRECTS });
-  files.set('_headers', { content: headersFile(policy) });
+  files.set('_redirects', { content: redirectsFile(prefix) });
+  files.set('_headers', { content: headersFile(policy, prefix) });
 
   // --keep N: the previous N deploys' hashed files stay, so open tabs keep loading their chunks (dist 8).
   const out = join(root, 'dist');

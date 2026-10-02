@@ -6,7 +6,8 @@ import { existsSync, readdirSync, readFileSync, symlinkSync, utimesSync, writeFi
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 import vm from 'node:vm';
-import { dist, type DistOptions } from '../../../cli/dist.ts';
+import { dist, validPrefix, type DistOptions } from '../../../cli/dist.ts';
+import { main } from '../../../cli/main.ts';
 import { startPreview } from '../../../cli/preview.ts';
 import { http, INDEX, project, reporter } from '../fixture.ts';
 
@@ -462,5 +463,85 @@ test('root files a site needs (/robots.txt) can be published; today assets/ reac
   } finally { await s.server.close(); }
 });
 
+// ---------------------------------------------------------------------------------------------------------------
+// --prefix (dist 10): src/ and assets/ under one URL path, index.html at the root (Astra serves /control/assets/).
 
+const PREFIXED: Files = {
+  ...SIMPLE,
+  'index.html': INDEX.replace('<!--jasno:head-->', [
+    '<link rel="stylesheet" href="/assets/app.css">',
+    "<link rel=icon href='/assets/i.png'>",
+    '<!-- <link href="/assets/commented.css"> -->',
+    '<script>var keep = \' src="/assets/x.png" \';</script>',
+    '<a href="/assets-not/x">x</a>',
+    '<!--jasno:head-->',
+  ].join('\n  ')),
+  'assets/app.css': '@font-face{font-family:x;src:url(font.woff2)}', 'assets/i.png': 'png',
+};
 
+test('dist 10 --prefix: src/ and assets/ move under the prefix; the import map, integrity, preloads and index.html links follow', async () => {
+  const b = await build(PREFIXED, { prefix: '/control/assets/' });
+  assert.equal(b.code, 0, b.lines.join('\n'));
+  const all = listAll(join(b.root, 'dist'));
+  assert.deepEqual(all.filter((f) => !f.startsWith('control/assets/')).sort(), ['.jasno/manifest.json', '404.html', '_headers', '_redirects', 'index.html']);
+  assert.ok(all.includes('control/assets/assets/app.css') && all.includes('control/assets/assets/i.png'), all.join('\n'));
+  const html = b.read('index.html');
+  const map = mapOf(html);
+  const entry = map.imports['/src/main.ts']!;
+  assert.match(entry, /^\/control\/assets\/src\/main\.[0-9a-z]{8}\.js$/);
+  assert.ok(Object.keys(map.integrity).length >= 2);
+  for (const [url, sri] of Object.entries(map.integrity)) {
+    assert.ok(url.startsWith('/control/assets/src/'), url);
+    assert.equal(sri, 'sha384-' + createHash('sha384').update(b.bytes(url.slice(1))).digest('base64'), url);
+  }
+  const preloads = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)"/g)].map((m) => m[1]!);
+  assert.ok(preloads.length && preloads.every((u) => u.startsWith('/control/assets/src/')), preloads.join(' '));
+  assert.ok(html.includes('<link rel="stylesheet" href="/control/assets/assets/app.css">'));
+  assert.ok(html.includes("<link rel=icon href='/control/assets/assets/i.png'>"));
+  assert.ok(html.includes('<!-- <link href="/assets/commented.css"> -->'), 'comments stay as written');
+  assert.ok(html.includes('var keep = \' src="/assets/x.png" \';'), 'script bodies stay as written');
+  assert.ok(html.includes('<a href="/assets-not/x">'), 'only /assets/ moves');
+  assert.ok(html.includes("<script type=\"module\">import '/src/main.ts';</script>"), 'the entry goes through the import map');
+  const headers = b.read('_headers');
+  assert.ok(headers.includes('\n/control/assets/assets/*\n  Cache-Control: no-cache\n') && headers.includes('\n/control/assets/src/*\n  Cache-Control: public, max-age=31536000, immutable\n'), headers);
+  assert.ok(!/^\/(src|assets)\//m.test(headers), headers);
+  assert.equal(b.read('_redirects'), '/control/assets/src/* /404.html 404\n/control/assets/assets/* /404.html 404\n/* /index.html 200\n');
+  const mod = await import(b.at(entry.slice(1)));
+  assert.equal(typeof (await mod.lazy()).default, 'number', 'the entry and its lazy chunk load from under the prefix');
+  assert.ok(JSON.parse(b.read('.jasno/manifest.json')).deploys[0].every((p: string) => p.startsWith('control/assets/src/')));
+  assert.equal(b.read('control/assets/assets/app.css'), PREFIXED['assets/app.css'], 'assets are copied as they are');
+});
+
+test('dist 10 --prefix: preview serves the prefixed paths with their cache rules; a public/ file may not take the prefix\'s first segment', async () => {
+  const b = await build(PREFIXED, { prefix: '/control/assets/' });
+  assert.equal(b.code, 0, b.lines.join('\n'));
+  const server = await startPreview(b.root, { port: 0 }, reporter(b.root).reporter);
+  const get = (p: string) => http(server.url.replace(/\/$/, '') + p);
+  try {
+    const page = await get('/');
+    const js = await get(mapOf(page.body).imports['/src/main.ts']!);
+    assert.equal(js.status, 200);
+    assert.equal(js.headers['cache-control'], 'public, max-age=31536000, immutable');
+    const css = await get('/control/assets/assets/app.css');
+    assert.equal(css.status, 200);
+    assert.equal(css.headers['cache-control'], 'no-cache');
+    assert.equal((await get('/control/assets/src/main.0123abcd.js')).status, 404, 'a missing chunk is a 404, not index.html');
+    assert.equal((await get('/src/main.ts')).status, 200, 'other paths still fall back to index.html');
+  } finally { await server.close(); }
+  const clash = await build({ ...SIMPLE, 'public/control/x.txt': 'x' }, { prefix: '/control/assets/' });
+  assert.equal(clash.code, 1);
+  assert.ok(clash.lines.some((l) => l.includes('FILE_NOT_PUBLISHED') && l.includes('public/control')), clash.lines.join('\n'));
+});
+
+test('dist 10 --prefix: only a URL path with a trailing slash is accepted; jasno dist refuses anything else and writes nothing', async () => {
+  for (const p of ['/', '/control/assets/', '/a.b/', '/v_1/~x-y/']) assert.ok(validPrefix(p), p);
+  for (const p of ['', 'control/', '/control', '//x/', '/./', '/../', '/a/../b/', '/a//b/', '/a b/', '/%2e%2e/', '/.hidden/', '/a?b/', '/a#b/', 'https://x/']) assert.ok(!validPrefix(p), p);
+  const app = project(SIMPLE);
+  apps.push(app);
+  const err: string[] = [];
+  const { error } = console;
+  console.error = (...a: unknown[]) => { err.push(a.join(' ')); };
+  try { assert.equal(await main(['dist', '--prefix', '../x/'], app.root), 1); } finally { console.error = error; }
+  assert.match(err.join('\n'), /--prefix must be a URL path with a trailing slash/);
+  assert.ok(!existsSync(join(app.root, 'dist')), 'nothing written');
+});
