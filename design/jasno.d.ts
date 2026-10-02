@@ -560,6 +560,8 @@ declare module '@jasno/core/router' {
   export interface RouterOptions {
     readonly error: (error: unknown, retry: () => void) => Rendered;
     readonly notFound: () => Rendered;
+    /** Hash mode: the route lives in the fragment (/app/#/users/1), for a server that serves index.html at one path with no SPA fallback. url() is still the route URL (pathname '/users/1'), href() returns '#/users/1', navigate() takes route paths, '?q=x' and href() results. A plain h.a({ href: '?q=x' }) loads another document here and a bare '#intro' is the route /intro: write router.href(path) + '?q=x' or + '#intro'. */
+    readonly hash?: boolean | undefined;
   }
   /** A URL you can read but not change in place (change the URL with navigate()). */
   export type ReadonlyURL = Readonly<Omit<URL, 'searchParams'>> & {
@@ -571,13 +573,13 @@ declare module '@jasno/core/router' {
   export interface Router<Path extends string> {
     /** Renders the current route's view; call exactly once, inside App (h.main(null, router.outlet())). Starts the router. */
     outlet(): Node;
-    /** Builds a URL from a pattern of this router's table; params are required exactly when the pattern has required params (numbers are fine). */
+    /** Builds a URL from a pattern of this router's table; params are required exactly when the pattern has required params (numbers are fine). With hash: true it returns '#/users/1'. */
     href<const P extends string>(path: P extends Path ? P : Path, ...params: HrefArgs<P>): string;
     /** Navigates (relative URLs such as '?q=x' resolve against the current one); resolves after the new view rendered, title set and focus moved. Never rejects for navigation outcomes, so void router.navigate(url) is fine. */
     readonly navigate: (url: string, options?: { readonly replace?: boolean | undefined }) => Promise<NavigateResult>;
     /** Closes a detail the user opened in the app: goes back one history entry when it is this app's, else navigate(fallback, { replace: true }) (a deep link). Resolves like navigate(). Use it instead of history.back(). */
     readonly back: (fallback: string) => Promise<NavigateResult>;
-    /** URL of the rendered view; a search- or hash-only navigate() updates it before returning, without reloading data or moving focus. */
+    /** URL of the rendered view (in hash mode the route URL read from the fragment); a search- or hash-only navigate() updates it before returning, without reloading data or moving focus. */
     readonly url: Signal<ReadonlyURL>;
     /** True while a navigation is loading data or a view module. */
     readonly isLoading: Signal<boolean>;

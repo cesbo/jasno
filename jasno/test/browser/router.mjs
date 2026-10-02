@@ -439,9 +439,69 @@ const scenarios = {
     await settle(page);
     ok(!(await marked(page)), 'location.reload() reloads the document');
   },
+
+  // Hash mode (B17.19): the document is /?hash, the route is the fragment; the History adapter runs in every engine.
+  async hashModeDeepLink(page, ok) { // starts at /?hash#/a
+    ok(await h1(page) === 'Page A' && await page.title() === 'Page A', `deep link renders /a (${await h1(page)})`);
+    ok(await page.evaluate(() => window.__router.url().pathname) === '/a', 'url().pathname is the route');
+    ok(await page.getAttribute('#nav-b', 'href') === '#/b', `href() gives a fragment (${await page.getAttribute('#nav-b', 'href')})`);
+  },
+
+  async hashModeLinks(page, ok) { // starts at /?hash
+    await mark(page);
+    const n0 = await page.evaluate(() => history.length);
+    const y = await page.evaluate(() => { window.scrollTo(0, 1500); return scrollY; });
+    await page.evaluate(() => document.getElementById('nav-a').click()); // a click that does not scroll the page first
+    await settle(page);
+    ok(path(page) === '/?hash#/a' && await h1(page) === 'Page A', `link → #/a (${path(page)})`);
+    ok(await marked(page), 'no document load');
+    ok(await page.evaluate(() => scrollY) === 0, `push → top (${await page.evaluate(() => scrollY)})`);
+    ok(await active(page) === 'h1(Page A)', `h1 focused (${await active(page)})`);
+    ok(await page.evaluate(() => history.length) === n0 + 1, 'one entry pushed');
+    await page.goBack();
+    await settle(page);
+    ok(path(page) === '/?hash' && await h1(page) === 'List', `Back → list (${path(page)})`);
+    ok(y > 1000 && Math.abs(await page.evaluate(() => scrollY) - y) <= 1, `Back restores scroll (${y} vs ${await page.evaluate(() => scrollY)})`);
+    await page.goForward();
+    await settle(page);
+    ok(path(page) === '/?hash#/a' && await h1(page) === 'Page A', `Forward → #/a (${path(page)})`);
+    ok(await marked(page), 'still the same document');
+    ok(JSON.stringify(await page.evaluate(() => window.__notes)) === '["Page A","List","Page A"]', `announcements (${await page.evaluate(() => JSON.stringify(window.__notes))})`);
+  },
+
+  async hashModeAddressBar(page, ok) { // starts at /?hash: a fragment typed in the address bar fires popstate
+    await mark(page);
+    await page.evaluate(() => { location.hash = '#/b'; });
+    await settle(page);
+    ok(await h1(page) === 'Page B heading' && await marked(page), `fragment edit renders /b in the same document (${await h1(page)})`);
+    await page.evaluate(() => { location.hash = '#/nope'; });
+    await settle(page);
+    ok(await h1(page) === 'Page not found', `unmatched fragment → notFound (${await h1(page)})`);
+    await page.goBack();
+    await settle(page);
+    ok(await h1(page) === 'Page B heading', `Back → /b (${await h1(page)})`);
+  },
+
+  async hashModeSearch(page, ok) { // starts at /?hash
+    const n0 = await page.evaluate(() => history.length);
+    await page.click('#q');
+    await page.keyboard.type('a b&c', { delay: 0 });
+    await frames(page);
+    ok(await q(page) === 'a b&c' && await page.textContent('#qout') === 'a b&c', `url().q (${await q(page)})`);
+    ok(path(page) === '/?hash#/?q=a%20b%26c', `the query goes into the fragment (${path(page)})`);
+    ok(await page.evaluate(() => history.length) === n0, 'replace adds no entry');
+  },
+
+  async hashModeReload(page, ok) { // starts at /?hash#/a
+    await mark(page);
+    await page.reload();
+    await settle(page);
+    ok(!(await marked(page)) && await h1(page) === 'Page A', `reload keeps the route (${await h1(page)})`);
+  },
 };
 
-const starts = { deepLinkBack: '/?card=5' };
+const starts = { deepLinkBack: '/?card=5', hashModeDeepLink: '/?hash#/a', hashModeReload: '/?hash#/a',
+  hashModeLinks: '/?hash', hashModeAddressBar: '/?hash', hashModeSearch: '/?hash' };
 const results = {};
 let browserName;
 for (const [bname, type] of [['chromium', chromium], ['firefox', firefox], ['webkit', webkit]]) {

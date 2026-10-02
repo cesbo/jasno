@@ -34,4 +34,5 @@ export const router = createRouter([
   error: (error, retry) => h.section(null, h.h1(null, 'Something went wrong'), h.p(null, String(error)),
     h.button({ type: 'button', onclick: retry }, 'Try again')),
   notFound: () => h.section(null, h.h1(null, 'Page not found')),
+  hash: new URLSearchParams(location.search).has('hash'), // the hashMode* scenarios start at /?hash
 });

@@ -181,6 +181,7 @@ export function route(path: string, options: RouteOptions): RouteDef {
 export function createRouter(routes: readonly RouteDef[], options: {
   error: (error: unknown, retry: () => void) => unknown;
   notFound: () => unknown;
+  hash?: boolean | undefined;
 }) {
   const table: Compiled[] = routes.map((r) => ({ path: r.path, tokens: parse(r.path), options: r.options, module: undefined }));
   for (let j = 1; j < table.length; j++) {
@@ -192,7 +193,32 @@ export function createRouter(routes: readonly RouteDef[], options: {
     }
   }
   const initialTitle = typeof document === 'object' ? document.title : '';
-  const urlSig = rawSignal(new URL(typeof location === 'object' ? location.href : 'http://localhost/'), 'router.url');
+
+  // B17.19: inside the router a URL is the route's (its pathname is the route path); these convert at the edges.
+  const hashMode = options.hash === true;
+  /** The route URL of a real one: itself, or in hash mode its fragment; undefined for another document. */
+  const toRoute = (u: URL): URL | undefined => {
+    if (u.origin !== location.origin) return undefined;
+    if (!hashMode) return u;
+    if (u.pathname !== location.pathname || u.search !== location.search) return undefined;
+    // Set part by part: a fragment such as //evil.example or \\evil.example stays a path on this origin.
+    const [, path = '', search = '', hash = ''] = /^([^?#]*)(\?[^#]*)?(#.*)?$/s.exec(u.hash.slice(1))!;
+    const r = new URL('/', location.origin);
+    r.pathname = path;
+    r.search = search;
+    r.hash = hash;
+    return r;
+  };
+  const toReal = (r: URL): URL => (hashMode ? new URL(`#${r.pathname}${r.search}${r.hash}`, location.href) : r);
+  const here = (): URL => toRoute(new URL(location.href))!;
+  /** Where navigate(to) goes: hash mode resolves a relative to (or an href() result) against the route URL. */
+  const destination = (to: string): URL => {
+    if (!hashMode || URL.canParse(to)) return new URL(to, location.href);
+    const r = new URL(to.startsWith('#') ? to.slice(1) : to, here());
+    return r.origin === location.origin ? toReal(r) : r;
+  };
+
+  const urlSig = rawSignal(typeof location === 'object' ? here() : new URL('http://localhost/'), 'router.url');
   const loading = rawSignal(false, 'router.isLoading');
 
   let started = false;
@@ -418,7 +444,9 @@ export function createRouter(routes: readonly RouteDef[], options: {
         }
         markReloaded(nav.url);
         finish(nav, 'failed');
-        fullNavigation(nav.url.href);
+        // In hash mode the committed URL differs from the document's only in its fragment: assigning it would not reload.
+        if (hashMode) location.reload();
+        else fullNavigation(nav.url.href);
         return;
       }
       const failure = modR.status === 'rejected' ? modR : dataR.status === 'rejected' ? dataR : undefined;
@@ -449,7 +477,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
 
   function retry(): void {
     if (!started) return;
-    void track(run(new URL(location.href), {}), 'retry');
+    void track(run(here(), {}), 'retry');
   }
 
   const track = (p: Promise<NavigateResult>, what: string): Promise<NavigateResult> => {
@@ -483,17 +511,20 @@ export function createRouter(routes: readonly RouteDef[], options: {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as Element | null)?.closest?.('a[href]');
       if (!a || a.hasAttribute('target') || a.hasAttribute('download')) return;
-      const url = new URL(a.getAttribute('href')!, location.href);
-      if (url.origin !== location.origin || !match(url.pathname)) return;
+      const url = toRoute(new URL(a.getAttribute('href')!, location.href));
+      // In hash mode every fragment of this document is the app's: an unmatched one renders notFound.
+      if (!url || (!hashMode && !match(url.pathname))) return;
       e.preventDefault();
-      void track(this.go(url, url.href === location.href), `navigation to ${url.pathname}${url.search}`);
+      void track(this.go(url, toReal(url).href === location.href), `navigation to ${url.pathname}${url.search}`);
     }
     onPop(e: PopStateEvent): void {
       const st = e.state as { __jasno?: unknown; scroll?: [number, number] } | null;
       this.positions.set(this.index, this.here()); // the entry being left, whichever way (Back or Forward)
       if (typeof st?.__jasno === 'number') this.index = st.__jasno;
       this.target = this.positions.get(this.index) ?? st?.scroll;
-      const p = track(run(new URL(location.href), { pop: true }), 'back/forward navigation');
+      // ponytail: an address-bar fragment edit adds an entry without __jasno, so index stays put; canGoBack() may then
+      // say no where Back would still be the app's, and back(fallback) replaces instead of traversing.
+      const p = track(run(here(), { pop: true }), 'back/forward navigation');
       const pending = this.pendingBack;
       this.pendingBack = undefined;
       if (pending) void p.then(pending.resolve);
@@ -503,14 +534,21 @@ export function createRouter(routes: readonly RouteDef[], options: {
       this.positions.set(this.index, pos);
       const st: unknown = history.state;
       history.replaceState({ ...(st && typeof st === 'object' ? st : {}), scroll: pos }, '');
-      if (replace) history.replaceState({ __jasno: this.index }, '', url.href);
-      else history.pushState({ __jasno: ++this.index }, '', url.href);
+      const href = toReal(url).href;
+      if (replace) history.replaceState({ __jasno: this.index }, '', href);
+      else history.pushState({ __jasno: ++this.index }, '', href);
     }
     /** After a new view rendered: the saved position on Back/Forward, else the top (push or replace). */
     scroll(how: How): void {
       if (typeof window.scrollTo !== 'function') return;
-      if (how.pop) { if (this.target) window.scrollTo(this.target[0], this.target[1]); }
-      else window.scrollTo(0, 0);
+      const target = this.target;
+      // finish() runs right after this and clears isLoading: scroll once that flush is in the DOM, as the Navigation
+      // API does, so a loading bar above the view that disappears cannot shift a restored position.
+      queueMicrotask(() => {
+        flush();
+        if (how.pop) { if (target) window.scrollTo(target[0], target[1]); }
+        else window.scrollTo(0, 0);
+      });
     }
     go(url: URL, replace: boolean): Promise<NavigateResult> {
       return run(url, { commit: replace ? 'replace' : 'push' });
@@ -601,8 +639,8 @@ export function createRouter(routes: readonly RouteDef[], options: {
     const preload = (e: Event): void => {
       const a = (e.target as Element | null)?.closest?.('a[href]');
       if (!a) return;
-      const url = new URL(a.getAttribute('href')!, location.href);
-      const m = url.origin === location.origin ? match(url.pathname) : undefined;
+      const url = toRoute(new URL(a.getAttribute('href')!, location.href));
+      const m = url ? match(url.pathname) : undefined;
       if (m) importView(m.route).catch(() => {});
     };
     document.addEventListener('pointerenter', preload, { capture: true, signal });
@@ -617,11 +655,12 @@ export function createRouter(routes: readonly RouteDef[], options: {
 
   const navigate = (to: string, opts?: { replace?: boolean | undefined }): Promise<NavigateResult> => {
     if (!started) throw notStarted('navigate', to);
-    const url = new URL(to, location.href);
-    if (url.origin !== location.origin) { fullNavigation(url.href); return Promise.resolve('done'); }
+    const dest = destination(to);
+    const url = toRoute(dest);
+    if (!url) { fullNavigation(dest.href); return Promise.resolve('done'); }
     byCode = true;
     try {
-      return track(adapter!.go(url, !!opts?.replace || url.href === location.href), `navigation to ${url.pathname}${url.search}`);
+      return track(adapter!.go(url, !!opts?.replace || dest.href === location.href), `navigation to ${url.pathname}${url.search}`);
     } finally { byCode = false; }
   };
 
@@ -654,7 +693,9 @@ export function createRouter(routes: readonly RouteDef[], options: {
       restoreFocusIn(r, focused);
     };
     const ac = new AbortController();
-    const a = (adapter = 'navigation' in globalThis ? new NavigationAdapter() : new HistoryAdapter());
+    // Hash mode keeps to the History adapter: with the Navigation API a fragment change scrolls to the fragment's
+    // element (none for #/users/1) instead of the top, and the History adapter scrolls itself (B17.11).
+    const a = (adapter = !hashMode && 'navigation' in globalThis ? new NavigationAdapter() : new HistoryAdapter());
     a.start(ac.signal);
     o.onCleanup(() => {
       ac.abort();
@@ -670,15 +711,15 @@ export function createRouter(routes: readonly RouteDef[], options: {
     // FOCUS_LOST waits for a navigation that will move focus itself (a late outlet's first render, B20.2).
     hooks.focusPending = () => (started && current?.loud ? current.promise : undefined);
     hooks.routerInfo = () => (started
-      ? { url: urlSig.value.href, route: view && 'route' in view ? view.route.path : undefined, isLoading: loading.value, error: lastError }
+      ? { url: toReal(urlSig.value).href, route: view && 'route' in view ? view.route.path : undefined, isLoading: loading.value, error: lastError }
       : undefined);
-    void track(run(new URL(location.href), { initial: true }), 'initial navigation');
+    void track(run(here(), { initial: true }), 'initial navigation');
     return r.fragment();
   };
 
   return {
     outlet,
-    href: (path: string, params?: Record<string, unknown>) => href(path, params),
+    href: (path: string, params?: Record<string, unknown>) => (hashMode ? '#' : '') + href(path, params),
     navigate,
     back,
     url: brand(() => readSignal(urlSig) as URL, urlSig),

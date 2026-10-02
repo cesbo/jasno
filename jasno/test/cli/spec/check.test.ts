@@ -95,11 +95,12 @@ test('the RECIPES (tools/agents-samples as src/, the test-only startAt in a test
   assert.equal(r.code, 0);
 });
 
-test('the router probe app: the only rule diagnostic is its deliberate location.pathname read (USE_ROUTER warn)', async () => {
+test('the router probe app: the only rule diagnostics are its deliberate location.pathname and location.search reads (USE_ROUTER warn)', async () => {
   const r = await run({ ...BASE, 'src/main.ts': undefined, 'src/config.ts': undefined, ...tree(join(JASNO, 'test', 'browser', 'app', 'src'), 'src') });
   const rules = r.lines.slice(1, -1).filter((l) => !/^\S+ TS\d+ /.test(l));
-  assert.equal(rules.length, 1, dump(r));
+  assert.equal(rules.length, 2, dump(r));
   assert.match(rules[0]!, /^src\/routes\.ts:24:65 USE_ROUTER location\.pathname/);
+  assert.match(rules[1]!, /^src\/routes\.ts:37:\d+ USE_ROUTER location\.search/); // the hash-mode switch
 });
 
 // Hand-written correct code that stresses each rule. strict: true, so any warning counts.
