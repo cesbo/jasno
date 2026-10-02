@@ -34,9 +34,9 @@ console.log(`Created ${name} in ${dir}.
 Next:
   cd ${cd}
   npm install
-  npx playwright install
   npm run dev
 
-Verify in order: npm run check, npm test, npm run e2e, npm run dist && JASNO_E2E=preview npm run e2e.
+Verify in order: npm run check, npm test, npm run e2e (once before it: npx playwright install, which downloads
+the browsers), npm run dist && JASNO_E2E=preview npm run e2e.
 Commit package-lock.json after the first install, so CI runs npm ci.
 AGENTS.md is the guide for coding agents (CLAUDE.md includes it).`);

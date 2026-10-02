@@ -10,9 +10,10 @@ A TypeScript-first framework for single-page apps. Plain TypeScript, no DSL: no 
 npm create @jasno my-app
 cd my-app
 npm install
-npx playwright install
 npm run dev
 ```
+
+The Playwright tests (`npm run e2e`) need the browsers once: `npx playwright install`.
 
 The npm package is `@jasno/core` (npm refuses the bare name `jasno` as too close to other packages); it installs the `jasno` command.
 
