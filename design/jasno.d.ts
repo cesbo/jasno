@@ -185,7 +185,9 @@
      onMount(() => { const t = setInterval(() => now.set(Date.now()), 1000); return () => clearInterval(t); });
      const elapsed = computed(() => { const t = todo(); return t.elapsedMs + (t.startedAt === null ? 0 : now() - t.startedAt); });
    Persist: effect(() => { try { localStorage.setItem('todos', JSON.stringify(todos())); } catch { } }) also runs in the
-   first flush: validate what you load before. Effects that touch other document-level state (a theme attribute)
+   first flush: validate what you load before. When every change goes through functions in src/state.ts, save there
+   before set() instead: a refused write (storage full or blocked) then throws to the caller, and a form keeps its
+   draft, instead of being swallowed. Effects that touch other document-level state (a theme attribute)
    return a cleanup; the router resets document.title itself.
    Children that must see the parent's context, or may not render, are functions: Tabs({ tabs: [{ label, render: () => A() }] }).
 

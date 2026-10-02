@@ -1,5 +1,6 @@
-import { component, css, h, provide, show, signal } from '@jasno/core';
+import { component, css, h, onMount, provide, show, signal } from '@jasno/core';
 import { router } from './routes.ts';
+import { syncNotes } from './state.ts';
 import { ToastContext, ToastRegion, type Toast, type ToastItem } from './toast.ts';
 
 css`
@@ -13,6 +14,7 @@ export const App = component(function App(): Node {
   let nextId = 1;
   const toast: Toast = (message) => toasts.update((list) => [...list, { id: nextId++, message }]);
   const dismiss = (id: number) => toasts.update((list) => list.filter((t) => t.id !== id));
+  onMount(syncNotes); // notes saved in another tab appear here too; the returned cleanup unsubscribes
 
   return provide(ToastContext, toast, () =>
     h.div({ class: 'app' },

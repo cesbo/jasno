@@ -984,10 +984,15 @@ test('RECIPES Per-param lifecycle: match on p.params().id restarts the subscript
 // The example lives in the design package ('#api' resolves from its package.json); its router is module-level.
 const exampleApp = '../../../design/example/src/app.ts';
 const exampleRoutes = '../../../design/example/src/routes.ts';
+const exampleState = '../../../design/example/src/state.ts';
 
 test('RECIPES Route tests: the example App from a deep link, link navigation, notFound and the error view, zero diagnostics', async (t) => {
   const { App } = await import(exampleApp) as { App: () => Node };
   const { router } = await import(exampleRoutes) as { router: Router };
+  const { addNote } = await import(exampleState) as { addNote: (userId: string, text: string) => void };
+  localStorage.clear();
+  t.after(() => localStorage.clear());
+  addNote('1', 'Send the Bernoulli table'); // the notes are the browser's (state.ts, localStorage)
   history.replaceState(null, '', '/users/1');
   const view = mountTest(t, () => App());
   await settled();

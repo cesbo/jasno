@@ -26,7 +26,8 @@ for (const [name, type] of [['chromium', chromium], ['firefox', firefox], ['webk
   let browser;
   try {
     browser = await type.launch();
-    const page = await browser.newPage();
+    const context = await browser.newContext(); // one profile: the second tab below shares its localStorage
+    const page = await context.newPage();
     if (historyAdapter) await page.addInitScript(() => { for (let o = window; o; o = Object.getPrototypeOf(o)) if (Object.getOwnPropertyDescriptor(o, 'navigation')) delete o.navigation; });
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
@@ -45,12 +46,23 @@ for (const [name, type] of [['chromium', chromium], ['firefox', firefox], ['webk
     ok(await page.title() === 'Ada Lovelace', `title from data (${await page.title()})`);
     ok(await page.evaluate(() => document.activeElement?.textContent) === 'Ada Lovelace', 'focus on the view h1');
     ok(await page.evaluate(() => history.length) === hist0 + 1, 'one history entry pushed');
-    await page.waitForSelector('li:text("Send the Bernoulli table")');
-    ok(true, 'notes loaded by the view resource');
     await page.fill('textarea', 'from the browser');
     await page.click('button[type=submit]');
     await page.waitForSelector('li:text("from the browser")');
-    ok(true, 'note form saves and the list reloads');
+    ok(true, 'the note form saves into state.ts and the list shows it');
+    // Notes live in localStorage (state.ts): a new tab of the same profile loads them, and its own note reaches this
+    // tab through the storage event.
+    const tab = await context.newPage();
+    tab.on('pageerror', (e) => errors.push('tab: ' + String(e)));
+    tab.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push('tab: ' + m.text()); });
+    await tab.goto(base + '/users/1');
+    await tab.waitForSelector('li:text("from the browser")');
+    ok(true, 'a new tab loads the stored note');
+    await tab.fill('textarea', 'from another tab');
+    await tab.click('button[type=submit]');
+    await page.waitForSelector('li:text("from another tab")');
+    ok(await page.locator('main li').count() === 2, 'the other tab\'s note appears here (storage event), next to ours');
+    await tab.close();
     await page.goBack();
     await page.waitForSelector('h1:text("People")');
     ok(new URL(page.url()).pathname === '/', 'back → /');
