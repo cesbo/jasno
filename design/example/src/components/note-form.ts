@@ -38,7 +38,7 @@ export const NoteForm = component(function NoteForm(p: NoteFormProps): Node {
         required: true,
         maxLength: MAX,
         rows: 3,
-        ...bindValue(text, text.set),
+        ...bindValue(text),
       })),
     h.p({ class: { warn: () => left() < 20 } }, () => `${left()} characters left`),
     h.button({ type: 'submit', 'aria-disabled': saving }, () => (saving() ? 'Saving…' : 'Add note')),

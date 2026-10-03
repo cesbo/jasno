@@ -14,7 +14,7 @@ export const TodoList = component(function TodoList(p: TodoListProps): Node {
   const query = signal('');
   const shown = computed(() => p.todos().filter((t) => t.text.includes(query())));
   return h.section(null,
-    h.input({ ...bindValue(query, query.set), 'aria-label': 'Filter' }),
+    h.input({ ...bindValue(query), 'aria-label': 'Filter' }),
     show(() => shown().length === 0, () => h.p(null, 'No matches')),
     h.ul(null, each(shown, { key: (t) => t.id, render: (todo) =>
       h.li({ class: { done: () => todo().done } },

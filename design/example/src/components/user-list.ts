@@ -50,7 +50,7 @@ export const UserList = component(function UserList(p: UserListProps): Node {
 
   return h.div({ class: 'user-list' },
     h.label(null, 'Filter ',
-      h.input({ type: 'search', ...bindValue(query, query.set) })),
+      h.input({ type: 'search', ...bindValue(query) })),
     h.p({ 'aria-live': 'polite' }, () => `${matches().length} of ${p.users().length} people`),
     list,
     show(() => matches().length > limit(), () => h.button({ type: 'button', onclick: showMore }, 'Show more')),

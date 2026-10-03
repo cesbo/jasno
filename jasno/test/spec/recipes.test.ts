@@ -124,9 +124,9 @@ test('Forms: the two-way binding lines verbatim (bindNumber, bindChecked, bindVa
   const agree = signal(false);
   const country = signal('nl');
   const view = mountTest(t, () => h.fieldset(null,
-    h.label(null, 'Seats ', h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats, seats.set) })),
-    h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree, agree.set) }), ' I agree'),
-    h.label(null, 'Country ', h.select({ ...bindValue(country, country.set) }, h.option({ value: 'nl' }, 'Netherlands'), h.option({ value: 'de' }, 'Germany')))));
+    h.label(null, 'Seats ', h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats) })),
+    h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree) }), ' I agree'),
+    h.label(null, 'Country ', h.select({ ...bindValue(country) }, h.option({ value: 'nl' }, 'Netherlands'), h.option({ value: 'de' }, 'Germany')))));
   const [number, box] = [...view.root.querySelectorAll('input')] as HTMLInputElement[];
   const select = view.root.querySelector('select')!;
   assert.equal(number!.value, '1');
@@ -153,7 +153,7 @@ test('Forms: a live error string as the control\'s custom validity blocks submit
   const seatsError = computed(() => { const n = seats(); return n !== undefined && n > 100 ? 'At most 100 seats' : undefined; });
   let submitted = 0;
   const view = mountTest(t, () => {
-    const seatsInput = h.input({ type: 'number', 'aria-label': 'Seats', ...bindNumber(seats, seats.set) });
+    const seatsInput = h.input({ type: 'number', 'aria-label': 'Seats', ...bindNumber(seats) });
     effect(() => seatsInput.setCustomValidity(seatsError() ?? ''));
     return h.form({ onsubmit: (e) => { e.preventDefault(); submitted++; } }, seatsInput, h.button({ type: 'submit' }, 'Save'));
   });

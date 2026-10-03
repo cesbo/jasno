@@ -811,17 +811,17 @@ export function describeElement(n: Node): { name: string; ownerPath: string } {
 
 // ---------------------------------------------------------------- two-way binding (B15.12)
 
-/** `{ value, oninput }` for an input, textarea or select bound to a string (a select fires input too). */
-export function bindValue(read: () => string, set: (value: string) => void): { value: () => string; oninput: (e: { currentTarget: { value: string } }) => void } {
+/** `{ value, oninput }` for an input, textarea or select bound to a string (a select fires input too). Without set, read is a writable signal and its set is used. */
+export function bindValue(read: () => string, set = (read as { set?: (value: string) => void }).set!): { value: () => string; oninput: (e: { currentTarget: { value: string } }) => void } {
   return { value: read, oninput: (e) => set(e.currentTarget.value) };
 }
 
 /**
  * `{ value, oninput }` for a type="number" input bound to a number: '' and NaN read as undefined, which shows as ''.
  * The text the field holds is kept while it still means the current value, so typing "1.50" is not rewritten to "1.5"
- * under the caret; once another value has been shown the text is forgotten.
+ * under the caret; once another value has been shown the text is forgotten. Without set, read is a writable signal.
  */
-export function bindNumber(read: () => number | undefined, set: (value: number | undefined) => void): { value: () => string; oninput: (e: { currentTarget: { value: string; valueAsNumber: number } }) => void } {
+export function bindNumber(read: () => number | undefined, set = (read as { set?: (value: number | undefined) => void }).set!): { value: () => string; oninput: (e: { currentTarget: { value: string; valueAsNumber: number } }) => void } {
   let text: string | undefined; // what the field showed when set() last ran
   let shown: number | undefined;
   return {
@@ -841,7 +841,7 @@ export function bindNumber(read: () => number | undefined, set: (value: number |
   };
 }
 
-/** `{ checked, onchange }` for a checkbox bound to a boolean. */
-export function bindChecked(read: () => boolean, set: (checked: boolean) => void): { checked: () => boolean; onchange: (e: { currentTarget: { checked: boolean } }) => void } {
+/** `{ checked, onchange }` for a checkbox bound to a boolean. Without set, read is a writable signal and its set is used. */
+export function bindChecked(read: () => boolean, set = (read as { set?: (checked: boolean) => void }).set!): { checked: () => boolean; onchange: (e: { currentTarget: { checked: boolean } }) => void } {
   return { checked: read, onchange: (e) => set(e.currentTarget.checked) };
 }

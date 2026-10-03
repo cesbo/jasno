@@ -428,11 +428,11 @@ test('B15.4 value is assigned at creation even when it reads the same: an option
 
 // ================================================================ B15.12 two-way binding
 
-test('B15.12 bindValue: value live, set on input; one binding serves input, textarea and select', (t) => {
+test('B15.12 bindValue: value live, set on input; one binding serves input, textarea and select; a signal alone uses its set', (t) => {
   const text = signal('a');
   const picked = signal('x');
   const view = mountTest(t, () => h.label(null, 'Name',
-    h.input({ ...bindValue(text, text.set) }),
+    h.input({ ...bindValue(text) }),
     h.textarea({ ...bindValue(text, text.set) }),
     h.select({ ...bindValue(picked, picked.set) }, h.option({ value: 'x' }, 'X'), h.option({ value: 'y' }, 'Y'))));
   const input = view.root.querySelector('input')!;

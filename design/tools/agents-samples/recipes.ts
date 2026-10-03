@@ -15,15 +15,15 @@ export const EmailForm = component(function EmailForm(p: { save: (email: string)
   const country = signal('nl');
   const seatsError = computed(() => { const n = seats(); return n !== undefined && n > 100 ? 'At most 100 seats' : undefined; });
   const save = async () => { if (saving()) return; saving.set(true); try { await p.save(email()); } finally { saving.set(false); } };
-  const seatsInput = h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats, seats.set) });
+  const seatsInput = h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats) });
   effect(() => seatsInput.setCustomValidity(seatsError() ?? ''));
   return h.form({ onsubmit: (e) => { e.preventDefault(); return save(); } },
     h.label(null, 'Email ', h.input({ type: 'email', required: true, value: email,
       oninput: (e) => { email.set(e.currentTarget.value); emailOk.set(e.currentTarget.validity.valid); } })),
     h.label(null, h.input({ type: 'radio', name: 'plan', checked: () => plan() === 'pro', onchange: () => plan.set('pro') }), 'Pro'),
     h.label(null, 'Seats ', seatsInput),
-    h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree, agree.set) }), ' I agree'),
-    h.label(null, 'Country ', h.select({ ...bindValue(country, country.set) }, h.option({ value: 'nl' }, 'Netherlands'), h.option({ value: 'de' }, 'Germany'))),
+    h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree) }), ' I agree'),
+    h.label(null, 'Country ', h.select({ ...bindValue(country) }, h.option({ value: 'nl' }, 'Netherlands'), h.option({ value: 'de' }, 'Germany'))),
     show(emailOk, () => 'valid'),
     h.button({ type: 'submit', 'aria-disabled': saving }, 'Save'))       // guard with if (saving()) return
 });

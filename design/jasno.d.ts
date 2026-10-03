@@ -13,12 +13,13 @@
        h.label(null, 'Email ', h.input({ type: 'email', required: true, value: email,
          oninput: (e) => { email.set(e.currentTarget.value); emailOk.set(e.currentTarget.validity.valid); } })),
        h.button({ type: 'submit', 'aria-disabled': saving }, 'Save'))       // guard with if (saving()) return
-   Two-way binding: spread bindValue(read, set) into an input, textarea or select ({ value, oninput }), bindNumber
-   into a type: 'number' input ('' and an unfinished entry set undefined, undefined shows as '', the typed text is
-   kept while it means the same number) and bindChecked into a checkbox ({ checked, onchange }). set is any
-   function, so a form that keeps one draft object binds a key: bindValue(() => draft().name, (v) => patch('name', v)).
-     h.label(null, 'Seats ', h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats, seats.set) })),
-     h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree, agree.set) }), ' I agree'),
+   Two-way binding: spread bindValue into an input, textarea or select ({ value, oninput }), bindNumber into a
+   type: 'number' input ('' and an unfinished entry set undefined, undefined shows as '', the typed text is kept while
+   it means the same number) and bindChecked into a checkbox ({ checked, onchange }). Each takes a writable signal
+   alone, bindValue(q), or a read and a setter; set is any function, so a form that keeps one draft object binds a
+   key: bindValue(() => draft().name, (v) => patch('name', v)).
+     h.label(null, 'Seats ', h.input({ type: 'number', min: '1', required: true, ...bindNumber(seats) })),
+     h.label(null, h.input({ type: 'checkbox', ...bindChecked(agree) }), ' I agree'),
    Radio group: one signal; checked: () => plan() === 'pro', onchange: () => plan.set('pro').
    An error native constraints cannot express (a cross-field rule, a value outside a table) becomes the control's
    custom validity, so submit is blocked and the browser focuses the field: keep the element in a const and
@@ -404,22 +405,22 @@ declare module '@jasno/core' {
     readonly value: Read<string>;
     readonly oninput: (event: { readonly currentTarget: { readonly value: string } }) => void;
   }
-  /** Two-way binding of a text control: value live from read, set(currentTarget.value) on every input event (a select fires input too). h.input({ ...bindValue(q, q.set), 'aria-label': 'Search' }); a draft object: bindValue(() => draft().name, (v) => patch('name', v)). */
-  export function bindValue(read: Read<string>, set: (value: string) => void): ValueBinding;
+  /** Two-way binding of a text control: value live from read, set(currentTarget.value) on every input event (a select fires input too). A writable signal alone uses its own set: h.input({ ...bindValue(q), 'aria-label': 'Search' }); a draft object: bindValue(() => draft().name, (v) => patch('name', v)). */
+  export function bindValue(...args: [signal: WritableSignal<string>] | [read: Read<string>, set: (value: string) => void]): ValueBinding;
   /** What bindNumber returns: spread it into the props of h.input({ type: 'number' }). */
   export interface NumberBinding {
     readonly value: Read<string>;
     readonly oninput: (event: { readonly currentTarget: { readonly value: string; readonly valueAsNumber: number } }) => void;
   }
-  /** Two-way binding of a number input: '' and an unfinished entry (NaN) set undefined, undefined shows as '', and the text the field holds is kept while it still means the current value (typing 1.50 is not rewritten to 1.5). The setter must accept undefined: signal<number | undefined>(1). */
-  export function bindNumber(read: Read<number | undefined>, set: (value: number | undefined) => void): NumberBinding;
+  /** Two-way binding of a number input: '' and an unfinished entry (NaN) set undefined, undefined shows as '', and the text the field holds is kept while it still means the current value (typing 1.50 is not rewritten to 1.5). The signal or setter must accept undefined: signal<number | undefined>(1). */
+  export function bindNumber(...args: [signal: WritableSignal<number | undefined>] | [read: Read<number | undefined>, set: (value: number | undefined) => void]): NumberBinding;
   /** What bindChecked returns: spread it into the props of h.input({ type: 'checkbox' }). */
   export interface CheckedBinding {
     readonly checked: Read<boolean>;
     readonly onchange: (event: { readonly currentTarget: { readonly checked: boolean } }) => void;
   }
-  /** Two-way binding of a checkbox: checked live from read, set(currentTarget.checked) on change. A radio group stays two props: checked: () => plan() === 'pro', onchange: () => plan.set('pro'). */
-  export function bindChecked(read: Read<boolean>, set: (checked: boolean) => void): CheckedBinding;
+  /** Two-way binding of a checkbox: checked live from read, set(currentTarget.checked) on change; a writable signal alone uses its own set: bindChecked(agree). A radio group stays two props: checked: () => plan() === 'pro', onchange: () => plan.set('pro'). */
+  export function bindChecked(...args: [signal: WritableSignal<boolean>] | [read: Read<boolean>, set: (checked: boolean) => void]): CheckedBinding;
 
   // ---------------------------------------------------------------- context
 
