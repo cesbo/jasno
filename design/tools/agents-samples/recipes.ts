@@ -1,5 +1,5 @@
 // Every snippet of the RECIPES block at the top of jasno.d.ts, in context. Must compile with 0 errors.
-import { bindChecked, bindNumber, bindValue, component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type Read } from '@jasno/core';
+import { bindChecked, bindNumber, bindValue, component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type MaybeRead, type Read } from '@jasno/core';
 import { createRouter, route, type ViewProps } from '@jasno/core/router';
 import { addNote, getUser, listCards, listNotes, makeChart, saveTitle, search, subscribePresence, type Card } from './api.ts';
 import { router } from './routes.ts';
@@ -224,6 +224,13 @@ export const TabsBox = component(function TabsBox(p: { tabs: readonly { label: s
   return h.div(null, match(current, (i) => p.tabs[i]?.render() ?? ''));
 });
 export const usesTabs = () => TabsBox({ tabs: [{ label: 'A', render: () => h.p(null, 'A') }] });
+
+// Static-or-live props
+export const Hinted = component(function Hinted(p: { label: string; hint?: MaybeRead<string | undefined> | undefined }): Node {
+  const hint = () => (typeof p.hint === 'function' ? p.hint() : p.hint);
+  return h.label(null, p.label, ' ', h.input({ type: 'text' }), h.small(null, () => hint() ?? ''));
+});
+export const usesHinted = (ifText: Read<string>) => [Hinted({ label: 'Qty', hint: 'Default 1' }), Hinted({ label: 'Frequency', hint: ifText })];
 
 // Lists and markup: selection, row names, icons, transitions, widgets
 interface Message { readonly id: string; readonly text: string }

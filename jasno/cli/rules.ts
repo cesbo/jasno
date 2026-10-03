@@ -36,6 +36,19 @@ export function referenceRule(sf: SourceFile, ctx: FileContext): Problem[] {
   }));
 }
 
+/** Local names bound to jasno's exports in this file: `import { show as when } from '@jasno/core'` maps when → show. */
+function jasnoImports(sf: SourceFile, ast: AstModule): Map<string, string> {
+  const K = ast.SyntaxKind;
+  const jasno = new Map<string, string>();
+  for (const st of sf.statements as unknown as N[]) {
+    const spec = st.moduleSpecifier as N | undefined;
+    if (st.kind !== K.ImportDeclaration || !spec || (spec.kind !== K.StringLiteral && spec.kind !== K.NoSubstitutionTemplateLiteral) || spec.text !== '@jasno/core') continue;
+    const bindings = st.importClause?.namedBindings as N | undefined;
+    if (bindings?.kind === K.NamedImports) for (const el of bindings.elements as N[]) jasno.set(el.name.text, (el.propertyName ?? el.name).text);
+  }
+  return jasno;
+}
+
 export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, checker?: Checker): FileResult {
   const K = ast.SyntaxKind;
   const problems: Problem[] = [];
@@ -71,12 +84,7 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
   const contains = (outer: N, inner: N): boolean => inner.pos >= outer.pos && inner.end <= outer.end;
 
   // Local names bound to jasno's exports: effect, component, css, h and svg rules apply to those only.
-  const jasno = new Map<string, string>();
-  for (const st of sf.statements as unknown as N[]) {
-    if (st.kind !== K.ImportDeclaration || stringValue(st.moduleSpecifier) !== '@jasno/core') continue;
-    const bindings = st.importClause?.namedBindings as N | undefined;
-    if (bindings?.kind === K.NamedImports) for (const el of bindings.elements as N[]) jasno.set(el.name.text, (el.propertyName ?? el.name).text);
-  }
+  const jasno = jasnoImports(sf, ast);
   const isJasno = (node: N | undefined, exported: string): boolean => !!node && node.kind === K.Identifier && jasno.get(node.text) === exported;
 
   /** An h.* or svg.* props object: its on* entries are event handlers. */
@@ -284,17 +292,45 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
   return { problems, css };
 }
 
+/** Setup regions for SNAPSHOT_TO_ACCESSOR: which function arguments of a jasno call run once (B12), by export name. */
+const SETUP_ARGS: Readonly<Record<string, readonly number[]>> = { component: [0], show: [1, 2], match: [1], catchError: [0, 1] };
+/** Expression nodes the snapshot walk climbs through on its way from a signal call to the slot it lands in. */
+const EXPRESSION_KINDS = ['CallExpression', 'PropertyAssignment', 'ObjectLiteralExpression', 'ArrayLiteralExpression', 'ConditionalExpression',
+  'BinaryExpression', 'ParenthesizedExpression', 'TemplateExpression', 'TemplateSpan', 'PropertyAccessExpression', 'ElementAccessExpression',
+  'NonNullExpression', 'AsExpression', 'SatisfiesExpression', 'PrefixUnaryExpression', 'SpreadElement'] as const;
+
 /**
  * Type-aware rules, batched per file: one getTypeAtLocation(nodes[]) per file, signatures memoized by type id
  * (design.md (e) check 6). SIGNAL_IN_TEMPLATE / SIGNAL_COERCED key on any zero-parameter call signature, so Read
- * props count as well as signals (A02).
+ * props count as well as signals (A02). SNAPSHOT_TO_ACCESSOR: in a setup region (a component body, a show/match/
+ * catchError callback, an each render) a zero-argument call of a signal or Read whose value lands, through any
+ * expression, in a live slot (an h.* prop typed MaybeRead<T>, an h child typed Child); nested functions are not
+ * entered (handlers and () => bindings read signals rightly; helpers are the runtime's STRICT_READ_UNTRACKED's job).
  */
 export function typeRules(sf: SourceFile, ctx: FileContext, ast: AstModule, checker: Checker, componentSetup: boolean): Problem[] {
   const K = ast.SyntaxKind;
   const problems: Problem[] = [];
   const template: N[] = [];
   const coerced: N[] = [];
-  const snapshots: N[] = [];
+  /** A zero-argument call in setup with the slots its value may land in, innermost first. */
+  const snapshots: { call: N; slots: N[] }[] = [];
+  const jasno = jasnoImports(sf, ast);
+  const isJasno = (node: N | undefined, exported: string): boolean => !!node && node.kind === K.Identifier && jasno.get(node.text) === exported;
+  const expression: ReadonlySet<number> = new Set<number>(EXPRESSION_KINDS.map((k) => K[k]));
+  const isFn = (node: N): boolean => node.kind === K.ArrowFunction || node.kind === K.FunctionExpression || node.kind === K.FunctionDeclaration || node.kind === K.MethodDeclaration;
+  /** The function given to component(), show() (then/otherwise), match(), catchError(), or each()'s render. */
+  const isSetupCallback = (node: N, parent: N | undefined): boolean => {
+    if (!parent || (node.kind !== K.ArrowFunction && node.kind !== K.FunctionExpression)) return false;
+    if (parent.kind === K.CallExpression) {
+      const index = ((parent.arguments ?? []) as N[]).indexOf(node);
+      return Object.entries(SETUP_ARGS).some(([exported, at]) => at.includes(index) && isJasno(parent.expression, exported));
+    }
+    if (parent.kind === K.PropertyAssignment && parent.name?.kind === K.Identifier && parent.name.text === 'render') {
+      const options = parent.parent as N | undefined, call = options?.parent as N | undefined;
+      return options?.kind === K.ObjectLiteralExpression && call?.kind === K.CallExpression && call.arguments?.[1] === options && isJasno(call.expression, 'each');
+    }
+    return false;
+  };
   const visit = (node: N, inSetup: boolean): void => {
     if (node.kind === K.TemplateExpression && node.parent?.kind !== K.TaggedTemplateExpression) for (const span of node.templateSpans as N[]) template.push(span.expression);
     if (node.kind === K.BinaryExpression && node.operatorToken.kind === K.PlusToken) {
@@ -304,16 +340,18 @@ export function typeRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
     }
     if (node.kind === K.CallExpression && node.expression.kind === K.Identifier && node.expression.text === 'String' && node.arguments?.length === 1) coerced.push(node.arguments[0]);
     if (componentSetup && inSetup && node.kind === K.CallExpression && !node.arguments?.length) {
-      const p = node.parent as N;
-      if ((p.kind === K.CallExpression && (p.arguments as N[] | undefined)?.includes(node)) || (p.kind === K.PropertyAssignment && p.initializer === node)) snapshots.push(node);
+      // Climb from the call to the enclosing statement: every call argument or property value on the way is a slot.
+      const slots: N[] = [];
+      for (let n: N = node, p = n.parent as N | undefined; p && expression.has(p.kind); n = p, p = p.parent as N | undefined) {
+        if ((p.kind === K.CallExpression && (p.arguments as N[] | undefined)?.includes(n)) || (p.kind === K.PropertyAssignment && p.initializer === n)) slots.push(n);
+      }
+      if (slots.length) snapshots.push({ call: node, slots });
     }
     const parent = node.parent as N | undefined;
-    const isComponentFn = (node.kind === K.ArrowFunction || node.kind === K.FunctionExpression) && parent?.kind === K.CallExpression && parent.expression.kind === K.Identifier && parent.expression.text === 'component';
-    const fn = node.kind === K.ArrowFunction || node.kind === K.FunctionExpression || node.kind === K.FunctionDeclaration || node.kind === K.MethodDeclaration;
-    node.forEachChild((c) => visit(c as N, isComponentFn ? true : fn ? false : inSetup));
+    node.forEachChild((c) => visit(c as N, isSetupCallback(node, parent) ? true : isFn(node) ? false : inSetup));
   };
   visit(sf as N, false);
-  const candidates = [...template, ...coerced, ...snapshots.map((s) => s.expression as N)];
+  const candidates = [...template, ...coerced, ...snapshots.map((s) => s.call.expression as N)];
   if (!candidates.length) return problems;
   const types = checker.getTypeAtLocation(candidates);
   const memo = new Map<number, boolean>();
@@ -336,14 +374,23 @@ export function typeRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
   coerced.forEach((e, i) => {
     if (callable(types[template.length + i])) at(e, 'SIGNAL_COERCED', 'error', `\`${e.getText(sf)}\` is a function (a signal or Read) coerced to a string.`, `Call it: ${e.getText(sf)}(), inside a function to keep it live.`);
   });
-  snapshots.forEach((call, i) => {
+  const short = (text: string): string => (text.length > 60 ? `${text.slice(0, 57)}...` : text);
+  snapshots.forEach(({ call, slots }, i) => {
     const t = types[template.length + coerced.length + i];
     if (!t || !callable(t) || !/\b(Signal|WritableSignal|Read)</.test(checker.typeToString(t))) return;
-    const ctxType = checker.getContextualType(call as Parameters<Checker['getContextualType']>[0]);
     // MaybeRead<T> (props) or Child (h children: a function child is live text, h.p(null, count()) never updates)
-    if (ctxType && /MaybeRead<|^Child$/.test(checker.typeToString(ctxType))) {
-      at(call, 'SNAPSHOT_TO_ACCESSOR', 'warn', `\`${call.getText(sf)}\` passes a snapshot where a live value is accepted: it never updates.`, `Pass ${call.expression.getText(sf)} itself (or () => ...).`);
+    const slot = slots.find((s) => {
+      const ctxType = checker.getContextualType(s as Parameters<Checker['getContextualType']>[0]);
+      return ctxType !== undefined && /MaybeRead<|^Child$/.test(checker.typeToString(ctxType));
+    });
+    if (!slot) return;
+    const callText = call.getText(sf);
+    if (slot === call) {
+      at(call, 'SNAPSHOT_TO_ACCESSOR', 'warn', `\`${callText}\` passes a snapshot where a live value is accepted: it never updates.`, `Pass ${call.expression.getText(sf)} itself (or () => ...).`);
+      return;
     }
+    const prop = slot.parent?.kind === K.PropertyAssignment ? `${(slot.parent as N).name.getText(sf)}: ` : '';
+    at(call, 'SNAPSHOT_TO_ACCESSOR', 'warn', `\`${callText}\` is read once inside \`${prop}${short(slot.getText(sf))}\`: the value never updates.`, `Wrap the whole expression: ${prop}() => (${short(slot.getText(sf))}).`);
   });
   return problems;
 }

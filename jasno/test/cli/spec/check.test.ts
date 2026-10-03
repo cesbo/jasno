@@ -324,7 +324,7 @@ const FN: Record<string, string> = {
     '',
   ].join('\n'),
   'src/comp.ts': [
-    "import { component, h, signal, type Read } from '@jasno/core';",
+    "import { component, each, h, show as when, signal, untracked, type Read } from '@jasno/core';",
     'export const Card = (): Node => h.div(null);',
     'export const Anon = component(function (): Node { return h.div(null); });',
     'export const NoType = component(function NoType() { return h.div(null); });',
@@ -336,6 +336,17 @@ const FN: Record<string, string> = {
     'export const Child = component(function Child(): Node {',
     "  const notice = signal('');",
     '  return h.p({ role: \'status\' }, notice());',
+    '});',
+    'export const Nested = component(function Nested(p: { items: Read<readonly { id: number; name: string }[]> }): Node {',
+    '  const sw = signal({ sat: true });',
+    '  const count = signal(0);',
+    "  const step = h.input({ type: 'number', step: sw().sat ? '1' : 'any', 'aria-label': 'f' });",
+    "  const text = h.p(null, 'IF ' + count() + ' MHz');",
+    '  const branch = when(() => count() > 0, () => h.p(null, count()), () => h.p(null, () => count()));',
+    '  const rows = h.ul(null, each(p.items, { key: (t) => t.id, render: (item) => h.li(null, item().name) }));',
+    "  const seed = h.input({ value: untracked(count) + '', 'aria-label': 'seed' });",
+    "  const handler = h.button({ type: 'button', onclick: () => count.set(count() + 1) }, 'x');",
+    '  return h.div(null, step, text, branch, rows, seed, handler);',
     '});',
     '',
   ].join('\n'),
@@ -453,6 +464,19 @@ test('type-aware: SIGNAL_IN_TEMPLATE on a Read prop, SIGNAL_COERCED on signal + 
   has(fn, 'src/comp.ts:8:88 SIGNAL_COERCED');
   has(fn, 'src/comp.ts:8:121 SIGNAL_COERCED');
   has(fn, 'src/comp.ts:12:34 SNAPSHOT_TO_ACCESSOR'); // a child: h.p(null, count()), top mistake #1 (pilot kanban G6)
+});
+
+test('SNAPSHOT_TO_ACCESSOR reaches a signal call nested in a prop expression, a child built with +, a show callback (aliased import) and an each render; not a handler, a () => binding, the show condition or untracked()', () => {
+  const on = (line: number) => fn.lines.filter((l) => l.startsWith(`src/comp.ts:${line}:`) && l.includes('SNAPSHOT_TO_ACCESSOR'));
+  assert.equal(on(17).length, 1, `step: sw().sat ? ... :\n${dump(fn)}`);
+  assert.match(on(17)[0]!, /`sw\(\)` is read once inside `step: sw\(\)\.sat \? '1' : 'any'`/);
+  assert.match(on(17)[0]!, /Wrap the whole expression: step: \(\) => \(sw\(\)\.sat \? '1' : 'any'\)/);
+  assert.equal(on(18).length, 1, `'IF ' + count() + ' MHz':\n${dump(fn)}`);
+  assert.equal(on(19).length, 1, `only the then-callback of show, not its condition or the live otherwise:\n${dump(fn)}`);
+  assert.match(on(19)[0]!, /^src\/comp\.ts:19:58 /); // the count() of the then-callback
+  assert.equal(on(20).length, 1, `each render: item().name:\n${dump(fn)}`);
+  assert.equal(on(21).length, 0, `untracked(count) is a deliberate snapshot:\n${dump(fn)}`);
+  assert.equal(on(22).length, 0, `a handler reads signals rightly:\n${dump(fn)}`);
 });
 
 test('FOCUS_STYLE_REMOVED: all: unset/initial/revert, outline: 0/0px/none !important on tags, [tabindex], [contenteditable], *, :focus-within, :focus, nested a, a class on h.a', () => {

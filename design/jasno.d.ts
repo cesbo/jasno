@@ -202,6 +202,13 @@
    return a cleanup; the router resets document.title itself.
    Children that must see the parent's context, or may not render, are functions: Tabs({ tabs: [{ label, render: () => A() }] }).
 
+ Static-or-live props. A data prop is Read<T> (AGENTS.md: pass the signal, a computed or () => x). A prop that is
+   usually a constant and now and then live (a label, a hint, a placeholder) is MaybeRead<T>: callers write
+   hint: 'Default 1' or hint: () => ifText(), and h.* props and children take either as it is, h.small(null, p.hint).
+   When the component computes with it, unwrap once inside a function:
+     const hint = () => (typeof p.hint === 'function' ? p.hint() : p.hint);
+   A MaybeRead<T> prop is also what SNAPSHOT_TO_ACCESSOR checks at the call site, so hint: text() is reported there.
+
  Lists and markup. Selection in O(1): const isSelected = selector(selectedId); in a row: class: { selected: () => isSelected(item().id) }.
    Repeated row controls get row-specific names: 'aria-label': () => `Remove ${todo().text}`. Selectable rows: one real
    control per row, h.button({ 'aria-pressed': () => isSelected(id) }), never tabIndex on a <tr>.

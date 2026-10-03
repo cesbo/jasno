@@ -751,7 +751,7 @@
           "source": "jasno check, jasno dev, jasno dist",
           "severity": "warn",
           "tool": "check (type-aware)",
-          "when": "x() of a signal or Read passed in a component body (the function given to component()) where MaybeRead<T> is accepted or as an h child (h.p(null, count())); show/match/each callbacks are not checked (the runtime's STRICT_READ_UNTRACKED covers them)"
+          "when": "in a setup region (the function given to component(), a show/match/catchError callback, an each render; jasno's names resolved through the file's imports) a zero-argument call of a signal or Read whose value lands, through any expression, in a live slot: an h.* prop typed MaybeRead<T> or an h child (h.p(null, count()), step: SAT(sw()) ? '1' : 'any', h.p(null, 'IF ' + f())); reported once per call at the innermost such slot, with the slot named in the message. Nested functions are not entered: handlers and () => bindings read signals rightly, and helper functions called from setup are the runtime's STRICT_READ_UNTRACKED job"
         }
       ]
     },
