@@ -16,7 +16,7 @@ The project comes with TypeScript configs, component tests, Playwright tests, a 
 The new project depends on `@jasno/core` at the same version as `@jasno/create`. For another version, a tag or a local build, pass any npm dependency spec with `--jasno` (npm forwards options only after `--`):
 
 ```sh
-npm create @jasno my-app -- --jasno file:../jasno-core-0.1.4.tgz
+npm create @jasno my-app -- --jasno file:../jasno-core-0.1.5.tgz
 ```
 
 ## License
