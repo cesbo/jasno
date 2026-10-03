@@ -1,8 +1,8 @@
 # jasno
 
-A TypeScript-first framework for single-page apps. Plain TypeScript, no DSL: no JSX, no template language, no build configuration. Views are typed function calls (`h.div(...)`) that tsc checks like any other code. In development the `.ts` file you edit is the module the browser runs; `jasno dist` bundles it for production.
+A TypeScript-first framework for single-page apps. Plain TypeScript: no JSX, no template language, no build configuration. Views are function calls (`h.div(...)`) that TypeScript type-checks like any other code. In development, each `.ts` file is served as a module with its types removed; `jasno dist` bundles the application for production.
 
-> **Status: 0.x.** The API may change before 1.0. jasno has been exercised by agent-built apps and a comparison against React and Solid, not yet by production users, and its load times have not been measured on real phones.
+> **Status: 0.x.** The API may change before 1.0. jasno has been tried in agent-built apps and in a comparison with React and Solid. It has no production users yet, and its load times have not been measured on real phones.
 
 ## Quick start
 
@@ -13,9 +13,9 @@ npm install
 npm run dev
 ```
 
-The Playwright tests (`npm run e2e`) need the browsers once: `npx playwright install`.
+Before you run the Playwright tests (`npm run e2e`) for the first time, install the browsers: `npx playwright install`.
 
-The npm package is `@jasno/core` (npm refuses the bare name `jasno` as too close to other packages); it installs the `jasno` command.
+The npm package is `@jasno/core` (npm rejects `jasno` as too similar to other package names); it installs the `jasno` command.
 
 ## Example
 
@@ -24,13 +24,18 @@ import { component, h, mount, signal } from '@jasno/core';
 
 const Counter = component(function Counter(): Node {
   const count = signal(0);
-  return h.button({ type: 'button', onclick: () => count.update((n) => n + 1) }, () => `Clicked ${count()} times`);
+  return h.button(
+    { type: 'button', onclick: () => count.update((n) => n + 1) },
+    'Clicked ', count, ' times',
+  );
 });
 
 mount(Counter, document.getElementById('app'));
 ```
 
-A function is live and a value is static: `() => count()` updates the text, `count()` alone would render once. Mistakes that would fail silently in other frameworks are type errors or diagnostics with a fix in the message.
+The component body runs once. Passing `count` (or any function) as a child keeps the text live: jasno calls it again when `count` changes and updates the text node. Passing `count()` instead renders only the initial value.
+
+Mistakes that would fail silently in other frameworks are type errors or diagnostics with a fix in the message.
 
 ## What you get
 
@@ -44,16 +49,21 @@ A function is live and a value is static: `() => count()` updates the text, `cou
 
 | Command | What it does |
 |---|---|
-| `npm run check` | tsc for both configs plus jasno's rules |
-| `npm test` | component tests with `node:test` and happy-dom |
-| `npm run dev` | development server |
-| `npm run dist` | production build into `dist/` |
-| `npm run preview` | serves `dist/` as a static host would |
-| `npm run explain CODE` | the repair guide for a diagnostic code |
+| `npm run check` | Type-checks the application and tests, and runs jasno's rules |
+| `npm test` | Runs component tests with `node:test` and happy-dom |
+| `npm run dev` | Starts the development server |
+| `npm run dist` | Bundles the application for production into `dist/` |
+| `npm run preview` | Serves `dist/` as a static host would |
+| `npm run explain CODE` | Prints the repair guide for a diagnostic code |
 
 ## Documentation
 
-The package carries its documentation: `AGENTS.md` (the guide, also copied into every new project) and `dist/jasno.d.ts` (the whole API, with a RECIPES block of common patterns). The design and its decisions are in [`design/`](https://github.com/cesbo/jasno/tree/HEAD/design) in the repository.
+The package includes its documentation:
+
+- `AGENTS.md`: the guide for coding agents, also copied into every new project by `npm create @jasno`.
+- `dist/jasno.d.ts`: the full API, with a RECIPES block of common patterns.
+
+The design and its decisions are in [`design/`](https://github.com/cesbo/jasno/tree/HEAD/design) in the repository.
 
 ## Requirements
 
