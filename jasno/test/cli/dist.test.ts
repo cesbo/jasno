@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { after, test } from 'node:test';
 import { dist, type DistOptions } from '../../cli/dist.ts';
 import { startPreview } from '../../cli/preview.ts';
-import { http, INDEX, project, reporter } from './fixture.ts';
+import { http, INDEX, project, reporter, TAILWIND_STUB } from './fixture.ts';
 
 const FILES = {
   'package.json': JSON.stringify({ name: 'app', type: 'module', imports: { '#config': { development: './src/config.dev.ts', default: './src/config.prod.ts' } } }),
@@ -223,4 +223,25 @@ test('a dependency\'s licence comment stays in the bundle; non-ASCII text ships 
   const code = listAll(join(b.root, 'dist')).filter((f) => f.endsWith('.js')).map((f) => b.read(f)).join('\n');
   assert.ok(code.includes('dep-esm 1.2.3 | MIT'), 'licence comment kept');
   assert.ok(code.includes('Привет') && !code.includes('\\u041f'), 'UTF-8 kept');
+});
+
+test('a stylesheet in assets/ that imports tailwindcss ships compiled and minified by the project\'s @tailwindcss/cli, run at the project root; --list names its source', async () => {
+  const files = { ...FILES, ...TAILWIND_STUB, 'assets/app.css': '@import "tailwindcss";\n.card { color: red; }\n', 'assets/plain.css': '.plain { color: red; }\n' };
+  const b = await build(files);
+  assert.equal(b.code, 0, b.lines.join('\n'));
+  assert.ok(b.read('assets/app.css').startsWith(`/* compiled minified in ${b.root} */\n@import "tailwindcss";`), b.read('assets/app.css'));
+  assert.equal(b.read('assets/plain.css'), '.plain { color: red; }\n');
+  const l = await build(files, { list: true });
+  assert.ok(l.lines.includes('dist/assets/app.css  <- assets/app.css'), l.lines.join('\n'));
+});
+
+test('TAILWIND_FAILED: the CLI exits non-zero (its stderr in the message) or is not installed (install hint); nothing written', async () => {
+  const bad = await build({ ...FILES, ...TAILWIND_STUB, 'assets/app.css': '@import "tailwindcss";\n@apply nope;\n' });
+  assert.equal(bad.code, 1);
+  assert.ok(bad.lines.some((l) => l.includes('TAILWIND_FAILED') && l.includes('assets/app.css') && l.includes('Error: Cannot apply unknown utility class `nope`')), bad.lines.join('\n'));
+  assert.ok(!existsSync(join(bad.root, 'dist')));
+  const none = await build({ ...FILES, 'assets/app.css': '@import "tailwindcss/theme.css" layer(theme);\n@import "tailwindcss/utilities.css" layer(utilities);\n' }); // the split form without Preflight
+  assert.equal(none.code, 1);
+  assert.ok(none.lines.some((l) => l.includes('TAILWIND_FAILED') && l.includes('@tailwindcss/cli is not installed') && l.includes('npm install -D @tailwindcss/cli')), none.lines.join('\n'));
+  assert.ok(!existsSync(join(none.root, 'dist')));
 });

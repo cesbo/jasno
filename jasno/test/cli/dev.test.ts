@@ -6,7 +6,7 @@ import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { dev, startDev, type DevServer } from '../../cli/dev.ts';
-import { http, INDEX, project, reporter } from './fixture.ts';
+import { http, INDEX, project, reporter, TAILWIND_STUB } from './fixture.ts';
 
 const esmDep = {
   'node_modules/dep-esm/package.json': JSON.stringify({
@@ -44,6 +44,10 @@ before(async () => {
     'src/.env': 'SECRET=2',
     'assets/logo.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
     'assets/.hidden': 'no',
+    'assets/app.css': '@import "tailwindcss";\n.card { color: red; }\n',
+    'assets/bad.css': '@import "tailwindcss";\n@apply nope;\n',
+    'assets/plain.css': '.plain { color: red; }\n',
+    ...TAILWIND_STUB,
     'public/.well-known/security.txt': 'Contact: mailto:security@example.com\n',
     'public/.env.local': 'SECRET=3',
     ...esmDep,
@@ -235,4 +239,16 @@ test('.jasno/dev.json records the server; a second jasno dev for the same root r
   assert.equal(await dev(app.root, { port: 0 }, r.reporter), 0);
   assert.deepEqual(r.lines, [`jasno dev: already running at ${server.url}`]);
   assert.ok(existsSync(join(app.root, '.jasno/dev.json')));
+});
+
+test('a stylesheet in assets/ that imports tailwindcss is served compiled by the project\'s @tailwindcss/cli; a failing compile is TAILWIND_FAILED (a 500 and the terminal)', async () => {
+  const css = await get('/assets/app.css');
+  assert.equal(css.status, 200);
+  assert.equal(css.headers['content-type'], 'text/css; charset=utf-8');
+  assert.ok(css.body.startsWith(`/* compiled in ${app.root} */\n@import "tailwindcss";`), css.body);
+  assert.equal((await get('/assets/plain.css')).body, '.plain { color: red; }\n');
+  const bad = await get('/assets/bad.css');
+  assert.equal(bad.status, 500);
+  assert.match(bad.body, /^\[TAILWIND_FAILED\] @tailwindcss\/cli failed on assets\/bad\.css: .*Cannot apply unknown utility class `nope`/);
+  assert.ok(out.some((l) => l.includes('TAILWIND_FAILED') && l.includes('Cannot apply unknown utility class `nope`')), out.join('\n'));
 });

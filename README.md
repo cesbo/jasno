@@ -39,7 +39,7 @@ Mistakes that would fail silently in other frameworks are type errors or diagnos
 
 ## What you get
 
-- **No build configuration.** `jasno dev` strips types as it serves, one module per file. `jasno dist` bundles with Rolldown into hashed chunks, one per lazy view, with source maps, integrity, the CSP, `_headers` and `_redirects`. npm packages are imported by name.
+- **No build configuration.** `jasno dev` strips types as it serves, one module per file. `jasno dist` bundles with Rolldown into hashed chunks, one per lazy view, with source maps, integrity, the CSP, `_headers` and `_redirects`. npm packages are imported by name. A stylesheet in `assets/` that imports tailwindcss is compiled by the project's `@tailwindcss/cli`.
 - **Checks.** `jasno check` runs tsc on the browser and test programs plus jasno's own rules. In development, problems are reported with a code; `npm run explain CODE` prints the repair guide.
 - **Accessibility built in.** The router moves focus to each view's heading; lost focus, unnamed controls and a few other mistakes are reported.
 - **Testing.** `@jasno/core/testing` mounts components under `node:test` with happy-dom; the template adds Playwright in Chromium, Firefox and WebKit.

@@ -7,7 +7,7 @@ import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { importMapIndex, injectHead, productionCsp, ready, scriptJson, walk, withoutComments, type Graph } from './modules.ts';
-import { browserModules, entryFiles, entryImports, entryPath, entryProblems, filesUnder, isTestFile, posixRel, readIndex } from './project.ts';
+import { browserModules, entryFiles, entryImports, entryPath, entryProblems, filesUnder, importsTailwind, isTestFile, posixRel, readIndex, tailwind } from './project.ts';
 import { lineCol, type Problem, type Reporter } from './report.ts';
 import { namedPackageOf, prodConditions, readPackage, type PackageJson } from './resolve.ts';
 
@@ -253,6 +253,14 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
     const top = posixRel(join(root, 'public'), f).split('/')[0]!;
     if (reserved.has(top)) problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: f, message: `public/${top} would replace what jasno dist generates at /${top}.`, hint: 'Rename it.' });
   }
+  // assets/ stylesheets that import tailwindcss ship compiled and minified by the project's @tailwindcss/cli (ADR-37).
+  const assets = filesUnder(join(root, 'assets'));
+  const compiled = new Map<string, string>();
+  for (const f of assets) {
+    if (extname(f) !== '.css' || !importsTailwind(readFileSync(f, 'utf8'))) continue;
+    const r = await tailwind(root, f, true);
+    if (r.problem) problems.push(r.problem); else compiled.set(f, r.css);
+  }
   for (const p of problems) reporter.add(p);
   if (problems.some((p) => p.severity === 'error')) { reporter.info('jasno dist: nothing written.'); return 1; }
 
@@ -266,7 +274,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
 
   const files = new Map<string, { content?: string | Buffer; from?: string }>();
   for (const [path, content] of built.chunks) files.set(path, { content });
-  for (const f of filesUnder(join(root, 'assets'))) files.set(dir + posixRel(root, f), { from: f });
+  for (const f of assets) { const content = compiled.get(f); files.set(dir + posixRel(root, f), content === undefined ? { from: f } : { from: f, content }); }
   for (const f of publicFiles) files.set(posixRel(join(root, 'public'), f), { from: f });
   files.set('index.html', { content: page });
   files.set('404.html', { content: page });
@@ -309,7 +317,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   };
   try {
     for (const [path, data] of kept) write(path, data);
-    for (const [path, f] of files) write(path, f.from ? readFileSync(f.from) : f.content!);
+    for (const [path, f] of files) write(path, f.content ?? readFileSync(f.from!));
     rmSync(out, { recursive: true, force: true });
     renameSync(tmp, out);
   } finally {

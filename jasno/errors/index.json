@@ -865,6 +865,17 @@
         }
       ]
     },
+    "TAILWIND_FAILED": {
+      "code": "TAILWIND_FAILED",
+      "rows": [
+        {
+          "source": "jasno check, jasno dev, jasno dist",
+          "severity": "error",
+          "tool": "dev, dist",
+          "when": "a stylesheet under assets/ imports tailwindcss (@import \"tailwindcss\") and the project's @tailwindcss/cli is not installed (hint: npm install -D @tailwindcss/cli) or exits non-zero on it (its stderr is in the message); dev answers the request with 500, dist writes nothing (ADR-37)"
+        }
+      ]
+    },
     "DYNAMIC_IMPORT_NOT_LITERAL": {
       "code": "DYNAMIC_IMPORT_NOT_LITERAL",
       "rows": [

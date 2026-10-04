@@ -223,6 +223,13 @@
    Animation: CSS @starting-style + transition-behavior: allow-discrete; document.startViewTransition(() => { s.set(v); flush(); }).
    Widgets: onMount(() => { const w = makeChart(el); effect(() => w.update(data())); return () => w.destroy(); }).
 
+ Tailwind (v4). npm install -D @tailwindcss/cli; assets/app.css holds @import "tailwindcss"; index.html links
+   /assets/app.css. That is the setup: jasno dev serves the file compiled by the project's CLI on every request (the
+   reload after a .ts change refetches it), jasno dist writes it compiled and minified under the same name; a missing
+   CLI or a bad sheet is TAILWIND_FAILED. Classes are found by scanning the project as text (.gitignore'd files, dist/
+   and .css excluded): string props and { 'bg-red-500': () => on() } keys are found, concatenated names are not.
+   FOCUS_STYLE_REMOVED reads css`` templates only: outline-none on a control needs focus-visible:ring-2 beside it.
+
  Config and backend. import config from '#config', with package.json "imports": { "#config": {
    "development": "./src/config.dev.ts", "default": "./src/config.prod.ts" } }. Everything under src/ is public:
    never put secrets there; jasno dist ships every non-test file there, imported or not, so test helpers go in a

@@ -60,3 +60,16 @@ export function http(url: string, opts: { method?: string; headers?: Record<stri
     req.end(opts.body);
   });
 }
+
+/** A stand-in @tailwindcss/cli with the real CLI's contract: CSS on stdout, a banner on stderr, exit 1 with the error on stderr (ADR-37). */
+export const TAILWIND_STUB: Record<string, string> = {
+  'node_modules/@tailwindcss/cli/package.json': JSON.stringify({ name: '@tailwindcss/cli', version: '4.0.0', type: 'module', bin: { tailwindcss: './cli.mjs' }, exports: { './package.json': './package.json' } }),
+  'node_modules/@tailwindcss/cli/cli.mjs': [
+    "import { readFileSync } from 'node:fs';",
+    "const a = process.argv; const css = readFileSync(a[a.indexOf('-i') + 1], 'utf8');",
+    "process.stderr.write('\\u2248 tailwindcss stub\\n');",
+    "if (css.includes('@apply nope')) { process.stderr.write('\\x1b[31mError:\\x1b[39m Cannot apply unknown utility class `nope`\\n'); process.exit(1); }",
+    "process.stdout.write(`/* compiled${a.includes('--minify') ? ' minified' : ''} in ${process.cwd()} */\\n${css}`);",
+    '',
+  ].join('\n'),
+};

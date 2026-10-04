@@ -9,7 +9,7 @@ import { extname, join, sep } from 'node:path';
 import {
   importMapIndex, injectHead, isRelative, productionCsp, ready, scanFile, scriptJson, walk, type Graph, type Mod,
 } from './modules.ts';
-import { browserModules, entryFiles, entryProblems, posixRel, readIndex } from './project.ts';
+import { browserModules, entryFiles, entryProblems, importsTailwind, posixRel, readIndex, tailwind } from './project.ts';
 import { clean, lineCol, type Reporter } from './report.ts';
 import { clearPackageCache, DEV_CONDITIONS, type Pkg } from './resolve.ts';
 
@@ -273,8 +273,14 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
       return notFound(req, res, path);
     }
     if (path.startsWith('/assets/')) {
-      if (exact(file)) return send(res, req, 200, TYPES[extname(file)] ?? 'application/octet-stream', readFileSync(file));
-      return notFound(req, res, path);
+      if (!exact(file)) return notFound(req, res, path);
+      // A stylesheet that imports tailwindcss is served compiled by the project's @tailwindcss/cli (ADR-37).
+      if (extname(file) === '.css' && importsTailwind(readFileSync(file, 'utf8'))) {
+        const r = await tailwind(root, file, false);
+        if (r.problem) { reporter.add(r.problem); return send(res, req, 500, TYPES['.txt']!, `[${r.problem.code}] ${r.problem.message}${r.problem.hint ? ` ${r.problem.hint}` : ''}`); }
+        return send(res, req, 200, TYPES['.css']!, r.css);
+      }
+      return send(res, req, 200, TYPES[extname(file)] ?? 'application/octet-stream', readFileSync(file));
     }
     // public/ files are served at the root (robots.txt, favicon.ico), as jasno dist copies them.
     const pub = join(root, 'public', ...path.split('/'));
