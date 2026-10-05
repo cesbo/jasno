@@ -2,8 +2,6 @@
 
 A TypeScript-first framework for single-page apps. Plain TypeScript: no JSX, no template language, no build configuration. Views are function calls (`h.div(...)`) that TypeScript type-checks like any other code. In development, each `.ts` file is served as a module with its types removed; `jasno dist` bundles the application for production.
 
-> **Status: 0.x.** The API may change before 1.0. jasno has been tried in agent-built apps and in a comparison with React and Solid. It has no production users yet, and its load times have not been measured on real phones.
-
 ## Quick start
 
 ```sh
@@ -12,10 +10,6 @@ cd my-app
 npm install
 npm run dev
 ```
-
-Before you run the Playwright tests (`npm run e2e`) for the first time, install the browsers: `npx playwright install`.
-
-The npm package is `@jasno/core` (npm rejects `jasno` as too similar to other package names); it installs the `jasno` command.
 
 ## Example
 
@@ -76,7 +70,3 @@ The design and its decisions are in [`design/`](https://github.com/cesbo/jasno/t
 - `jasno/`: the runtime, the CLI and their tests (`npm test`, `npm run check`, `npm run test:browser`, `npm run test:package`, `npm run test:template`)
 - `create-jasno/`: the `npm create @jasno` template (the `@jasno/create` package)
 - `design/`: the specification, the agent guide and the public types
-
-## License
-
-MIT
