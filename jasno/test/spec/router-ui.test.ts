@@ -727,6 +727,22 @@ test('B17.4/B17.11 Navigation API: matching same-origin navigations are intercep
   assert.equal(fake.listeners.size, 0, 'B17.3: disposal removes the navigate listener');
 });
 
+test('B17.11 Navigation API: a push or replace to a new view scrolls to the top itself (Safari skips scroll: after-transition); search-only, hash and traverse do not', async (t) => {
+  const fake = fakeNavigation(t);
+  const { router } = setup(t, [route('/', { view: page('home').view }), route('/b', { view: page('b').view })]);
+  await settled();
+  const s = scrolls(t);
+  assert.equal(await router.navigate('/b'), 'done');
+  await settled();
+  assert.deepEqual(s.calls.map((c) => c.to), [[0, 0]], 'the new view is at the top');
+  s.calls.length = 0;
+  assert.equal(await router.navigate('/b?q=1'), 'done');
+  fake.fire('/b?q=1#top', 'push');
+  fake.fire('/', 'traverse');
+  await settled();
+  assert.deepEqual(s.calls, [], 'search-only, hash and traverse leave scrolling to the browser');
+});
+
 test('B17.18 Navigation API back(): traverses when canGoBack and the previous entry matches a route, else navigate(fallback, { replace: true })', async (t) => {
   history.replaceState(null, '', '/legacy'); // the tab arrived from a URL no route matches
   const fake = fakeNavigation(t);

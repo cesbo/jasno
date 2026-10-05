@@ -156,6 +156,8 @@ interface How {
   commit?: 'push' | 'replace' | undefined;
   initial?: boolean;
   pop?: boolean;
+  /** Navigation API: a push or replace to a new view or params ends at the top; jasno scrolls itself, since Safari skips scroll: 'after-transition'. */
+  top?: boolean;
   /** Navigation API: resolves when the browser has committed the URL (the intercept handler runs). */
   committed?: Promise<void> | undefined;
 }
@@ -417,6 +419,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
         announce(announceMatch, data);
         if (adapter instanceof HistoryAdapter) adapter.scroll(how);
       }
+      if (how.top) queueMicrotask(() => { flush(); if (typeof window.scrollTo === 'function') window.scrollTo(0, 0); });
     };
     try {
       // Never render inside the caller (outlet() runs in setup, navigate() may run in an effect), and with the
@@ -590,7 +593,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
       const traverse = e.navigationType === 'traverse';
       let commit!: () => void;
       const committed = new Promise<void>((r) => { commit = r; });
-      const p = track(run(url, { pop: traverse, committed }), `navigation to ${url.pathname}${url.search}`);
+      const p = track(run(url, { pop: traverse, committed, top: !traverse && !searchOnly && !url.hash }), `navigation to ${url.pathname}${url.search}`);
       this.last = p;
       if (traverse) {
         const pending = this.pendingBack;
