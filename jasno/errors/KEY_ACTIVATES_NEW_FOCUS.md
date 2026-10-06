@@ -9,13 +9,18 @@
 <!-- design.md: B15.7 -->
 <!-- /generated:catalogue -->
 
-An Enter `keydown` handler returned without calling `e.preventDefault()`, and focus then moved, in the handler or in the update it caused, to a button, a link, a `summary`, a `textarea` or a form field. Chromium delivers the rest of that key press to the newly focused element, which gets clicked or submitted: an inline editor that closes on Enter and focuses its title button opens again at once. happy-dom never does this, so in `node:test` this warning is the only sign of the bug.
+An Enter `keydown` handler returned without calling `e.preventDefault()`. Focus then moved to a button, a link, a `summary`, a `textarea` or a form field. The move happened in the handler or in the update that the handler caused.
+
+Chromium delivers the rest of that key press to the newly focused element. That element gets clicked or submitted. For example, an inline editor closes on Enter and focuses its title button. The button then opens the editor again at once.
+
+happy-dom never does this. In `node:test`, this warning is the only sign of the bug.
 
 ## Fix
 
-- Enter-to-save in a text field: put the field in a form and save in `onsubmit` (with `e.preventDefault()` first), and drop the Enter branch from `onkeydown`. Implicit submission cannot activate the element that gets focus next, and it ignores Enter while an IME is composing.
-- A keydown handler that must handle Enter itself (a search box that jumps to the first result): call `e.preventDefault()` in every branch that moves focus, directly or through a state change.
-- In tests, dispatch the key as `new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })`: without `cancelable`, `preventDefault()` has no effect and a correct handler is reported. Then `await Promise.resolve()` (or `await settled()`) before asserting, since the check runs in a microtask after the handler's flush.
+- Enter-to-save in a text field: put the field in a form. Save in `onsubmit` and call `e.preventDefault()` first. Drop the Enter branch from `onkeydown`. Implicit submission cannot activate the element that gets focus next. It also ignores Enter while an IME is composing.
+- A keydown handler that must handle Enter itself, such as a search box that jumps to the first result: call `e.preventDefault()` in every branch that moves focus. This covers a direct move and a move through a state change.
+- In tests, dispatch the key as `new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })`. Without `cancelable`, `preventDefault()` has no effect, and jasno reports a correct handler.
+- In tests, also run `await Promise.resolve()` (or `await settled()`) before you assert. The check runs in a microtask after the flush of the handler.
 
 ## Example
 

@@ -9,13 +9,17 @@
 <!-- design.md: B19.4 -->
 <!-- /generated:catalogue -->
 
-When the test ended and its view was unmounted, effects, resources or components created during the test were still alive. They were created where there is no owner, in an event handler or after an `await`, so nothing ever disposes them: in the app they keep running after the part of the page that made them is gone, and every click adds another. The message lists their owner paths (`(no owner)` for ownerless ones); `NO_OWNER` is usually reported for the same code.
+The test ended and its view was unmounted. Effects, resources or components created during the test were still alive.
+
+They were created where there is no owner, in an event handler or after an `await`. Nothing ever disposes them. In the app they keep running after the part of the page that made them is gone. Every click adds another.
+
+The message lists their owner paths. It shows `(no owner)` for ownerless ones. jasno usually reports `NO_OWNER` for the same code.
 
 ## Fix
 
-- Create effects and resources in setup (the component body) or in `onMount`, before any `await`: there they belong to the component and are disposed with it.
-- Handlers only change signals. An effect or resource created in setup reacts to them: for a load that a click starts, the handler sets the signal the resource reads in `params`.
-- App-lifetime work goes in a module-level `createRoot(() => ...)` in `src/state.ts`; such roots are never counted.
+- Create effects and resources in setup (the component body) or in `onMount`, before any `await`. There they belong to the component, and jasno disposes them with it.
+- Handlers only change signals. An effect or resource created in setup reacts to them. For a load that a click starts, the handler sets the signal the resource reads in `params`.
+- Put app-lifetime work in a module-level `createRoot(() => ...)` in `src/state.ts`. jasno never counts such roots.
 - An effect the test body creates itself: call the `stop()` it returns before the test ends.
 
 ## Example
@@ -32,7 +36,7 @@ export const CounterWrong = component(function CounterWrong(): Node {
   } }, 'Add');
 });
 
-// Right: one effect, created in setup and disposed with the component; the handler only writes the signal
+// Right: the effect is created in setup, and the handler only writes the signal
 export const Counter = component(function Counter(): Node {
   const count = signal(0);
   effect(() => { document.title = `${count()} clicks`; });

@@ -9,13 +9,15 @@
 <!-- design.md: B16.1 -->
 <!-- /generated:catalogue -->
 
-`mount()` got `null` (or `undefined`) as its target, almost always because `document.getElementById('app')` found no element with that id when `src/main.ts` ran. Nothing was rendered, and jasno throws in dev and production builds. tsc cannot catch it: `getElementById` returns `HTMLElement | null` and `mount` accepts `Element | null`.
+`mount()` got `null` (or `undefined`) as its target. Almost always, `document.getElementById('app')` found no element with that id when `src/main.ts` ran. Nothing was rendered. jasno throws in dev and production builds.
+
+tsc cannot catch this. `getElementById` returns `HTMLElement | null`, and `mount` accepts `Element | null`.
 
 ## Fix
 
-- Give `index.html` the element, in its body: `<div id="app"></div>`.
+- Add the element to the body of `index.html`: `<div id="app"></div>`.
 - Pass the same id to the lookup: `mount(App, document.getElementById('app'))`.
-- In tests, use `mountTest(t, () => App())` from `@jasno/core/testing`: it creates its own container.
+- In tests, use `mountTest(t, () => App())` from `@jasno/core/testing`. It creates its own container.
 
 ```html
 <body><div id="app"></div><script type="module">import '/src/main.ts';</script></body>

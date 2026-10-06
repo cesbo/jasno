@@ -5,16 +5,25 @@
 
 <!-- /generated:catalogue -->
 
-After type stripping, the file is not a valid JavaScript module. Either the stripper refused TypeScript syntax that needs a code transform (`enum`, a `namespace` with code, constructor parameter properties, `import x = require()`, `<T>value` assertions), or the stripped text does not parse in V8 (a duplicate export name, a decorator, an `accessor` field, a plain syntax error). The browser cannot load such a module. When the stripper refuses a file, `jasno dev` serves a module that throws `SyntaxError("[SYNTAX_REJECTED] /src/x.ts:3:7 ...")` and prints the same line, and `jasno dist` stops.
+After type stripping, the file is not a valid JavaScript module. The browser cannot load such a module.
+
+There are two causes:
+
+- The stripper refused TypeScript syntax that needs a code transform: `enum`, a `namespace` with code, constructor parameter properties, `import x = require()`, `<T>value` assertions.
+- The stripped text does not parse in V8: a duplicate export name, a decorator, an `accessor` field, a plain syntax error.
+
+When the stripper refuses a file, `jasno dev` serves a module that throws `SyntaxError("[SYNTAX_REJECTED] /src/x.ts:3:7 ...")`. `jasno dev` also prints the same line. `jasno dist` stops.
 <!-- design.md: (c) jasno check table; (e) jasno check 4, jasno dev -->
 
 ## Fix
 
-- `enum`: a const object and a union type of its values (below).
-- `namespace`: plain module exports (a `declare namespace` with types only is fine).
-- Parameter properties (`constructor(private x: number)`): declare a `#private` field and assign it in the constructor.
-- `<T>value`: write `value as T`. `import x = require('y')`: write `import x from 'y'`.
-- `NO_DECORATORS` or `NO_ACCESSOR` on the same line: fix that. Otherwise the message carries V8's error text and the position.
+- `enum`: use a const object and a union type of its values (see the example).
+- `namespace`: use plain module exports. A `declare namespace` with types only is fine.
+- Parameter properties (`constructor(private x: number)`): declare a `#private` field. Assign it in the constructor.
+- `<T>value`: write `value as T`.
+- `import x = require('y')`: write `import x from 'y'`.
+- `NO_DECORATORS` or `NO_ACCESSOR` on the same line: fix that error first.
+- Otherwise, the message carries V8's error text and the position.
 
 ## Example
 

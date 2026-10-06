@@ -5,15 +5,17 @@
 
 <!-- /generated:catalogue -->
 
-`index.html` contains its own `<script type="importmap">`. `jasno dev` and `jasno dist` generate the import map (source files, packages, `#imports` keys, and in dist the hashed file names with their integrity) and put it at `<!--jasno:head-->`. With a handwritten map in the page, `jasno dev` injects nothing and serves an error page instead of the app, and `jasno check` and `jasno dist` fail.
+`index.html` contains its own `<script type="importmap">`. `jasno dev` and `jasno dist` generate the import map and put it at `<!--jasno:head-->`. The generated map covers source files, packages and `#imports` keys. In dist, it also covers the hashed file names with their integrity.
+
+With a handwritten map in the page, `jasno dev` injects nothing. It serves an error page instead of the app. `jasno check` and `jasno dist` fail.
 <!-- design.md: (c) check/dev, (e) dev, (f) -->
 
 ## Fix
 
-Delete the `<script type="importmap">` element and keep the `<!--jasno:head-->` slot in `<head>`. Move what the map did to package.json:
+Delete the `<script type="importmap">` element. Keep the `<!--jasno:head-->` slot in `<head>`. Move what the map did to package.json:
 
-- Packages: list them in `dependencies` and import them by name (`import { z } from 'zod'`); jasno maps them.
-- Aliases: package.json `"imports"` keys starting with `#` (`"#config"`), with `development` and `default` conditions when dev and production differ.
+- Packages: list them in `dependencies` and import them by name (`import { z } from 'zod'`). jasno maps them.
+- Aliases: use package.json `"imports"` keys that start with `#` (`"#config"`). Add `development` and `default` conditions when dev and production differ.
 - `@jasno/core` and `@jasno/core/router` are always mapped.
 
 ## Example

@@ -5,14 +5,18 @@
 
 <!-- /generated:catalogue -->
 
-The TypeScript that `jasno check` loaded from your project is not a version jasno is tested with (7.0.2 or a later 7.0.x patch), or the project has no `typescript` package at all. jasno's rules read TypeScript's syntax tree and types through an API that is not stable across versions, so the check stops rather than report wrong results. The first line of the output, `typescript <version>`, shows what was loaded.
+`jasno check` loaded a TypeScript version that jasno is not tested with. jasno is tested with 7.0.2 or a later 7.0.x patch. The error also appears when the project has no `typescript` package.
+
+jasno's rules read the TypeScript syntax tree and types through an API. This API is not stable across versions. jasno stops the check instead of reporting wrong results.
+
+The first line of the output, `typescript <version>`, shows which version jasno loaded.
 <!-- design.md: (c) jasno check table; (e) jasno check 1; ADR-26 -->
 
 ## Fix
 
 - Pin TypeScript with a tilde range in `devDependencies` and install it: `npm install -D typescript@~7.0.2`.
-- Run the check through the npm script (`npm run check`): jasno uses the `typescript` that resolves from your project's `package.json`, not a global `tsc`.
-- If the pin is right and the message remains, another copy resolves first (for example a workspace root's): `npm ls typescript` shows which.
+- Run the check through the npm script (`npm run check`). jasno uses the `typescript` that resolves from your project's `package.json`, not a global `tsc`.
+- If the pin is right and the message remains, another copy of `typescript` resolves first. For example, a workspace root has its own copy. `npm ls typescript` shows which copy resolves first.
 
 ## Example
 

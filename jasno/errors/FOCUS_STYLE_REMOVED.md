@@ -5,14 +5,24 @@
 
 <!-- /generated:catalogue -->
 
-A `css` rule removes the focus outline (`outline: none` or `0`, `all: unset`, `initial` or `revert`) from elements that take focus (a `button`, `a`, `input`, `select`, `textarea` or `summary`, `[tabindex]`, `[contenteditable]`, `*`, a `:focus` state, or a class the same file puts on such an `h.*` element), and no `css` template in the app shows focus another way. Keyboard users then cannot see where focus is, also after the router, a dialog or your `onMount` moves it (WCAG 2.4.7).
+A `css` rule removes the focus outline from elements that take focus. The rule uses `outline: none` or `0`, or `all: unset`, `initial` or `revert`. No `css` template in the app shows focus another way.
+
+The rule reaches elements such as these:
+
+- a `button`, `a`, `input`, `select`, `textarea` or `summary`
+- `[tabindex]`, `[contenteditable]` or `*`
+- a `:focus` state
+- a class that the same file puts on such an `h.*` element
+
+Keyboard users then cannot see where focus is. This also applies after the router, a dialog or your `onMount` moves focus (WCAG 2.4.7).
 <!-- design.md: (c) check, ADR-33, ADR-23 -->
 
 ## Fix
 
-- Add a rule that shows focus: a `:focus-visible` (or `:focus`, `:focus-within`) rule that declares something other than removing the outline, such as an outline, box-shadow, border, background, color or text-decoration. Sheets are global, so one such rule anywhere in the app clears the warning, for example `` css`:focus-visible { outline: 2px solid; outline-offset: 2px; }` `` in `src/app.ts`.
+- Add a rule that shows focus. Use a `:focus-visible` (or `:focus`, `:focus-within`) rule. The rule must declare more than removing the outline: an outline, box-shadow, border, background, color or text-decoration change.
+- Sheets are global, so one such rule anywhere in the app clears the warning. For example, put `` css`:focus-visible { outline: 2px solid; outline-offset: 2px; }` `` in `src/app.ts`.
 - Or drop the reset.
-- To hide the ring only after mouse clicks, reset `:focus:not(:focus-visible)` instead: keyboard focus keeps the ring, and a selector with `:not(:focus-visible)` is not reported.
+- To hide the ring only after mouse clicks, reset `:focus:not(:focus-visible)` instead. Keyboard focus keeps the ring. jasno does not report a selector with `:not(:focus-visible)`.
 
 ## Example
 

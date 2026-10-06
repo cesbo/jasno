@@ -9,7 +9,9 @@
 <!-- design.md: B17.3, B17.13 -->
 <!-- /generated:catalogue -->
 
-`router.navigate()` or `router.back()` was called while no `router.outlet()` of that router was rendered, either before the app mounted or after the outlet was disposed. The router starts only when its outlet renders, so the call throws right away (in both builds) instead of returning a promise.
+Your code called `router.navigate()` or `router.back()` while no `router.outlet()` of that router was rendered. This happens before the app mounted, or after the outlet was disposed.
+
+The router starts only when its outlet renders. So the call throws right away instead of returning a promise. It throws in both builds.
 
 <!-- design.md: B17.3, B17.13 -->
 
@@ -17,10 +19,14 @@
 
 Navigate only while the app with the outlet is mounted:
 
-- Tests: render the app first. Set the start URL with `history.replaceState(null, '', '/')`, call `mountTest(t, () => App())`, `await settled()`, then `await router.navigate(url)`.
+- Tests: render the app first.
+  - Set the start URL with `history.replaceState(null, '', '/')`.
+  - Call `mountTest(t, () => App())`.
+  - Call `await settled()`.
+  - Then call `await router.navigate(url)`.
 - Startup code (`src/main.ts`, module level): do not navigate before `mount()`. The outlet renders the current URL by itself. Put a redirect (a guard, an index route) in the route's loader: `if (!session()) { void router.navigate('/login', { replace: true }); return null; }`.
-- A login wall (`show(session, () => router.outlet(), () => Login())`): `session.set(user)` builds the outlet only in the next flush, so a `navigate()` in the same handler throws. When the outlet appears it renders the current URL. To go to another page, call `flush()` after `session.set(user)`, then navigate.
-- After `unmount()`, or after a `show()` or `match()` that held the outlet switched away, the router has stopped again.
+- A login wall (`show(session, () => router.outlet(), () => Login())`): `session.set(user)` builds the outlet only in the next flush. A `navigate()` in the same handler throws. When the outlet appears, it renders the current URL. To go to another page, call `flush()` after `session.set(user)`. Then navigate.
+- After `unmount()`, the router has stopped again. It also stops when a `show()` or `match()` that held the outlet switches away.
 
 ## Example
 

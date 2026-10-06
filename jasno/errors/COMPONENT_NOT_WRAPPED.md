@@ -5,14 +5,14 @@
 
 <!-- /generated:catalogue -->
 
-An exported function with a PascalCase name returns `Node` but is not wrapped in `component()`. Without the wrapper it has no owner of its own: the effects, `onMount` callbacks and cleanups it creates belong to whichever component called it, and owner paths in diagnostics and `window.__JASNO__` do not name it.
+An exported function with a PascalCase name returns `Node` but is not wrapped in `component()`. Without the wrapper it has no owner of its own. The effects, `onMount` callbacks and cleanups it creates belong to whichever component called it. Owner paths in diagnostics and `window.__JASNO__` do not name it.
 <!-- design.md: (c) check, B14.1, ADR-06 -->
 
 ## Fix
 
 - Wrap it and keep the name: `export const Card = component(function Card(p: CardProps): Node { ... })`. Call sites stay the same: `Card({ title })`.
-- Export a `CardProps` interface next to it: data props are `Read<T>`, callbacks plain functions.
-- A small markup helper that creates no signals, effects or `onMount` callbacks may stay a plain function: give it a camelCase name (`badge(text)`). It is then not a component and is not reported.
+- Export a `CardProps` interface next to it. Data props are `Read<T>`. Callbacks are plain functions.
+- A small markup helper may stay a plain function if it creates no signals, effects or `onMount` callbacks. Give it a camelCase name (`badge(text)`). It is then not a component and is not reported.
 
 ## Example
 

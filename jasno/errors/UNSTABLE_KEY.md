@@ -9,14 +9,16 @@
 <!-- design.md: B11.1 -->
 <!-- /generated:catalogue -->
 
-The key function given to `each()` returned two different keys for the same item. Dev builds call it twice for every new or changed item to check this. A key that changes from call to call makes each update look like a list of new items, so jasno rebuilds every row and drops focus, typed text and other row state.
+The key function given to `each()` returned two different keys for the same item. Dev builds call the key function twice for every new or changed item to check this.
+
+A key that changes from call to call makes each update look like a list of new items. jasno then rebuilds every row. Each rebuilt row drops focus, typed text and other row state.
 
 ## Fix
 
 - Derive the key from the item's own data: `key: (item) => item.id`.
-- Never generate a key inside the key function. No `Math.random()`, `crypto.randomUUID()`, `Date.now()` or counters there.
-- Items that have no id get one when they are created (`{ id: crypto.randomUUID(), text }`) and keep it.
-- The index is stable too, but then a row belongs to a position, not to an item: after a removal or a reorder, rows show different items.
+- Never generate a key inside the key function. Do not use `Math.random()`, `crypto.randomUUID()`, `Date.now()` or counters there.
+- Give an item without an id one when you create it (`{ id: crypto.randomUUID(), text }`). The item keeps that id.
+- The index is stable too. Then a row belongs to a position, not to an item. After a removal or a reorder, rows show different items.
 
 ## Example
 
@@ -25,12 +27,12 @@ import { component, each, h, type Read } from '@jasno/core';
 
 interface Todo { readonly id: string; readonly text: string }
 
-// Wrong: a new key on every call
+// Wrong: the key is new on every call.
 export const ListWrong = component(function ListWrong(p: { todos: Read<readonly Todo[]> }): Node {
   return h.ul(null, each(p.todos, { key: () => crypto.randomUUID(), render: (t) => h.li(null, () => t().text) }));
 });
 
-// Right: the key comes from the item; the id is assigned once, when the item is created
+// Right: the key comes from the item, and the id is assigned once at creation.
 export const List = component(function List(p: { todos: Read<readonly Todo[]> }): Node {
   return h.ul(null, each(p.todos, { key: (t) => t.id, render: (t) => h.li(null, () => t().text) }));
 });

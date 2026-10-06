@@ -5,13 +5,15 @@
 
 <!-- /generated:catalogue -->
 
-A browser module other than the entry that `index.html` imports (normally `src/main.ts`) uses `await` or `for await` at its top level. Safari before version 27 supports top-level await only partially outside the entry module, so the app may not load correctly there even though it works elsewhere. The entry itself may await.
+A browser module other than the entry uses `await` or `for await` at its top level. The entry is the module that `index.html` imports, normally `src/main.ts`.
+
+Safari before version 27 supports top-level await only partially outside the entry module. The app may not load correctly there, even though it works elsewhere. The entry itself may await.
 <!-- design.md: (c) jasno check table; (e) jasno check 3, 5 -->
 
 ## Fix
 
-- Data the app needs: make it an app-wide resource in `createRoot` (in `src/state.ts`) and render the views that need it once `hasValue()` is true.
-- Setup that must finish before the first render: export an async function and await it in `src/main.ts`, before `mount(...)`.
+- Data the app needs: make it an app-wide resource in `createRoot` (in `src/state.ts`). Render the views that need it once `hasValue()` is true.
+- Setup that must finish before the first render: export an async function. Await it in `src/main.ts`, before `mount(...)`.
 - Anything else: move the `await` into the function that uses the value.
 
 ## Example
@@ -22,10 +24,10 @@ import { createRoot, resource } from '@jasno/core';
 interface Settings { readonly theme: string }
 declare function getSettings(abortSignal: AbortSignal): Promise<Settings>;
 
-// Wrong: src/settings.ts awaits at its top level
+// Wrong: src/settings.ts awaits at its top level.
 export const settingsWrong = await getSettings(AbortSignal.timeout(10_000));
 
-// Right: an app-wide resource; views render once settings.hasValue() is true
+// Right: use an app-wide resource. Views render once settings.hasValue() is true.
 export const settings = createRoot(() => resource({ loader: ({ abortSignal }) => getSettings(abortSignal) }));
 ```
 

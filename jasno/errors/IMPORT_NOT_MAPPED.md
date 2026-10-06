@@ -5,15 +5,23 @@
 
 <!-- /generated:catalogue -->
 
-A browser file imports a bare name that the import map will not contain. There is no bundler: the browser resolves bare names only through the import map that `jasno dev` and `jasno dist` generate, which holds `@jasno/core`, `@jasno/core/router`, the packages in `dependencies` and the package.json `"imports"` keys (`#config`). Any other name fails to load in the browser, and so does every module that imports it.
+A browser file imports a bare name that the import map will not contain. There is no bundler. The browser resolves bare names only through the import map that `jasno dev` and `jasno dist` generate.
+
+The import map holds these names:
+
+- `@jasno/core` and `@jasno/core/router`
+- the packages in `dependencies`
+- the package.json `"imports"` keys (`#config`)
+
+Any other name fails to load in the browser. Every module that imports it fails too.
 <!-- design.md: (c) check/dev/dist, (e) check 3, ADR-35 -->
 
 ## Fix
 
-- An npm package: `npm install <name>` so it is in `dependencies`. A package in `devDependencies` is not mapped: browser code ships, so what it imports is a dependency.
-- `@jasno/core/testing` (or another `jasno/*` path): it is for tests; browser code imports only `@jasno/core` and `@jasno/core/router`.
+- An npm package: run `npm install <name>` so it is in `dependencies`. jasno does not map a package in `devDependencies`. Browser code ships, so what it imports is a dependency.
+- `@jasno/core/testing` (or another `jasno/*` path): this path is for tests. Browser code imports only `@jasno/core` and `@jasno/core/router`.
 - A `#name` alias: add the key to package.json `"imports"`.
-- Reported by `jasno dev` or `jasno dist`: the name does not resolve because the package is not installed (`npm install`), or the path after the package name is not in its `"exports"`; the message gives the resolver's reason.
+- Reported by `jasno dev` or `jasno dist`: the name does not resolve. Either the package is not installed (run `npm install`), or the path after the package name is not in its `"exports"`. The message gives the reason from the resolver.
 
 ## Example
 

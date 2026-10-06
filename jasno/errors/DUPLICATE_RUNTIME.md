@@ -9,13 +9,15 @@
 <!-- design.md: B16.1 -->
 <!-- /generated:catalogue -->
 
-The page loaded jasno from two different URLs, and `mount()` was called from a copy other than the one that loaded first. Each copy has its own scheduler and owner tree, so signals, context and components from one would not work with the other; jasno refuses to mount (dev and production builds). The message names both URLs.
+The page loaded jasno from two different URLs. Your code called `mount()` from a copy other than the one that loaded first.
+
+Each copy has its own scheduler and owner tree. Signals, context and components from one copy would not work with the other copy. jasno refuses to mount in the dev and production builds. The message names both URLs.
 
 ## Fix
 
-- Import jasno only by its package names: `'@jasno/core'`, `'@jasno/core/router'`, `'@jasno/core/testing'`. Never import a file inside the package (`/node_modules/@jasno/core/...`) or a copy from another URL.
-- Never write an import map: delete any `<script type="importmap">` from `index.html` and keep the `<!--jasno:head-->` slot, where `jasno dev` and `jasno dist` put the generated one (`jasno check` reports a hand-written map as `IMPORT_MAP_HANDWRITTEN`).
-- Compare the two URLs in the message: the one that is not what `'@jasno/core'` maps to shows which import loads the second copy.
+- Import jasno only by its package names: `'@jasno/core'`, `'@jasno/core/router'`, `'@jasno/core/testing'`. Never import a file inside the package (`/node_modules/@jasno/core/...`). Never import a copy from another URL.
+- Never write an import map. Delete any `<script type="importmap">` from `index.html`. Keep the `<!--jasno:head-->` slot. `jasno dev` and `jasno dist` put the generated import map there. `jasno check` reports a hand-written map as `IMPORT_MAP_HANDWRITTEN`.
+- Compare the two URLs in the message. One URL is what `'@jasno/core'` maps to. The other URL shows which import loads the second copy.
 
 ## Example
 

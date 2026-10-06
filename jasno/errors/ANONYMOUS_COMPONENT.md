@@ -5,16 +5,16 @@
 
 <!-- /generated:catalogue -->
 
-`component()` was given an arrow function or an unnamed `function`. jasno names a component's owner after its function, so this one shows as `<Anonymous>` in owner paths (runtime warnings, test failures, `__JASNO__.inspect()` and `why()`), and you cannot tell which component a diagnostic is about.
+`component()` got an arrow function or an unnamed `function`. jasno names a component's owner after its function. This component shows as `<Anonymous>` in owner paths. Owner paths appear in runtime warnings, test failures, `__JASNO__.inspect()` and `why()`. You cannot tell which component a diagnostic is about.
 <!-- design.md: (c) check, B14.1 -->
 
 ## Fix
 
-Pass a named function expression, named like the const it is assigned to, with a `: Node` return annotation:
+Pass a named function expression. Name it like the const it is assigned to. Add a `: Node` return annotation:
 
 `export const Card = component(function Card(p: CardProps): Node { ... })`
 
-An unannotated arrow also gets `COMPONENT_RETURN_TYPE` at the same position; this one change fixes both.
+An unannotated arrow also gets `COMPONENT_RETURN_TYPE` at the same position. This one change fixes both.
 
 ## Example
 

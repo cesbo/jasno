@@ -9,24 +9,26 @@
 <!-- design.md: B12.4 -->
 <!-- /generated:catalogue -->
 
-A signal (or a computed, or a resource field) was read directly while jasno was building UI: in a component body, a `show`/`match`/`each`/`catchError` callback, the `mount` view or a route view. That code runs once, so the value read there is a snapshot: the page shows it and never updates when the signal changes. The dev build warns; in tests a warning fails the test.
+Code read a signal directly while jasno was building UI. The signal can also be a computed or a resource field. This happens in a component body, a `show`/`match`/`each`/`catchError` callback, the `mount` view or a route view.
+
+That code runs once. The value it reads is a snapshot: the page shows it and never updates when the signal changes. The dev build warns. In tests, a warning fails the test.
 
 ## Fix
 
-Keep the signal live by handing jasno a function instead of its current value:
+Hand jasno a function instead of the current value. Then the signal stays live:
 
-- Children and props: pass the signal or a function, `h.p(null, count)` or `title: () => t()`, never `count()` or `t()`.
+- Children and props: pass the signal or a function, `h.p(null, count)` or `title: () => t()`. Never pass `count()` or `t()`.
 - A value computed from signals: `const total = computed(() => p.price() * p.qty())`, not `const total = p.price() * p.qty()`.
-- A branch that depends on a signal (`if (open())` in setup): `show(open, () => ...)` or `match(key, render)`.
-- A prop for a child component: pass the `Read` (`count`, `() => user().name`), not the called value.
-- Only a value that must never update, such as a draft's first text, is read with `untracked()`: `value: untracked(p.card).title`.
+- A branch that depends on a signal (`if (open())` in setup): use `show(open, () => ...)` or `match(key, render)`.
+- A prop for a child component: pass the `Read` (`count`, `() => user().name`). Do not pass the called value.
+- A value that must never update, such as a draft's first text: read it with `untracked()`: `value: untracked(p.card).title`.
 
 ## Example
 
 ```ts
 import { component, computed, h, type Read } from '@jasno/core';
 
-// Wrong: the body reads the props once; the total never changes
+// Wrong: the body reads the props once, so the total never changes.
 export const TotalWrong = component(function TotalWrong(p: { price: Read<number>; qty: Read<number> }): Node {
   const total = p.price() * p.qty();
   return h.p(null, `Total: ${total}`);

@@ -9,13 +9,17 @@
 <!-- design.md: B17.8 -->
 <!-- /generated:catalogue -->
 
-After a navigation the router moves focus into the new view: to its first visible `[autofocus]` element, else to its first `h1`. This view had neither when it rendered, so the router focused `<main>`, and a screen reader user hears nothing that says which page opened. The message names the route pattern, or `notFound`; after a failed navigation the error view is checked under the failed route's pattern.
+After a navigation, the router moves focus into the new view. It focuses the first visible `[autofocus]` element. If there is none, it focuses the first `h1`.
+
+This view had neither when it rendered. The router focused `<main>` instead. A screen reader user then hears nothing that says which page opened.
+
+The message names the route pattern, or `notFound`. After a failed navigation, the router checks the error view under the failed route's pattern.
 
 ## Fix
 
-- Render an `h.h1` in every view, the `notFound` and `error` views included. It may sit in a child component: the router takes the first `h1` anywhere in the view.
-- Keep it outside `show`/`match`, so it exists while the view's own data is still loading; its text may be live.
-- A view that starts with a form may put `autofocus: true` on its first field instead. That field must be visible: an `[autofocus]` element that is hidden, inside a closed `dialog` or inside a hidden popover is skipped.
+- Render an `h.h1` in every view, the `notFound` and `error` views included. It may sit in a child component. The router takes the first `h1` anywhere in the view.
+- Keep it outside `show`/`match`. Then it exists while the view's own data is still loading. Its text may be live.
+- A view that starts with a form may put `autofocus: true` on its first field instead. That field must be visible. The router skips an `[autofocus]` element that is hidden, inside a closed `dialog` or inside a hidden popover.
 
 ## Example
 
@@ -26,7 +30,7 @@ import type { ViewProps } from '@jasno/core/router';
 interface User { readonly id: string; readonly name: string }
 declare function getUser(id: string, signal: AbortSignal): Promise<User>;
 
-// Wrong: the h1 exists only once the user has loaded; right after the navigation the view shows "Loading"
+// Wrong: the h1 exists only after the user has loaded. Until then the view shows "Loading"
 export const UserWrong = component(function UserWrong(p: ViewProps<'/users/:id'>): Node {
   const user = resource({ params: () => p.params().id, loader: ({ params, abortSignal }) => getUser(params, abortSignal) });
   return h.section(null, show(() => user.hasValue() && user.value(),

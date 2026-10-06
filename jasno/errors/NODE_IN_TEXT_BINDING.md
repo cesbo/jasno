@@ -8,20 +8,24 @@
 
 <!-- /generated:catalogue -->
 
-A function passed as a child of an element returned a DOM node. In jasno a function child is live text: its result is turned into a string every time it changes, so it cannot insert, swap or remove elements. Dev builds throw, and when this happens on a later update the error goes to the nearest `catchError` (or the router's error view).
+A function passed as a child of an element returned a DOM node. In jasno, a function child is live text. jasno turns its result into a string every time it changes. A function child cannot insert, swap or remove elements.
+
+Dev builds throw. If this happens on a later update, the error goes to the nearest `catchError` (or the router's error view).
 
 <!-- design.md: B15.6 -->
 
 ## Fix
 
-Keep function children for text, and switch nodes with a region:
+Use function children for text only. Switch nodes with a region:
 
 - One of two contents depending on a condition: `show(when, then, otherwise)`.
 - One of several contents by a key (a tab, a status, a component): `match(key, render)`.
 - A list of nodes: `each(list, { key, render })`.
 - Only text: return a string or a number, `() => user().name`.
 
-tsc rejects a function child that returns a node, so this code usually got in through a cast or an `any` value. Remove the cast along with the fix. If the function child calls a component (`() => (ok() ? Profile() : SignIn())`), jasno throws `OWNED_IN_DERIVATION` instead, before this check. The fix is the same.
+tsc rejects a function child that returns a node. This code usually got in through a cast or an `any` value. Remove the cast along with the fix.
+
+If the function child calls a component (`() => (ok() ? Profile() : SignIn())`), jasno throws `OWNED_IN_DERIVATION` instead, before this check. The fix is the same.
 
 ## Example
 

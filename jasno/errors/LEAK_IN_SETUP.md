@@ -9,17 +9,19 @@
 <!-- design.md: B12.8 -->
 <!-- /generated:catalogue -->
 
-Setup code (a component body or a region builder) started a timer (`setTimeout`, `setInterval`) or added a listener to a global target (window, document, a media query list, a socket or a channel) without a `signal` option. jasno disposes what a component creates, but not these. They keep running after the component is gone, and every rebuild of the component adds another one.
+Setup code (a component body or a region builder) started a timer (`setTimeout`, `setInterval`). Or it added a listener to a global target without a `signal` option. Global targets are window, document, a media query list, a socket or a channel.
+
+jasno disposes what a component creates, but not these. They keep running after the component is gone. Every rebuild of the component adds another one.
 
 ## Fix
 
-Move the call into `onMount`, which runs after the nodes are inserted and cleans up when the component goes away:
+Move the call into `onMount`. It runs after jasno inserts the nodes. It cleans up when the component goes away.
 
 - Listeners: `onMount(({ abortSignal }) => window.addEventListener('resize', fit, { signal: abortSignal }))`.
 - Timers: `onMount(() => { const t = setInterval(tick, 1000); return () => clearInterval(t); })`.
-- A timer that restarts when a signal changes (polling) goes in an `effect` that returns a cleanup.
+- A timer that restarts when a signal changes (polling): put it in an `effect` that returns a cleanup.
 
-Listeners on elements are not reported: use `on*` props on the elements you create. Timers started in event handlers are fine.
+jasno does not report listeners on elements. Use `on*` props on the elements you create. Timers started in event handlers are fine.
 
 ## Example
 

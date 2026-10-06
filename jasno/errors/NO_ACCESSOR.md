@@ -5,7 +5,11 @@
 
 <!-- /generated:catalogue -->
 
-A class field is declared with `accessor` (`accessor count = 0`). TypeScript accepts these auto-accessors and jasno's type stripper passes them through, but V8 cannot parse them, so the browser throws a SyntaxError when it loads the module and every module importing it fails too. `jasno check` also reports `SYNTAX_REJECTED` on the same line; this code names the cause.
+A class field is declared with `accessor` (`accessor count = 0`). TypeScript accepts these auto-accessors. jasno's type stripper passes them through. V8 cannot parse them.
+
+The browser throws a SyntaxError when it loads the module. Every module that imports it fails too.
+
+`jasno check` also reports `SYNTAX_REJECTED` on the same line. This code names the cause.
 <!-- design.md: (c) jasno check table; (e) jasno check 4, 5 -->
 
 ## Fix

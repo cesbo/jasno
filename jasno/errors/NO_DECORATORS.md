@@ -5,13 +5,17 @@
 
 <!-- /generated:catalogue -->
 
-A class or class member has a decorator (`@name`). TypeScript accepts decorators and jasno's type stripper passes them through, but no JavaScript engine ships them yet, so the browser throws a SyntaxError when it parses the module: that module and every module importing it fail to load. `jasno check` also reports `SYNTAX_REJECTED` for the same file; this code names the cause.
+A class or class member has a decorator (`@name`). TypeScript accepts decorators. jasno's type stripper passes them through. No JavaScript engine ships them yet.
+
+The browser throws a SyntaxError when it parses the module. That module and every module that imports it fail to load.
+
+`jasno check` also reports `SYNTAX_REJECTED` for the same file. This code names the cause.
 <!-- design.md: (c) jasno check table; (e) jasno check 4, 5; (h) non-goals -->
 
 ## Fix
 
 - Replace the decorator with a plain function call that wraps the method or value.
-- Components are functions in jasno, `component(function Name(p: Props): Node { ... })`, never decorated classes (`@Component`, `@customElement` and `@property` come from other frameworks).
+- In jasno, a component is a function: `component(function Name(p: Props): Node { ... })`. It is never a decorated class. `@Component`, `@customElement` and `@property` come from other frameworks.
 - A reactive field is a signal (`const count = signal(0)`), not a decorated property.
 
 ## Example

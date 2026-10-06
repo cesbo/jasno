@@ -5,14 +5,18 @@
 
 <!-- /generated:catalogue -->
 
-One of the project's TypeScript configs differs from what jasno requires, so type checking would not match how jasno runs the code: the browser program and the test program must use the same strict, erasable-syntax settings, and only the test program may see Node's types. The message names each option and the value jasno expects.
+One of the project's TypeScript configs differs from what jasno requires. Type checking would then not match how jasno runs the code.
+
+The browser program and the test program must use the same strict, erasable-syntax settings. Only the test program may see Node's types.
+
+The message names each option and the value jasno expects.
 
 ## Fix
 
 Set each option the message names, or copy the configs that `npm create @jasno` writes:
 
 ```json
-// tsconfig.json: the browser program (src without tests)
+// tsconfig.json: the browser program (src without tests).
 {
   "compilerOptions": {
     "target": "es2025", "module": "nodenext", "moduleResolution": "nodenext",
@@ -27,7 +31,7 @@ Set each option the message names, or copy the configs that `npm create @jasno` 
 ```
 
 ```json
-// tsconfig.test.json: tests, e2e specs and the Playwright config, with Node's types
+// tsconfig.test.json: tests, e2e specs and the Playwright config, with Node's types.
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "types": ["node"] },
@@ -36,15 +40,15 @@ Set each option the message names, or copy the configs that `npm create @jasno` 
 }
 ```
 
-- Keep `*.test.ts` out of the browser program and `"types"` empty there, so browser code cannot use Node APIs.
+- Keep `*.test.ts` out of the browser program. Keep `"types"` empty there. Then browser code cannot use Node APIs.
 - Create `tsconfig.test.json` as soon as there is a test, an e2e spec or a Playwright config.
-- Leave `esnext.disposable` out of `lib`: `using` is not part of jasno's syntax.
-- `package.json` needs `"type": "module"`.
+- Leave `esnext.disposable` out of `lib`. `using` is not part of jasno's syntax.
+- Set `"type": "module"` in `package.json`.
 
 ## Example
 
 ```json
-// Wrong: the browser program sees Node's types and includes the tests
+// Wrong: the browser program sees Node's types and includes the tests.
 { "compilerOptions": { "types": ["node"] }, "include": ["src"] }
 ```
 

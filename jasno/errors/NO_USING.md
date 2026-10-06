@@ -5,13 +5,18 @@
 
 <!-- /generated:catalogue -->
 
-The code uses a `using` or `await using` declaration. The oldest browsers jasno supports cannot run it, and TypeScript's own error for it in the browser program (TS2318, the missing `Disposable` type) carries no file or line, so this rule points at the declaration instead. Adding `esnext.disposable` to `lib` only hides the type error and is itself `TSCONFIG_DRIFT`.
+The code uses a `using` or `await using` declaration. The oldest browsers jasno supports cannot run it.
+
+TypeScript's own error for it in the browser program is TS2318 (the missing `Disposable` type). That error carries no file or line. So this rule points at the declaration instead.
+
+Adding `esnext.disposable` to `lib` only hides the type error. It is itself `TSCONFIG_DRIFT`.
+
 <!-- design.md: (c) jasno check table; (e) jasno check 5; (h) non-goals -->
 
 ## Fix
 
 - Release the resource in `try`/`finally`.
-- In a component, create it in `onMount` and return the cleanup (or pass `abortSignal` to APIs that accept one): jasno runs it when the component goes away.
+- In a component, create it in `onMount` and return the cleanup. Or pass `abortSignal` to APIs that accept one. jasno runs the cleanup when the component goes away.
 - Remove `esnext.disposable` from `lib` if you added it.
 
 The rule runs in tests too.

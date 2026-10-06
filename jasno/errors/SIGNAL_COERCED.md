@@ -10,13 +10,15 @@
 
 <!-- /generated:catalogue -->
 
-A signal was used as if it were its value: concatenated with `+`, passed to `String()`, put in a template literal or compared. A signal is a function, so the text would be its source code (the production build prints exactly that), and tsc accepts all of these. The dev build throws a `TypeError` when a signal, computed or resource field is converted, and `jasno check` reports `+` concatenation and `String()` on anything with a zero-parameter call signature (a signal or a `Read` prop; a template literal gets `SIGNAL_IN_TEMPLATE`).
+Code used a signal as if it were its value. For example, it concatenated the signal with `+`, passed it to `String()`, put it in a template literal, or compared it. A signal is a function, so the text would be its source code. The production build prints exactly that. tsc accepts all of these.
+
+The dev build throws a `TypeError` when it converts a signal, computed or resource field. `jasno check` reports `+` concatenation and `String()` on anything with a zero-parameter call signature, such as a signal or a `Read` prop. A template literal gets `SIGNAL_IN_TEMPLATE` instead.
 
 ## Fix
 
 - Call it: `count() + 1`, `String(count())`, `` `${count()}` ``.
-- To keep the text live, wrap the whole expression in a function: `h.p(null, () => 'Total: ' + total())`, or pass the parts as separate children: `h.p(null, 'Total: ', total)`.
-- A `Read` prop (`p.label`) is a function too: `'Hi ' + p.label()` inside a function.
+- To keep the text live, wrap the whole expression in a function: `h.p(null, () => 'Total: ' + total())`. Or pass the parts as separate children: `h.p(null, 'Total: ', total)`.
+- A `Read` prop (`p.label`) is a function too. Call it inside a function: `'Hi ' + p.label()`.
 
 ## Example
 

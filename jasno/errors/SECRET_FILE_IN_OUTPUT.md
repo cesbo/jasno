@@ -5,13 +5,19 @@
 
 <!-- /generated:catalogue -->
 
-A directory that `jasno dist` publishes (`src/`, `assets/` or `public/`) contains a `.env*`, `*.pem` or `*.key` file, or `src/` or `assets/` contains a dotfile or dot-directory (`.cache/`). Such files usually hold secrets or tool state, and everything in those directories is public, so the build fails and nothing is written. `public/` is copied as is, so its other dotfiles are published: `public/.well-known/security.txt` is served at `/.well-known/security.txt`.
+A directory that `jasno dist` publishes contains a secret-like file. The directories are `src/`, `assets/` and `public/`. The files are `.env*`, `*.pem` and `*.key`.
+
+The build also fails when `src/` or `assets/` contains a dotfile or dot-directory, such as `.cache/`.
+
+Such files usually hold secrets or tool state. Everything in those directories is public. So the build fails and nothing is written.
+
+`public/` is copied as is. Its other dotfiles are published. For example, `public/.well-known/security.txt` is served at `/.well-known/security.txt`.
 <!-- design.md: (c) dist, (e) dist 1, ADR-29 -->
 
 ## Fix
 
-- Move the file out of `src/`, `assets/` and `public/`: `.env` belongs at the project root, next to `package.json`, and in `.gitignore`.
-- A value browser code reads is not a secret: the browser can download every file under `src/`. Keep secrets on the server; public settings go in `src/config.dev.ts` and `src/config.prod.ts` behind the `#config` import.
+- Move the file out of `src/`, `assets/` and `public/`. `.env` belongs at the project root, next to `package.json`, and in `.gitignore`.
+- A value that browser code reads is not a secret. The browser can download every file under `src/`. Keep secrets on the server. Put public settings in `src/config.dev.ts` and `src/config.prod.ts`, behind the `#config` import.
 - A tool that writes a dot-directory under `src/` or `assets/` (a cache): configure it to write elsewhere, or delete the directory.
 - A dotfile the site must serve (`.well-known/`): put it in `public/`.
 - Once the build passes, `npm run dist -- --list` prints every file that ships.

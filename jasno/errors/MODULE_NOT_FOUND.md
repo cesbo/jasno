@@ -5,15 +5,27 @@
 
 <!-- /generated:catalogue -->
 
-An import names a file that does not exist: a relative (`./x.ts`) or root-relative (`/src/x.ts`) import in the module graph, or the entry that the inline script in `index.html` imports. The browser would get a 404 for that module and fail to load everything that depends on it. `jasno dev` prints it when it builds the import map and `jasno dist` fails; `jasno check` reports it for the `index.html` entry, while a missing import inside `src/` shows there as TypeScript's TS2307.
+An import names a file that does not exist. The import can be:
+
+- a relative import in the module graph (`./x.ts`)
+- a root-relative import in the module graph (`/src/x.ts`)
+- the entry that the inline script in `index.html` imports
+
+The browser would get a 404 for that module. It would then fail to load everything that depends on it.
+
+Each command reports the problem in its own way:
+
+- `jasno dev` prints it when it builds the import map.
+- `jasno dist` fails.
+- `jasno check` reports it for the `index.html` entry. A missing import inside `src/` shows there as TypeScript's TS2307.
 <!-- design.md: (c) check/dev/dist, (e) dist 5 -->
 
 ## Fix
 
-- Correct the path: the file name and its case, the directory, the number of `../`. Relative specifiers name the real file, extension included (`./user-card.ts`).
+- Correct the path. Check the file name and its case, the directory and the number of `../`. A relative specifier names the real file, extension included (`./user-card.ts`).
 - If you renamed or moved the file, update every import of it.
-- The entry: `index.html` needs `<script type="module">import '/src/main.ts';</script>` naming a file that exists. `jasno dist` also reports this code when that inline script is missing.
-- `./x.js` when `x.ts` exists is `TS_EXTENSION` instead: write `./x.ts`.
+- The entry: `index.html` needs `<script type="module">import '/src/main.ts';</script>`. It must name a file that exists. `jasno dist` also reports this code when that inline script is missing.
+- `./x.js` when `x.ts` exists is `TS_EXTENSION` instead. Write `./x.ts`.
 
 ## Example
 

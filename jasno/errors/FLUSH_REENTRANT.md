@@ -9,13 +9,29 @@
 <!-- design.md: B4.2 -->
 <!-- /generated:catalogue -->
 
-`flush()` was called while jasno was building UI (a component body, a `show`/`match`/`each`/`catchError` callback, the `mount` view) or computing a value (a `computed()`, a live binding function, a `linkedSignal` computation, an `each` key function). Flushing there would run effects and DOM updates in the middle of that work, so jasno throws, in dev and production builds.
+Code called `flush()` while jasno was building UI or computing a value. jasno throws an error in dev and production builds.
+
+Building UI means running one of these:
+
+- a component body
+- a `show`/`match`/`each`/`catchError` callback
+- the `mount` view
+
+Computing a value means running one of these:
+
+- a `computed()`
+- a live binding function
+- a `linkedSignal` computation
+- an `each` key function
+
+A flush there would run effects and DOM updates in the middle of that work.
 
 ## Fix
 
-- In setup, remove it: bindings evaluate when they are created, so a component's DOM is complete when it returns. Work that needs the nodes in the document (measuring, focus, scrolling) goes in `onMount`, which runs after they are inserted.
-- In a computed or binding function, remove it: derivations only compute.
-- `flush()` belongs in tests, event handlers, effects and `onMount`: for example write, `flush()`, then measure the updated DOM in a handler.
+- In setup, remove the call. Bindings evaluate when they are created, so the DOM of a component is complete when it returns.
+- In setup, put work that needs the nodes in the document in `onMount`. This includes measuring, focus and scrolling. `onMount` runs after jasno inserts the nodes.
+- In a computed or binding function, remove the call. A computed only computes.
+- Call `flush()` only in tests, event handlers, effects and `onMount`. For example, in a handler: write, call `flush()`, then measure the updated DOM.
 
 ## Example
 

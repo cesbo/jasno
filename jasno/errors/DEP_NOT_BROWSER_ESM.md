@@ -5,15 +5,26 @@
 
 <!-- /generated:catalogue -->
 
-A package the app imports cannot run in the browser as installed. jasno does not bundle: `jasno dev` serves each file of a dependency's import closure as an ES module and `jasno dist` copies those files as they are. Reported when a file in that closure uses CommonJS (`require`, `module.exports`), reads `process.env` without a `typeof process` guard, or imports something that does not resolve (a `node:` module, a package that is not installed), or when the package's `"exports"` has no entry for the `browser`, `import` or `default` condition. `jasno dev` prints it and `jasno dist` fails; the message names the dependency file and position.
+A package that the app imports cannot run in the browser as installed.
+
+jasno does not bundle. `jasno dev` serves each file of the import closure of a dependency as an ES module. `jasno dist` copies those files as they are.
+
+jasno reports this error in these cases:
+
+- A file in the closure uses CommonJS (`require`, `module.exports`).
+- A file in the closure reads `process.env` without a `typeof process` guard.
+- A file in the closure imports something that does not resolve, such as a `node:` module or a package that is not installed.
+- The `"exports"` of the package has no entry for the `browser`, `import` or `default` condition.
+
+`jasno dev` prints the error. `jasno dist` fails. The message names the dependency file and position.
 <!-- design.md: (c) dev/dist, ADR-35 -->
 
 ## Fix
 
-- Use a version of the package that ships ES modules for browsers (`"exports"` with a `browser` or `import` condition), or a different package that does.
-- A `process.env` read: use the package's browser build if it has one (a read behind `typeof process !== 'undefined'` is fine).
-- A bare import inside the package that does not resolve: install the package it names (often a peer dependency); a `node:` import means the package is for Node only.
-- Optional peers that a package loads with `import()` are not checked.
+- Use a version of the package that ships ES modules for browsers (`"exports"` with a `browser` or `import` condition). Or use a different package that does.
+- A `process.env` read: use the browser build of the package if it has one. A read behind `typeof process !== 'undefined'` is fine.
+- A bare import inside the package that does not resolve: install the package that the import names. It is often a peer dependency. A `node:` import means the package is for Node only.
+- jasno does not check optional peers that a package loads with `import()`.
 
 ## Example
 

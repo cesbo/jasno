@@ -9,16 +9,25 @@
 <!-- design.md: B5.1 -->
 <!-- /generated:catalogue -->
 
-A signal was written while jasno was computing a value: inside a `computed()`, a `linkedSignal` computation, a function passed as a live prop or child, a `show`/`match` condition, an `each` key function or resource `params`. These functions run whenever jasno needs their value, so a write there would change state as a side effect of reading it. jasno throws instead, in dev and production builds, and the write is not applied.
+Code wrote a signal while jasno was computing a value. This happens inside one of these:
+
+- a `computed()`
+- a `linkedSignal` computation
+- a function passed as a live prop or child
+- a `show`/`match` condition
+- an `each` key function
+- resource `params`
+
+jasno runs these functions whenever it needs their value. A write there would change state as a side effect of a read. So jasno throws, in dev and production builds. The write is not applied.
 
 ## Fix
 
-Keep the computation pure and move the write somewhere else:
+Keep the function pure. Move the write somewhere else:
 
-- A value that follows other state: give it its own `computed()` instead of setting it from another computation.
-- State that resets when an input changes but can also be edited: `linkedSignal({ source: p.userId, computation: () => '' })`.
+- A value that follows other state: give it its own `computed()`. Do not set it from another computed.
+- State that resets when an input changes but can also be edited: use `linkedSignal({ source: p.userId, computation: () => '' })`.
 - A change the user causes: write it in the event handler.
-- Wrapping the write in `untracked()` does not help: it exempts reads, not writes.
+- Do not wrap the write in `untracked()`. It exempts reads, not writes.
 
 ## Example
 

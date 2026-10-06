@@ -5,12 +5,16 @@
 
 <!-- /generated:catalogue -->
 
-A browser file (a non-test file under `src/`, or a module the `index.html` entry reaches) imports a `node:` module or starts with `/// <reference types="node" />`. Node's modules do not exist in the browser, so the import fails when the page loads. The reference directive is worse: it gives every browser file Node's globals, so `process.env.X` type-checks and `setTimeout()` returns Node's `Timeout` instead of a number.
+A browser file imports a `node:` module or starts with `/// <reference types="node" />`. A browser file is a non-test file under `src/`, or a module the `index.html` entry reaches.
+
+Node's modules do not exist in the browser. The import fails when the page loads.
+
+The reference directive is worse. It gives every browser file Node's globals. Then `process.env.X` type-checks. And `setTimeout()` returns Node's `Timeout` instead of a number.
 <!-- design.md: (c) jasno check table; (e) jasno check 1, 3, 5; ADR-26 -->
 
 ## Fix
 
-- Delete the `/// <reference types="node" />` line (also in `.d.ts` files under `src/`); tests get Node's types from `tsconfig.test.json`.
+- Delete the `/// <reference types="node" />` line. Do the same in `.d.ts` files under `src/`. Tests get Node's types from `tsconfig.test.json`.
 - Keep Node code in tests, e2e specs and config files, or in a script outside `src/`.
 - In browser code, use the web platform instead: `crypto.randomUUID()` and `crypto.subtle` for `node:crypto`, `TextEncoder` and `Uint8Array` for `Buffer`, `EventTarget` for `node:events`.
 

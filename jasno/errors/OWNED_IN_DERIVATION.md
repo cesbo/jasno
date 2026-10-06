@@ -9,13 +9,26 @@
 <!-- design.md: B6.11 -->
 <!-- /generated:catalogue -->
 
-An effect, resource, component, `onMount` callback, `createRoot` or `mount()` was created inside a derivation: a `computed()`, a `linkedSignal` computation, a live binding function, a `show`/`match` condition, an `each` key function or resource `params`. Derivations re-run whenever jasno needs their value and have no owner, so nothing could ever dispose what they create; jasno throws, in dev and production builds. Wrapping the code in `untracked()` does not change this.
+Your code created an effect, resource, component, `onMount` callback, `createRoot` or `mount()` inside a derivation.
+
+A derivation is one of these:
+
+- a `computed()`
+- a `linkedSignal` computation
+- a live binding function
+- a `show`/`match` condition
+- an `each` key function
+- resource `params`
+
+A derivation re-runs whenever jasno needs its value. It has no owner. Nothing could ever dispose what it creates, so jasno throws. It throws in dev and production builds.
+
+Wrapping the code in `untracked()` does not change this.
 
 ## Fix
 
-- A resource that should reload when an input changes: create one resource in setup and read the input in `params: () => ...`; new params abort the old load.
-- Content that changes with a value: `match(key, render)` or `show(when, then)`. Their callbacks are setup, so they may create components, effects and `onMount`, which die when the branch changes.
-- Effects and `onMount`: create them in setup or in `onMount`; `computed()` stays pure.
+- A resource that must reload when an input changes: create one resource in setup. Read the input in `params: () => ...`. New params abort the old load.
+- Content that changes with a value: use `match(key, render)` or `show(when, then)`. Their callbacks are setup. They may create components, effects and `onMount`. These die when the branch changes.
+- Effects and `onMount`: create them in setup or in `onMount`. Keep `computed()` pure.
 
 ## Example
 

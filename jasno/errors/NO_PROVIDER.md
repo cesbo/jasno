@@ -9,12 +9,14 @@
 <!-- design.md: B13.2 -->
 <!-- /generated:catalogue -->
 
-`useContext(Ctx)` found no `provide(Ctx, value, ...)` above the component that called it, and `createContext` was given no default, so jasno threw (dev and production builds). The lookup walks up from the owner that was current when the consumer was created, not from where its node ends up in the DOM.
+`useContext(Ctx)` found no `provide(Ctx, value, ...)` above the component that called it. `createContext` was given no default. So jasno threw, in dev and production builds.
+
+The lookup walks up from the owner that was current when the consumer was created. It does not start from where the node ends up in the DOM.
 
 ## Fix
 
-- Wrap the subtree in `provide(Ctx, value, () => ...)` above every consumer: in App for app-wide values, and in tests around the component under test: `mountTest(t, () => provide(Ctx, value, () => Panel()))`.
-- A consumer handed over as a node (`child: Label()`) is created by the caller, before the provider runs. Pass a function prop instead (`panel: () => Label()`) and call it inside `provide`.
+- Wrap the subtree in `provide(Ctx, value, () => ...)` above every consumer. Do this in App for app-wide values. In tests, wrap the component under test: `mountTest(t, () => provide(Ctx, value, () => Panel()))`.
+- A consumer handed over as a node (`child: Label()`) is created by the caller, before the provider runs. Pass a function prop instead (`panel: () => Label()`). Call it inside `provide`.
 - When a sensible fallback exists, give `createContext` a default: `createContext<string>('Theme', 'light')`.
 
 ## Example

@@ -5,14 +5,21 @@
 
 <!-- /generated:catalogue -->
 
-`index.html` carries its own `<meta http-equiv="Content-Security-Policy">`. `jasno dist` writes the production policy itself, into the built `index.html` and `_headers`: `script-src 'self'` plus the hashes of the two inline scripts (the import map and the entry), with Trusted Types. Browsers enforce every policy on the page, so yours applies on top of jasno's: with `'strict-dynamic'` it blocks the app's imports in Chromium and Firefox (an error); without it the stricter of the two wins, and the app can break only after deploy (a warning).
+Your `index.html` has its own `<meta http-equiv="Content-Security-Policy">`.
+
+`jasno dist` writes the production policy itself. It puts the policy into the built `index.html` and `_headers`. The policy is `script-src 'self'` plus the hashes of the two inline scripts (the import map and the entry), with Trusted Types.
+
+Browsers enforce every policy on the page. Your policy applies on top of the policy from jasno.
+
+- With `'strict-dynamic'`, your policy blocks the imports of the app in Chromium and Firefox. This is an error.
+- Without `'strict-dynamic'`, the stricter of the two policies wins. The app can break only after deploy. This is a warning.
 <!-- design.md: (c) dist, (e) dist 6 -->
 
 ## Fix
 
-- Delete the CSP `<meta>` from `index.html`; `jasno dist` writes the policy.
-- A server that sets a nonce per response: `npm run dist -- --nonce` prints the nonce and `'strict-dynamic'` variant of jasno's policy for the server to send; the server adds `nonce="<nonce>"` to both inline scripts of the page it serves.
-- Other directives (`connect-src`, `img-src`, `frame-ancestors`): send them as headers from your host; browsers enforce them alongside jasno's policy.
+- Delete the CSP `<meta>` from `index.html`. `jasno dist` writes the policy.
+- A server that sets a nonce per response: run `npm run dist -- --nonce`. It prints the nonce and `'strict-dynamic'` variant of the jasno policy. The server sends this policy. The server also adds `nonce="<nonce>"` to both inline scripts of the page it serves.
+- Other directives (`connect-src`, `img-src`, `frame-ancestors`): send them as headers from your host. Browsers enforce them together with the jasno policy.
 
 ## Example
 

@@ -9,14 +9,18 @@
 <!-- design.md: B5.4 -->
 <!-- /generated:catalogue -->
 
-While jasno was building UI (a component body, a `show`/`match`/`each`/`catchError` callback, the `mount` view), code wrote a signal that this setup did not create: a module-level signal, or a parent's signal passed down as a prop. The write is applied, but rendering one part of the page then changes what other parts show. The dev build warns; in tests a warning fails the test.
+Code wrote a signal that this setup did not create. This happened while jasno was building UI. Setup runs in a component body, a `show`/`match`/`each`/`catchError` callback or the `mount` view.
+
+The signal is a module-level signal, or a parent's signal passed down as a prop.
+
+jasno applies the write. But rendering one part of the page then changes what other parts show. The dev build warns. In tests, a warning fails the test.
 
 ## Fix
 
-- Initial state: create the signal with its initial value, or derive it with `computed()` or `linkedSignal()`.
-- A view that publishes something to the shell (a heading in the app header): write it in `onMount` and reset it in the cleanup `onMount` returns.
+- Initial state: create the signal with its initial value. Or derive it with `computed()` or `linkedSignal()`.
+- A view that publishes something to the shell (a heading in the app header): write it in `onMount`. Reset it in the cleanup that `onMount` returns.
 - A change the user causes: write it in the event handler.
-- Setup may write signals it created itself. Wrapping the write in `untracked()` does not help: it exempts reads, not writes.
+- Setup may write signals it created itself. Wrapping the write in `untracked()` does not help. It exempts reads, not writes.
 
 ## Example
 

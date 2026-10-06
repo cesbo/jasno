@@ -8,15 +8,17 @@
 
 <!-- /generated:catalogue -->
 
-The array given to `each()` had two items whose key function returned the same key. A key identifies one row, so only the first of those items keeps its row. Every later duplicate gets a new row on every update, losing focus and typed text, and the list usually shows the same item twice.
+The array given to `each()` had two items with the same key from the key function.
+
+A key identifies one row. Only the first of those items keeps its row. Every later duplicate gets a new row on every update. The row loses focus and typed text. The list usually shows the same item twice.
 
 <!-- design.md: B11.5 -->
 
 ## Fix
 
-- Key by a unique id, `key: (item) => item.id`, not by a name, title or other field that two items can share.
-- Deduplicate lists merged from several sources by id when you merge them: history plus live pushes, or your own sends plus the server's echo of them.
-- Give new items their id on the client when you create them (`crypto.randomUUID()`) and keep it through the save. The server's echo then replaces the item instead of adding it again.
+- Key by a unique id: `key: (item) => item.id`. Do not key by a name, title or other field that two items can share.
+- Deduplicate by id when you merge lists from several sources. Examples are history plus live pushes, or your own sends plus the echo of them from the server.
+- Give new items their id on the client when you create them (`crypto.randomUUID()`). Keep the id through the save. The echo from the server then replaces the item instead of adding it again.
 
 ## Example
 

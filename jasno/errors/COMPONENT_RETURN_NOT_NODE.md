@@ -8,7 +8,7 @@
 
 <!-- /generated:catalogue -->
 
-A function wrapped in `component()` returned something that is not a DOM node, such as `null`, `undefined`, a string or an array. jasno inserts the node a component returns, so dev builds throw when the component is called. The message names the component and what it returned.
+A function wrapped in `component()` returned something that is not a DOM node, such as `null`, `undefined`, a string or an array. jasno inserts the node that a component returns. Dev builds therefore throw when the component is called. The message names the component and what it returned.
 
 <!-- design.md: B14.2 -->
 
@@ -17,10 +17,10 @@ A function wrapped in `component()` returned something that is not a DOM node, s
 Return exactly one node:
 
 - To render nothing (`return null`), return a region: `return show(() => cond(), () => h.p(...))`. Or wrap the call in `show()` in the parent.
-- An array of nodes: wrap them in one element, or render the list with `each()` inside an element.
-- A string: return an element with that text, `h.span(null, text)`.
+- For an array of nodes, wrap them in one element. Or render the list with `each()` inside an element.
+- For a string, return an element with that text: `h.span(null, text)`.
 
-tsc rejects these return values in a component (its function must return `Node`), so look for a cast or an `any` value that let them through.
+tsc rejects these return values in a component. The component function must return `Node`. Look for a cast or an `any` value that let them through.
 
 ## Example
 

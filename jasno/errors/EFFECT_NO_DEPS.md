@@ -8,12 +8,19 @@
 
 <!-- /generated:catalogue -->
 
-An effect's first run read no signal, so nothing can ever make it run again: it behaved like a one-time callback that happens to be written as an effect. Either the work is one-time and belongs in `onMount`, or the effect was meant to react to state and never read it (the read sits behind an early return or inside `untracked()`). The dev build warns.
+The first run of an effect read no signal. Nothing can make it run again. It behaves like a one-time callback that is written as an effect.
+
+There are two possible causes:
+
+- The work is one-time and belongs in `onMount`.
+- The effect should react to state but never reads it. The read sits behind an early return or inside `untracked()`.
+
+The dev build warns.
 
 ## Fix
 
-- One-time work (a window listener, focus, a third-party widget, a value set once): use `onMount(fn)`. It runs after the nodes are inserted, and its cleanup or `abortSignal` ends with the component.
-- Work that should follow state: read the signals in every run, before any early return: `effect(() => { const t = title(); if (!enabled) return; document.title = t; })`.
+- One-time work (a window listener, focus, a third-party widget, a value set once): use `onMount(fn)`. It runs after jasno inserts the nodes. Its cleanup or `abortSignal` ends with the component.
+- Work that should follow state: read the signals in every run, before any early return. Example: `effect(() => { const t = title(); if (!enabled) return; document.title = t; })`.
 
 ## Example
 
@@ -22,7 +29,7 @@ import { component, effect, h, onMount } from '@jasno/core';
 
 declare function fit(): void;
 
-// Wrong: the effect reads no signal; it runs once and never again
+// Wrong: the effect reads no signal, so it runs once and never again.
 export const ChartWrong = component(function ChartWrong(): Node {
   effect(({ abortSignal }) => { window.addEventListener('resize', fit, { signal: abortSignal }); });
   return h.div({ class: 'chart' });

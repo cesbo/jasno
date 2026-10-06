@@ -8,14 +8,23 @@
 
 <!-- /generated:catalogue -->
 
-`await settled()` waited its timeout (2,000 ms unless you pass `timeout`) and work was still pending. The message lists it: `loader of <name>` for a resource (its `debugName`, else `resource#N`), `initial navigation` or `navigation to /path` for the router, `click handler in <Owner>` for a promise an `on*` handler returned, and `the flush queue`. Usually the code under test is waiting for a real server, a mocked timer, or a promise the test never settles.
+`await settled()` waited for its timeout, and work was still pending. The timeout is 2,000 ms unless you pass `timeout`.
+
+The message lists the pending work:
+
+- `loader of <name>`: a resource. The name is its `debugName`, or `resource#N` without one.
+- `initial navigation` or `navigation to /path`: the router.
+- `click handler in <Owner>`: a promise that an `on*` handler returned.
+- `the flush queue`.
+
+Usually the code under test waits for a real server, a mocked timer, or a promise the test never settles.
 
 ## Fix
 
-- Real network: stub `fetch` before `mountTest`, `provide()` a fake service through context, or import the API from a `#api` mock module, which `npm test` gets through the `development` condition.
-- A promise the test holds on purpose, to check a "Loading" state: assert with `await waitFor(() => ...)`, which does not wait for pending work, then settle the promise and `await settled()`.
-- `mock.timers`: work waiting on a mocked `setTimeout` stays pending until `t.mock.timers.tick(ms)`; tick before `await settled()`.
-- Give resources a `debugName`, so the message says which one is pending.
+- Real network: stub `fetch` before `mountTest`. Or `provide()` a fake service through context. Or import the API from a `#api` mock module. `npm test` gets this module through the `development` condition.
+- A promise the test holds on purpose, to check a "Loading" state: assert with `await waitFor(() => ...)`. It does not wait for pending work. Then settle the promise and `await settled()`.
+- `mock.timers`: work that waits on a mocked `setTimeout` stays pending until `t.mock.timers.tick(ms)`. Tick before `await settled()`.
+- Give resources a `debugName`. Then the message says which one is pending.
 - Raise `settled({ timeout })` only for real work that is slow.
 
 ## Example
@@ -43,7 +52,7 @@ test('shows Loading while the books load', async (t) => {
   assert.equal(view.root.textContent, 'Loading books');
 });
 
-// Right: waitFor checks "Loading" without waiting for the loader; then the fake answers
+// Right: waitFor checks "Loading" without waiting for the loader. Then the fake answers.
 test('shows Loading, then the books', async (t) => {
   let answer = (_books: readonly string[]): void => {};
   const view = mountTest(t, () => provide(ApiContext, { listBooks: () => new Promise((resolve) => { answer = resolve; }) }, () => Books()));

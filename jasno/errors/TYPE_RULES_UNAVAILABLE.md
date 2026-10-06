@@ -5,16 +5,30 @@
 
 <!-- /generated:catalogue -->
 
-`jasno check` could not import TypeScript's API (`typescript/unstable/sync` and `typescript/unstable/ast`) from your project's `typescript` package; the message quotes the import error. It still ran `tsc` for both configs and the rules that work on the stripped module text, but skipped every rule that needs the syntax tree or types, so problems such as `NO_HTML_SINK`, `USE_ROUTER`, `CURRENT_TARGET_AFTER_AWAIT` or `SIGNAL_IN_TEMPLATE` can be in the code without being reported.
+`jasno check` could not import the TypeScript API from your project's `typescript` package. The API modules are `typescript/unstable/sync` and `typescript/unstable/ast`. The message quotes the import error.
+
+jasno still ran `tsc` for both configs. It also ran the rules that work on the stripped module text. It skipped every rule that needs the syntax tree or types.
+
+Problems such as `NO_HTML_SINK`, `USE_ROUTER`, `CURRENT_TARGET_AFTER_AWAIT` or `SIGNAL_IN_TEMPLATE` can be in the code without a report.
 <!-- design.md: (c) jasno check table; (e) jasno check 1, 7; ADR-26 -->
 
 ## Fix
 
-- Read the error in the message: it usually points to a broken or partial install of `typescript`.
-- Reinstall it: `npm install -D typescript@~7.0.2`, or delete `node_modules` and install again.
-- Run `npm run check` again: the warning is gone once the API loads.
+- Read the error in the message. It usually points to a broken or partial install of `typescript`.
+- Reinstall it with `npm install -D typescript@~7.0.2`. Or delete `node_modules` and install again.
+- Run `npm run check` again. The warning is gone once the API loads.
 
-The warning does not fail a plain `npm run check`, but it fails under `--strict` and whenever the `CI` environment variable is set, because a green check without these rules proves little. What still runs without the API: tsc's own diagnostics, `TS_EXTENSION`, `IMPORT_NOT_MAPPED`, `NODE_TYPES_IN_BROWSER_CODE` for runtime `node:` imports, `IMPORT_MAP_HANDWRITTEN`, the syntax gate (`SYNTAX_REJECTED`) and `TSCONFIG_DRIFT`.
+The warning does not fail a plain `npm run check`. It fails under `--strict` and whenever the `CI` environment variable is set. A green check without these rules proves little.
+
+These checks still run without the API:
+
+- tsc's own diagnostics
+- `TS_EXTENSION`
+- `IMPORT_NOT_MAPPED`
+- `NODE_TYPES_IN_BROWSER_CODE` for runtime `node:` imports
+- `IMPORT_MAP_HANDWRITTEN`
+- the syntax gate (`SYNTAX_REJECTED`)
+- `TSCONFIG_DRIFT`
 
 ## Example
 

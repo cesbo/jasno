@@ -9,13 +9,13 @@
 <!-- design.md: B15.6 -->
 <!-- /generated:catalogue -->
 
-A node that already had a parent was passed as a child again. A DOM node can be in only one place, so jasno moved it, and it disappeared from where it was rendered first. Usually one element was meant to appear twice.
+A node that already had a parent was passed as a child again. A DOM node can be in only one place. jasno moved it, so it disappeared from where it was rendered first. Usually you meant one element to appear twice.
 
 ## Fix
 
-- For content used in several places, write a function that creates a new node for each use (`const icon = () => svg.svg(...)`) and call it at each place.
-- If a component puts a node it received (`p.icon`) in two places, render it once, or take a function prop (`icon: () => Node`) and call it for each place.
-- Build nodes where they are used instead of taking them from elsewhere in the document.
+- For content used in several places, write a function that creates a new node for each use: `const icon = () => svg.svg(...)`. Call it at each place.
+- If a component puts a node it received (`p.icon`) in two places, render it once. Or take a function prop (`icon: () => Node`) and call it for each place.
+- Build nodes where you use them. Do not take them from elsewhere in the document.
 
 ## Example
 

@@ -8,16 +8,16 @@
 
 <!-- /generated:catalogue -->
 
-The element that had keyboard focus was removed, disabled or hidden by an update, and nothing moved focus, so the browser put it on `<body>`. Keyboard and screen-reader users lose their place and must start again from the top of the page.
+An update removed, disabled or hid the element that had keyboard focus. Nothing moved focus, so the browser put it on `<body>`. Keyboard and screen-reader users lose their place. They must start again from the top of the page.
 
 ## Fix
 
 Decide where focus goes before the update takes the focused element away:
 
-- A button that is busy while a request runs: keep it focusable with `'aria-disabled'` and ignore repeat presses in the handler, instead of `disabled`.
-- Deleting the focused row, or a filter that hides it: in the handler, focus a neighbour row (or the list heading) before changing the list.
-- Content that replaces the focused element (a form replaced by its result): focus the new content in `onMount` inside the branch that renders it.
-- A Retry button inside `show()` that disappears when you retry: focus the status line first, then call `reload()`.
+- A button that is busy while a request runs: keep it focusable with `'aria-disabled'` instead of `disabled`. Ignore repeat presses in the handler.
+- Deleting the focused row, or a filter that hides it: in the handler, focus a neighbour row or the list heading. Do this before you change the list.
+- Content that replaces the focused element (a form replaced by its result): focus the new content in `onMount`. Put the `onMount` inside the branch that renders the content.
+- A Retry button inside `show()` that disappears when you retry: focus the status line first. Then call `reload()`.
 
 ## Example
 
@@ -47,7 +47,7 @@ export const Save = component(function Save(): Node {
 });
 ```
 
-In Playwright, `click()` waits for an `aria-disabled` element to become enabled: test an ignored second press with `click({ force: true })`.
+In Playwright, `click()` waits for an `aria-disabled` element to become enabled. To test an ignored second press, use `click({ force: true })`.
 
 ## Fixture
 

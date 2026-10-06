@@ -9,25 +9,29 @@
 <!-- design.md: B12.6 -->
 <!-- /generated:catalogue -->
 
-A `computed()` or a live binding function ran and read every signal through `untracked()`, so it depends on nothing and can never recompute: it shows its first value forever. `untracked()` is not a way to silence `STRICT_READ_UNTRACKED`; inside a function jasno re-runs, it only switches tracking off. The dev build warns.
+A `computed()` or a live binding function ran and read every signal through `untracked()`. It depends on nothing, so it can never recompute. It shows its first value forever.
+
+`untracked()` is not a way to silence `STRICT_READ_UNTRACKED`. Inside a function that jasno re-runs, it only switches tracking off.
+
+The dev build warns.
 
 ## Fix
 
 - Read the signal directly inside the computed or binding: `computed(() => p.name().toUpperCase())`.
-- If the value really must stay as it was at creation (a draft's first text), take it once in setup as a plain value, `const initial = untracked(p.name)`, and use that value, not a function.
+- If the value must stay as it was at creation (a draft's first text), take it once in setup as a plain value: `const initial = untracked(p.name)`. Use that value, not a function.
 
 ## Example
 
 ```ts
 import { component, computed, h, untracked, type Read } from '@jasno/core';
 
-// Wrong: the computed reads only through untracked(); the heading never changes
+// Wrong: the computed reads only through untracked(), so the heading never changes.
 export const TitleWrong = component(function TitleWrong(p: { name: Read<string> }): Node {
   const upper = computed(() => untracked(p.name).toUpperCase());
   return h.h2(null, upper);
 });
 
-// Right: read the prop directly so the computed follows it
+// Right: read the prop directly, so the computed follows it.
 export const Title = component(function Title(p: { name: Read<string> }): Node {
   const upper = computed(() => p.name().toUpperCase());
   return h.h2(null, upper);

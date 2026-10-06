@@ -9,11 +9,22 @@
 <!-- design.md: B13.3 -->
 <!-- /generated:catalogue -->
 
-`useContext` was called when no component was being set up: in an event handler, a timer or a cleanup, after an `await`, inside a `computed()` or a live binding function, or at module level. Context is found through the owner tree, and that code runs with no current owner, so jasno throws (dev and production builds).
+Your code called `useContext` when no component was in setup. jasno throws in the dev and production builds.
+
+This happens in these places:
+
+- An event handler, a timer or a cleanup.
+- Code after an `await`.
+- A `computed()` or a live binding function.
+- Module level.
+
+jasno finds context through the owner tree. This code runs with no current owner.
 
 ## Fix
 
-Call `useContext` in the component body (or in `onMount`, which runs with the component as owner), keep the result in a `const`, and use the const in handlers, async code and computeds. The value is stored as-is, so a const taken in setup stays correct; to share changing data, provide a signal.
+Call `useContext` in the component body. You can also call it in `onMount`, which runs with the component as owner. Keep the result in a `const`. Use the const in handlers, async code and computeds.
+
+The value is stored as-is. A const taken in setup stays correct. To share data that changes, provide a signal.
 
 ## Example
 

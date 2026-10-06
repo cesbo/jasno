@@ -9,13 +9,16 @@
 <!-- design.md: B9.13 -->
 <!-- /generated:catalogue -->
 
-A resource loader read a signal before its first `await`. The loader runs untracked, so changing that signal does not reload the resource: the results stay those of the old value. Only `params` is tracked; the dev build warns.
+A resource loader read a signal before its first `await`. The loader runs untracked. Changing that signal does not reload the resource, so the results stay those of the old value.
+
+Only `params` is tracked. The dev build warns about this read.
 
 ## Fix
 
-- Move the read into `params` and use the `params` the loader receives: `params: () => query(), loader: ({ params, abortSignal }) => search(params, abortSignal)`. New params abort the old load and start a new one.
-- Several inputs: return an object, `params: () => ({ q: query(), page: page() })`. Objects compare one level deep, so the same values do not reload.
-- A value that must deliberately not trigger a reload: read it inside `untracked()` in the loader, which is silent. Reads after the first `await` are not reported, but they are snapshots too.
+- Move the read into `params`. Use the `params` that the loader receives: `params: () => query(), loader: ({ params, abortSignal }) => search(params, abortSignal)`. New params abort the old load and start a new one.
+- Several inputs: return an object, `params: () => ({ q: query(), page: page() })`. Objects compare one level deep. The same values do not reload.
+- A value that must not trigger a reload: read it inside `untracked()` in the loader. jasno does not warn about this.
+- Reads after the first `await` are not reported. They are snapshots too.
 
 ## Example
 

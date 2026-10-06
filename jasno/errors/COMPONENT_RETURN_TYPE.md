@@ -6,7 +6,11 @@
 <!-- design.md: ADR-06 -->
 <!-- /generated:catalogue -->
 
-A function passed to `component()` has no return type annotation. A view usually imports the router (for `router.href`) while `src/routes.ts` imports the view (`view: () => import('./views/about.ts')`); with an inferred return type, TypeScript needs the router's type to type the view and the view's type to type the router, so it gives up and reports TS7022 (`'router' implicitly has type 'any'`) in routes.ts, far from the cause. A `: Node` annotation breaks the cycle.
+A function passed to `component()` has no return type annotation.
+
+A view usually imports the router (for `router.href`). `src/routes.ts` imports the view (`view: () => import('./views/about.ts')`). With an inferred return type, TypeScript needs the router's type to type the view. It also needs the view's type to type the router. TypeScript gives up and reports TS7022 (`'router' implicitly has type 'any'`) in routes.ts, far from the cause.
+
+A `: Node` annotation breaks the cycle.
 <!-- design.md: (c) check and the TS7022 rewrite, ADR-06 -->
 
 ## Fix
@@ -15,7 +19,7 @@ Annotate every component function with `: Node`:
 
 `component(function UserView(p: ViewProps<'/users/:id', User>): Node { ... })`
 
-When TS7022 appears on the router export, `jasno check` prints these warnings first and drops the implicit-any errors it causes in the route table (a `title: (d) => d.name` callback): fix the warnings and the error goes away.
+When TS7022 appears on the router export, `jasno check` prints these warnings first. It drops the implicit-any errors that TS7022 causes in the route table (a `title: (d) => d.name` callback). Fix the warnings and the error goes away.
 
 ## Example
 

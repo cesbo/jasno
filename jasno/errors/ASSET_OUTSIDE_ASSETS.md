@@ -5,15 +5,17 @@
 
 <!-- /generated:catalogue -->
 
-Code refers to a file under `src/` that is not a module: `new URL('./logo.png', import.meta.url)` in a browser file (`jasno check`), or a request for such a file (`jasno dev`). `jasno dist` publishes only the `.ts` modules under `src/` and the JSON modules they import, under hashed names, and no other file there, so the URL 404s in production.
+Code refers to a file under `src/` that is not a module. `jasno check` reports `new URL('./logo.png', import.meta.url)` in a browser file. `jasno dev` reports a request for such a file.
+
+`jasno dist` publishes only the `.ts` modules under `src/` and the JSON modules they import. It publishes them under hashed names. It publishes no other file from `src/`. The URL therefore 404s in production.
 <!-- design.md: (c) check/dev, (e) dev and dist 2, (f) -->
 
 ## Fix
 
-- Move the file to `assets/` and refer to it by its root path, `'/assets/logo.png'`. `jasno dist` copies `assets/` unhashed and never rewrites code, so the path stays valid.
-- Files that must sit at the site root (`robots.txt`, `favicon.ico`) go in `public/`.
-- Data the code needs can be a JSON module instead: `import data from './data.json' with { type: 'json' };`.
-- `jasno dev` reporting a `.js`, `.mjs`, `.mts` or `.tsx` file under `src/`: jasno modules are `.ts` files, so rename it.
+- Move the file to `assets/`. Refer to it by its root path, `'/assets/logo.png'`. `jasno dist` copies `assets/` unhashed and never rewrites code. The path stays valid.
+- Put files that must sit at the site root (`robots.txt`, `favicon.ico`) in `public/`.
+- For data the code needs, use a JSON module instead: `import data from './data.json' with { type: 'json' };`.
+- If `jasno dev` reports a `.js`, `.mjs`, `.mts` or `.tsx` file under `src/`, rename it. jasno modules are `.ts` files.
 
 ## Example
 

@@ -9,13 +9,15 @@
 <!-- design.md: B10.6 -->
 <!-- /generated:catalogue -->
 
-A `show` or `match` branch, an `each` row or a `catchError` fallback returned an element that it did not create. The element was built in the component's setup or in an earlier branch. Its bindings therefore belong to another owner: they outlive the branch, and a `catchError` cannot catch their errors.
+A `show` or `match` branch, an `each` row or a `catchError` fallback returned an element that it did not create. The element was built in the component's setup or in an earlier branch.
+
+Its bindings therefore belong to another owner. They outlive the branch. A `catchError` cannot catch their errors.
 
 ## Fix
 
-- Create the element inside the builder: `show(open, () => h.section(...))`. Each build gets a new element whose bindings end with the branch. Calling a component there is fine too: `show(open, () => Details())`.
+- Create the element inside the builder: `show(open, () => h.section(...))`. Each build gets a new element. Its bindings end with the branch. Calling a component there is fine too: `show(open, () => Details())`.
 - To keep one element and its state (scroll position, typed text) while it is closed, leave it mounted and toggle it: `h.section({ hidden: () => !open() }, ...)`.
-- Do not cache elements between builds (`cached ??= h.p(...)`) or share one element across rows.
+- Do not cache elements between builds (`cached ??= h.p(...)`). Do not share one element across rows.
 
 ## Example
 

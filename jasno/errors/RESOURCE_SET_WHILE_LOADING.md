@@ -9,15 +9,19 @@
 <!-- design.md: B9.8 -->
 <!-- /generated:catalogue -->
 
-`set()` was called on a resource while it was loading, with no value yet, for its current params. This usually happens after an `await` in a save, when the user has already moved to another record. The value almost certainly belongs to the earlier params, but `set()` stores it as the current params' value and aborts their load, so the page would show the wrong record.
+Your code called `set()` on a resource while it was loading. The resource had no value yet for its current params.
+
+This usually happens after an `await` in a save. The user has already moved to another record.
+
+The value almost certainly belongs to the earlier params. But `set()` stores it as the value of the current params and aborts their load. The page would show the wrong record.
 
 ## Fix
 
-- After an `await`, capture the params before it and write only if they are unchanged: `const id = p.id(); const saved = await saveNote(id, text); if (p.id() === id) note.set(saved);`.
-- Optimistic values are `set()` before the `await`, while the resource holds the value for these params.
+- After an `await`: capture the params before it. Write only if they are unchanged: `const id = p.id(); const saved = await saveNote(id, text); if (p.id() === id) note.set(saved);`.
+- Optimistic values: call `set()` before the `await`, while the resource holds the value for these params.
 - Do not use `set()` to fill a resource that has not loaded yet. Return early with `if (!r.hasValue()) return`.
 
-The warning never fires in `reloading` (a `reload()` that keeps the value), so a save that finishes during a refresh may `set()` its result.
+The warning never fires in `reloading`. That is a `reload()` that keeps the value. So a save that finishes during a refresh may call `set()` with its result.
 
 ## Example
 

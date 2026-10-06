@@ -6,19 +6,26 @@
 <!-- design.md: ADR-37 -->
 <!-- /generated:catalogue -->
 
-A stylesheet under `assets/` imports tailwindcss (`@import "tailwindcss"`), so `jasno dev` and `jasno dist` compile it with the project's `@tailwindcss/cli` (ADR-37), and that failed: the package is not installed, or the CLI exited non-zero on the sheet (an unknown utility in `@apply`, a syntax error, a missing `@source` path). `jasno dev` answers the request with a 500 and prints the problem; `jasno dist` writes nothing.
+A stylesheet under `assets/` imports tailwindcss (`@import "tailwindcss"`). `jasno dev` and `jasno dist` compile it with the project's `@tailwindcss/cli` (ADR-37). That compile failed.
+
+There are two causes:
+
+- The package is not installed.
+- The CLI exited non-zero on the sheet: an unknown utility in `@apply`, a syntax error, a missing `@source` path.
+
+`jasno dev` answers the request with a 500 and prints the problem. `jasno dist` writes nothing.
 <!-- design.md: (c) dev/dist, (e) dev and dist 2, ADR-37 -->
 
 ## Fix
 
-- Not installed: `npm install -D @tailwindcss/cli`. The stylesheet needs nothing else; jasno finds the CLI through the package's `bin` and runs it from the project root, so Tailwind scans `src/` and `index.html` for classes.
-- The CLI failed: the message carries its output. Fix the sheet it names; `npx tailwindcss -i assets/app.css` from the project root reproduces it with the full report.
-- A stylesheet that should ship as it is: drop the `@import "tailwindcss"` line; jasno copies every other `.css` under `assets/` unchanged.
+- Not installed: run `npm install -D @tailwindcss/cli`. The stylesheet needs nothing else. jasno finds the CLI through the package's `bin` and runs it from the project root. So Tailwind scans `src/` and `index.html` for classes.
+- The CLI failed: the message carries its output. Fix the sheet it names. To see the full report, run `npx tailwindcss -i assets/app.css` from the project root.
+- A stylesheet that should ship as it is: drop the `@import "tailwindcss"` line. jasno copies every other `.css` under `assets/` unchanged.
 
 ## Example
 
 ```css
-/* assets/app.css: compiled by the project's @tailwindcss/cli in dev and dist; link it from index.html */
+/* assets/app.css: the project's @tailwindcss/cli compiles it in dev and dist. Link it from index.html. */
 @import "tailwindcss";
 
 /* Wrong: no such utility, so the CLI exits 1 and TAILWIND_FAILED names this file */

@@ -9,13 +9,25 @@
 <!-- design.md: B19.3, B19.6 -->
 <!-- /generated:catalogue -->
 
-Code that jasno runs for you threw during the test and no `catchError` region caught it: an effect, a binding, `onMount`, a cleanup, or a promise returned by an `on*` handler that rejected. In the app the error would only reach `reportError` and the console, and the user would never be told. The test fails with the original error as `cause`, and the message says where it came from: `Reactive code in <owner path> threw: ...` or `The promise returned by the click handler in <owner path> threw: ...`.
+Code that jasno runs for you threw during the test. No `catchError` region caught the error.
+
+The code can be one of these:
+
+- an effect
+- a binding
+- `onMount`
+- a cleanup
+- a promise that an `on*` handler returned and that rejected
+
+In the app, the error would only reach `reportError` and the console. The user would never see it.
+
+The test fails with the original error as `cause`. The message says where the error came from: `Reactive code in <owner path> threw: ...` or `The promise returned by the click handler in <owner path> threw: ...`.
 
 ## Fix
 
-- Read the `cause` (node:test prints it with its stack) and fix the bug. A frequent one: reading `value()` of a resource whose load failed, which throws the loader's error; gate on `hasValue()`.
-- A handler whose async work can fail (a save, a delete): catch the error in the handler and show it to the user, instead of returning a promise that rejects.
-- A subtree the page should survive (a chart, a widget, a panel of third-party data): wrap it in `catchError(() => Chart(), (err, reset) => ...)` with a visible fallback; `reset()` renders it again.
+- Read the `cause`. node:test prints it with its stack. Then fix the bug. A frequent bug is reading `value()` of a resource whose load failed. That read throws the loader's error. Gate the read on `hasValue()`.
+- A handler whose async work can fail (a save, a delete): catch the error in the handler and show it to the user. Do not return a promise that rejects.
+- A subtree the page should survive (a chart, a widget, a panel of third-party data): wrap it in `catchError(() => Chart(), (err, reset) => ...)` with a visible fallback. `reset()` renders the subtree again.
 
 ## Example
 

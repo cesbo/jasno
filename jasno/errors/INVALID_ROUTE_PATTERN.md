@@ -9,19 +9,29 @@
 <!-- design.md: B17.1 -->
 <!-- /generated:catalogue -->
 
-`createRouter()` threw because a route pattern uses syntax the router does not support, so the app's routes cannot load. The reason after the colon names the problem. The router checks patterns when `createRouter()` runs, not in `route()`, in both builds, and it stops at the first bad pattern.
+`createRouter()` threw an error. A route pattern uses syntax that the router does not support, so the app's routes cannot load. The reason after the colon names the problem.
+
+The router checks patterns when `createRouter()` runs, in both builds. It does not check them in `route()`. It stops at the first bad pattern.
 
 ## Fix
 
-Rewrite the pattern in the supported grammar: segments that start with `/`, each either plain text or one parameter: `:name`, `:name?` (optional), `:name+` (one or more segments), `:name*` (zero or more) or `:name(regex)` (one segment matching the regex).
+Rewrite the pattern in the supported grammar. Each segment starts with `/`. Each segment is either plain text or one parameter:
 
-- "empty segment": remove the double or trailing slash (`/users/` → `/users`). A trailing slash in the URL still matches.
-- "mixes text and parameter syntax": a segment is all text or one parameter (`/files/*` → `/files/:path+`, `/user-:id` → `/user/:id`).
-- "is not :name, …": parameter names are identifiers (`/:user-id` → `/:userId`).
+- `:name`
+- `:name?` (optional)
+- `:name+` (one or more segments)
+- `:name*` (zero or more segments)
+- `:name(regex)` (one segment that matches the regex)
+
+Then find your reason in this list:
+
+- "empty segment": remove the double slash or the trailing slash (`/users/` → `/users`). A trailing slash in the URL still matches.
+- "mixes text and parameter syntax": make each segment all text or one parameter (`/files/*` → `/files/:path+`, `/user-:id` → `/user/:id`).
+- "is not :name, …": use identifiers as parameter names (`/:user-id` → `/:userId`).
 - "appears twice": give each parameter its own name.
-- "must be the last segment": a `+` or `*` parameter takes the rest of the path, so nothing may follow it.
+- "must be the last segment": nothing may follow a `+` or `*` parameter. That parameter takes the rest of the path.
 - "not a valid regular expression": fix the constraint. It must match one whole decoded segment.
-- "it matches every path" (this one has its own hint, "use notFound"): delete the catch-all route. `createRouter(routes, { error, notFound })` already renders `notFound()` for any URL that no route matches.
+- "it matches every path": delete the catch-all route. This reason has its own hint, "use notFound". `createRouter(routes, { error, notFound })` already renders `notFound()` for any URL that no route matches.
 
 ## Example
 

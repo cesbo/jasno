@@ -9,17 +9,23 @@
 <!-- design.md: B12.4 -->
 <!-- /generated:catalogue -->
 
-Setup code (a component body, a `show`/`match`/`each`/`catchError` builder, the mount or route view) called a resource's `value()` before the resource had a value, while its status was idle or loading. Setup runs only once, so the read would capture `undefined` and the page would never show the data. Dev builds throw instead.
+Setup code called a resource's `value()` before the resource had a value. The resource status was idle or loading.
+
+Setup code is a component body, a `show`/`match`/`each`/`catchError` builder, or the mount or route view.
+
+Setup runs only once. The read would capture `undefined`, so the page would never show the data. Dev builds throw instead.
 
 ## Fix
 
-Read the value inside a function that jasno re-runs, and gate content on `hasValue()`:
+Read the value inside a function that jasno re-runs. Gate the content on `hasValue()`:
 
 - Content that needs the data: `show(() => r.hasValue() && r.value(), (v) => ...)`. Inside the builder, read `v()` in functions: `() => v().name`.
-- Loading and error states get their own regions: `show(r.isLoading, ...)`, `show(() => r.status() === 'error', ...)`.
-- A route view that cannot render without the data: load it in the route's `loader` and read `p.data()` in functions.
+- Loading and error states: give each its own region, such as `show(r.isLoading, ...)` or `show(() => r.status() === 'error', ...)`.
+- A route view that cannot render without the data: load it in the route's `loader`. Read `p.data()` in functions.
 
-Once the resource has a value, the same setup read reports `STRICT_READ_UNTRACKED` instead, and the fix is the same. Reads inside `untracked()` and in `onMount` are not checked.
+Once the resource has a value, the same setup read reports `STRICT_READ_UNTRACKED` instead. The fix is the same.
+
+jasno does not check reads inside `untracked()` or in `onMount`.
 
 ## Example
 

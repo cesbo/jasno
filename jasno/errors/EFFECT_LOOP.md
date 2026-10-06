@@ -9,16 +9,24 @@
 <!-- design.md: B4.6, B4.10 -->
 <!-- /generated:catalogue -->
 
-Effects or live bindings kept re-triggering each other: one ran more than 100 times in a single flush, the flush reached round 101, or (dev build) more than 1,000 microtask flushes ran with no macrotask in between. Without the cap the tab would freeze. jasno stopped the loop and threw, naming the consumers that ran most (with their locations in dev) and the bindings whose DOM may now be stale; they stay subscribed, so the next change to what they read runs them again.
+Effects or live bindings triggered each other again and again. jasno stopped the loop and threw an error. Without this limit, the tab would freeze.
+
+jasno stops the loop in one of three cases:
+
+- One effect or binding ran more than 100 times in a single flush.
+- A single flush needed more than 100 rounds.
+- In the dev build, more than 1,000 microtask flushes ran with no macrotask between them.
+
+The error names the effects and bindings that ran most. In the dev build, it also gives their locations. It lists the bindings whose DOM may now be stale. These bindings stay subscribed, so the next change to a signal they read runs them again.
 
 ## Fix
 
-Find the consumer the message names first, then:
+Start with the effect or binding that the message names. Then pick the fix:
 
-- An effect that writes a signal it reads: derive the value with `computed()`, or with `linkedSignal()` if the user can also set it. `EFFECT_WRITES_STATE` usually warned about this effect first.
-- A write that must stay in an effect: make it converge. Signals compare with `Object.is`, so writing a new array or object on every run never settles; write only when the value really differs.
-- Two effects that write each other's sources: compute both values in one `computed()`, or move the writes to the event handler that starts the change.
-- An effect that writes after `.then()` (the 1,000-microtask guard): load async data with `resource({ params, loader })` instead.
+- An effect that writes a signal it reads: derive the value with `computed()`. Use `linkedSignal()` if the user can also set the value. `EFFECT_WRITES_STATE` usually warned about this effect first.
+- A write that must stay in an effect: make it converge. Signals compare with `Object.is`, so a new array or object on every run never settles. Write only when the value really differs.
+- Two effects that write each other's sources: compute both values in one `computed()`. Or move the writes to the event handler that starts the change.
+- An effect that writes after `.then()` (the 1,000-microtask limit): load the data with `resource({ params, loader })` instead.
 
 ## Example
 

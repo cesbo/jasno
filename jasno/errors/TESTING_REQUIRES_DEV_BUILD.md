@@ -8,23 +8,23 @@
 
 <!-- /generated:catalogue -->
 
-A test imported `@jasno/core/testing`, but Node resolved it without the `development` condition. Without that condition Node loads jasno's production build, which reports no diagnostics, so there is nothing for `mountTest` to check: `@jasno/core/testing` throws on import, and no test in the file runs.
+A test imported `@jasno/core/testing`, but Node resolved it without the `development` condition. Without that condition, Node loads jasno's production build. The production build reports no diagnostics, so `mountTest` has nothing to check. `@jasno/core/testing` throws on import. No test in the file runs.
 
 ## Fix
 
-- Run tests with `npm test`: the script that `npm create @jasno` writes passes `--conditions=development`.
+- Run tests with `npm test`. The script that `npm create @jasno` writes passes `--conditions=development`.
 - To run one file by hand, pass the same flags: `node --conditions=development --import @jasno/core/testing/happy-dom --test src/views/user.test.ts`.
-- A tool that starts Node itself (an editor's test runner, a CI step that calls `node --test`): set `NODE_OPTIONS=--conditions=development` for it.
+- A tool that starts Node itself (an editor's test runner, a CI step that calls `node --test`): set `NODE_OPTIONS=--conditions=development` for that tool.
 
 ## Example
 
 ```json
-// Wrong: plain node --test resolves jasno's production build
+// Wrong: plain node --test resolves the production build.
 { "scripts": { "test": "node --test \"src/**/*.test.ts\"" } }
 ```
 
 ```json
-// Right: the script npm create @jasno writes
+// Right: this is the script that npm create @jasno writes.
 { "scripts": { "test": "node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"" } }
 ```
 

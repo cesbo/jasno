@@ -9,18 +9,25 @@
 <!-- design.md: B17.1 -->
 <!-- /generated:catalogue -->
 
-Two routes overlap so that the later one can never render. The router tries routes in table order, and the earlier route (named second in the message) matches every URL the later one could. `createRouter()` throws in both builds, so the view does not just silently never show.
+Two routes overlap, so the later one can never render. The router tries routes in table order. The earlier route matches every URL the later one could. The message names the earlier route second.
+
+`createRouter()` throws in both builds. So the view does not silently never show.
 
 ## Fix
 
-Move the more specific route above the general one, or delete the later route if it duplicates the earlier one:
+Move the more specific route above the general one. Or delete the later route if it duplicates the earlier one:
 
 - Put a static segment before a parameter: `/users/new` above `/users/:id`.
 - Put a constrained parameter before an unconstrained one: `/orders/:id(\d+)` above `/orders/:slug`.
 - Optional and rest parameters also match the shorter paths. `/docs/:path*` matches `/docs` and `/docs/intro`, so list `/docs/intro` first. `/p/:x?` matches both `/p` and `/p/:y`.
 - The same pattern twice, or twice with only the parameter renamed (`/u/:id`, `/u/:any`): keep one.
 
-The router compares the two patterns segment by segment. A static segment covers only the same text. An unconstrained parameter covers any single segment. `:x(c)` covers only a constraint written exactly as `c`. A `+` or `*` parameter covers the rest of the path.
+The router compares the two patterns segment by segment:
+
+- A static segment covers only the same text.
+- An unconstrained parameter covers any single segment.
+- `:x(c)` covers only a constraint written exactly as `c`.
+- A `+` or `*` parameter covers the rest of the path.
 
 ## Example
 

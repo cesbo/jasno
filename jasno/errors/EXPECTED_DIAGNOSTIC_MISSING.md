@@ -8,13 +8,21 @@
 
 <!-- /generated:catalogue -->
 
-The test passed `{ expect: [...] }` to `mountTest`, but the code the message names was never reported while the view was mounted. Either the test no longer reaches the case it was written to check, or the component was fixed and the expectation is stale; the test fails so that a test about a warning cannot pass without the warning.
+The test passed `{ expect: [...] }` to `mountTest`. The code the message names was never reported while the view was mounted.
+
+There are two possible causes:
+
+- The test no longer reaches the case it was written to check.
+- Someone fixed the component, and the expectation is stale.
+
+The test fails on purpose. A test about a warning cannot pass without the warning.
 
 ## Fix
 
-- The component was fixed on purpose: remove the code from `expect` (and drop the option when the list is empty).
-- The test should reproduce it: make it reach the case. Do what a user would do first (focus the element before the update that should report `FOCUS_LOST`), and after the last change call `flush()` or `await settled()`, so the update runs before the view is unmounted and checked.
-- `expect` accepts only codes that correct code can trigger; a code that always means broken code is a type error there.
+- The component was fixed on purpose: remove the code from `expect`. Drop the option when the list is empty.
+- The test should reproduce the case: make it reach the case. Do what a user would do first. For example, focus the element before the update that should report `FOCUS_LOST`.
+- After the last change, call `flush()` or `await settled()`. Then the update runs before the view is unmounted and checked.
+- `expect` accepts only codes that correct code can trigger. A code that always means broken code is a type error there.
 
 ## Example
 

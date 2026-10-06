@@ -5,23 +5,26 @@
 
 <!-- /generated:catalogue -->
 
-A class member carries a TypeScript-only modifier: `private`, `protected`, `public`, `readonly`, `abstract`, `override` or `declare`. Type stripping deletes the word, so at run time a `private` or `readonly` field is an ordinary public, writable property: tsc checks the modifier, but nothing enforces it in the browser, and jasno's syntax subset leaves these modifiers out.
+A class member carries a TypeScript-only modifier: `private`, `protected`, `public`, `readonly`, `abstract`, `override` or `declare`.
+
+Type stripping deletes the word. At run time, a `private` or `readonly` field is an ordinary public, writable property. tsc checks the modifier, but nothing enforces it in the browser. jasno's syntax subset leaves these modifiers out.
+
 <!-- design.md: (c) jasno check table; (e) jasno check 5 -->
 
 ## Fix
 
-- `private` or `protected` field or method: make it `#private` (`#count`, `#save()`); the engine enforces it.
-- `readonly` field: a `#private` field plus a getter.
+- `private` or `protected` field or method: make it `#private` (`#count`, `#save()`). The engine enforces it.
+- `readonly` field: use a `#private` field plus a getter.
 - `public` and `override`: delete the word.
-- `abstract` member: give the base class a real method (one that throws, if subclasses must replace it), or describe the shape with an interface. An `abstract class` without abstract members is fine.
-- `declare` field: delete the line (it only re-types an inherited field) and narrow the type where the value is used.
+- `abstract` member: give the base class a real method. If subclasses must replace it, make the method throw. Or describe the shape with an interface. An `abstract class` without abstract members is fine.
+- `declare` field: delete the line, because it only re-types an inherited field. Narrow the type where the value is used.
 
-`readonly` in interfaces and type literals is fine: the rule looks at class members only. The rule runs in tests too.
+`readonly` in interfaces and type literals is fine. The rule looks at class members only. The rule runs in tests too.
 
 ## Example
 
 ```ts
-// Wrong: after type stripping, started and label are public, writable fields
+// Wrong: after type stripping, started and label are public and writable.
 export class TimerWrong {
   private started = Date.now();
   readonly label: string;

@@ -5,15 +5,20 @@
 
 <!-- /generated:catalogue -->
 
-Browser code changes the URL with `history.pushState` or `replaceState` (an error), or reads `location.pathname` or `location.search` (a warning). The router does not see a URL you push yourself, so its `url()`, the rendered view, the title and focus go stale; a `location` read is a value of one moment that never updates your view. Only the browser's own `history` and `location` count: a local variable or parameter with that name is not reported.
+Browser code changes the URL with `history.pushState` or `replaceState`. This is an error. Browser code reads `location.pathname` or `location.search`. This is a warning.
+
+The router does not see a URL that you push yourself. Its `url()`, the rendered view, the title and focus go stale. A `location` read gives the value of one moment, and it never updates your view.
+
+Only the browser's own `history` and `location` count. A local variable or parameter with that name is not reported.
+
 <!-- design.md: (c) jasno check table; (e) jasno check 3; ADR-21 -->
 
 ## Fix
 
-- Change the URL with `router.navigate(url)`, adding `{ replace: true }` for search-param edits and after delete or create. Relative URLs such as `'?q=x'` resolve against the current one.
+- Change the URL with `router.navigate(url)`. Add `{ replace: true }` for search-param edits and after delete or create. Relative URLs such as `'?q=x'` resolve against the current one.
 - Read the URL from `router.url()`, a signal: `computed(() => router.url().searchParams.get('q') ?? '')`.
-- Close a detail with `router.back('/')` (the fallback for a deep link), not `history.back()`.
-- Tests may call `history.replaceState` to set the start URL: the rule checks browser files only.
+- Close a detail with `router.back('/')`. The `'/'` is the fallback for a deep link. Do not use `history.back()`.
+- Tests may call `history.replaceState` to set the start URL. The rule checks browser files only.
 
 ## Example
 

@@ -9,13 +9,17 @@
 <!-- design.md: B6.8 -->
 <!-- /generated:catalogue -->
 
-An effect, `onMount` callback, resource or component was created while no owner was current: at module level, in an event handler, a timer or a cleanup, or after an `await`. Nothing will ever dispose it: an ownerless effect keeps running until you call its `stop()`, and a resource is never aborted and keeps reacting to its params. The dev build warns; in tests a warning fails the test.
+An effect, `onMount` callback, resource or component was created while no owner was current. This happens at module level, in an event handler, in a timer or a cleanup, or after an `await`.
+
+Nothing will ever dispose it. An ownerless effect keeps running until you call its `stop()`. A resource is never aborted and keeps reacting to its params.
+
+The dev build warns. In tests, a warning fails the test.
 
 ## Fix
 
-- Create it during setup (a component body or a `show`/`match`/`each` callback) or in `onMount`, so it is disposed with that owner.
+- Create it during setup (a component body or a `show`/`match`/`each` callback) or in `onMount`. Then jasno disposes it with that owner.
 - App-lifetime work at module level (app-wide data in `src/state.ts`): wrap it in `createRoot(() => ...)`.
-- A handler that wants to start something: create it in setup and let the handler change a signal, for example `show(open, () => Details())` with `onclick: () => open.set(true)`.
+- A handler that needs to start something: create it in setup. Let the handler change a signal. Example: `show(open, () => Details())` with `onclick: () => open.set(true)`.
 - `signal()` and `computed()` need no owner and never report this.
 
 ## Example

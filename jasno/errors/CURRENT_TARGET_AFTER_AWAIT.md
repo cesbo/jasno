@@ -5,15 +5,23 @@
 
 <!-- /generated:catalogue -->
 
-An async event handler reads `e.currentTarget` after an `await`. The DOM sets `currentTarget` to null once the handler returns, which it does at its first `await`, so the read gives null and the next property access throws a TypeError. TypeScript types `currentTarget` as the element, so tsc cannot catch this.
+An async event handler reads `e.currentTarget` after an `await`.
+
+The DOM sets `currentTarget` to null once the handler returns. An async handler returns at its first `await`. The read gives null. The next property access throws a TypeError.
+
+TypeScript types `currentTarget` as the element. `tsc` cannot catch this error.
 <!-- design.md: (c) jasno check table; (e) jasno check 5; ADR-03 -->
 
 ## Fix
 
-- Copy the element to a const before the first `await` (`const form = e.currentTarget;`) and use the const afterwards.
+- Copy the element to a const before the first `await`: `const form = e.currentTarget;`. Use the const afterwards.
 - An `await` inside a block that ends in `return` or `throw` (an early exit) counts only for code inside that block.
 
-The rule checks `on*` props and methods of `h.*` and `svg.*` props objects, `addEventListener` callbacks and `el.onclick = ...` assignments.
+The rule checks these handlers:
+
+- `on*` props and methods of `h.*` and `svg.*` props objects.
+- `addEventListener` callbacks.
+- `el.onclick = ...` assignments.
 
 ## Example
 
