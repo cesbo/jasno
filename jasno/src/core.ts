@@ -36,13 +36,19 @@ let S_label: string | undefined;
 let S_loader: string | undefined;
 let setupIds = 0;
 
-type Ctx = [ReactiveNode | undefined, Owner | undefined, RNode | undefined, EffectNode | undefined, number, string | undefined, string | undefined, string | undefined];
-const save = (): Ctx => [S_sub, S_owner, S_deriv, S_effect, S_setup, S_region, S_label, S_loader];
-const restore = (c: Ctx): void => { [S_sub, S_owner, S_deriv, S_effect, S_setup, S_region, S_label, S_loader] = c; };
+// The last three slots are dev-only: production never sets them, so it saves five.
+type Ctx = [ReactiveNode | undefined, Owner | undefined, RNode | undefined, EffectNode | undefined, number, (string | undefined)?, (string | undefined)?, (string | undefined)?];
+const save = (): Ctx => DEV
+  ? [S_sub, S_owner, S_deriv, S_effect, S_setup, S_region, S_label, S_loader]
+  : [S_sub, S_owner, S_deriv, S_effect, S_setup];
+const restore = (c: Ctx): void => {
+  S_sub = c[0]; S_owner = c[1]; S_deriv = c[2]; S_effect = c[3]; S_setup = c[4];
+  if (DEV) { S_region = c[5]; S_label = c[6]; S_loader = c[7]; }
+};
 function enter(sub: ReactiveNode | undefined, owner: Owner | undefined, deriv: RNode | undefined, eff: EffectNode | undefined): Ctx {
   const c = save();
-  S_sub = sub; S_owner = owner; S_deriv = deriv; S_effect = eff;
-  S_setup = 0; S_region = undefined; S_label = undefined; S_loader = undefined;
+  S_sub = sub; S_owner = owner; S_deriv = deriv; S_effect = eff; S_setup = 0;
+  if (DEV) { S_region = undefined; S_label = undefined; S_loader = undefined; }
   return c;
 }
 
