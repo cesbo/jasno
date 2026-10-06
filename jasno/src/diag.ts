@@ -41,7 +41,9 @@ export class JasnoError extends Error {
 }
 
 function make(code: string, severity: Severity, message: string, hint: string, info: DiagInfo, loc: string | undefined): Diagnostic {
-  const where = [loc && `at ${loc}`, info.ownerPath && `in ${info.ownerPath}`].filter(Boolean).join(' ');
+  // Most templates already name the owner path; the suffix repeats it only for those that do not.
+  const path = info.ownerPath && !message.includes(info.ownerPath) ? info.ownerPath : '';
+  const where = [loc && `at ${loc}`, path && `in ${path}`].filter(Boolean).join(' ');
   return {
     code, severity, hint, docs: docsOf(code),
     message: `[${code}] ${message}${where ? ` (${where})` : ''}`,

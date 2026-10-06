@@ -6,7 +6,7 @@ import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRoot, effect, flush, h, show, signal } from '@jasno/core';
+import { component, createRoot, effect, flush, h, mount, show, signal } from '@jasno/core';
 import { mountTest, settled } from '@jasno/core/testing';
 import { capture } from '../helpers.ts';
 
@@ -23,6 +23,29 @@ test('U-DG8: update() in an effect that writes an observed signal reports EFFECT
   dispose();
   assert.deepEqual(cap.codes(), ['EFFECT_WRITES_STATE']);
   assert.match(cap.diags[0]!.message, /"bump".*"b"/);
+});
+
+test('Format: "in ownerPath" is left out of the suffix when the message already names the owner path', () => {
+  const cap = capture();
+  const on = signal(false), b = signal(0, { debugName: 'b' });
+  const Card = component(function Card(): Node {
+    effect(() => { b(); });
+    effect(() => { b.set(1); }, { debugName: 'bump' });
+    return h.button(null, h.i(null));
+  });
+  const target = document.createElement('div');
+  document.body.append(target);
+  const unmount = mount(() => h.div(null, show(on, () => Card())), target);
+  on.set(true); flush();
+  unmount();
+  target.remove();
+  cap.stop();
+  const named = cap.diags.find((d) => d.code === 'INTERACTIVE_NO_NAME')!;
+  const writes = cap.diags.find((d) => d.code === 'EFFECT_WRITES_STATE')!;
+  assert.match(named.ownerPath, /<Card>$/);
+  assert.equal(named.message.split(named.ownerPath).length - 1, 1, named.message);
+  assert.match(writes.ownerPath, /<Card>$/);
+  assert.ok(writes.message.includes(`in ${writes.ownerPath})`), writes.message);
 });
 
 test('RP-10: FOCUS_LOST is reported once per element, action, owner path and cause; a repeat counts', async (t) => {
