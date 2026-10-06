@@ -585,7 +585,7 @@ All commands exit 0 on success and 1 on failure, print one line per problem (`fi
 - SPA fallback: a `GET` with `Accept: text/html`, no file extension and no matching file serves `index.html`; never under `/src`, `/@dep`, `/@jasno` or `/assets` (a miss there is a missing file, as in dist's `_redirects`), and never for `.ts`/`.js`. Files under `public/` are served at the root, as dist publishes them.
 - Dev client: SSE (`/__jasno/events`) full reload on change of a file the server would serve (not dotfiles, editor swap files or symlinked paths), of `index.html`, `package.json`, or a linked or workspace package (real path outside `node_modules`) (debounced; skipped when `navigator.webdriver` is true); forwards uncaught errors (a capture-phase `window` `error` listener, so failed module loads are forwarded too), unhandled rejections and warn/error diagnostics to `POST /__jasno/log`, which accepts only same-origin requests, caps the body at 64 KB and strips control characters before printing.
 - `.jasno/dev.json` records `{ pid, port, url }`; a second `jasno dev` first calls `GET /__jasno/ping` (returns the project root and pid) and reuses the server only if it answers for the same root, else takes over: it starts a new server and overwrites the record (on a port conflict it exits 1 with a `--port` hint).
-- Floor: Node `^24.12.0 || >=26.0.0`; runs with `--disable-warning=ExperimentalWarning`.
+- Floor: Node `>=24.12.0`; runs with `--disable-warning=ExperimentalWarning`.
 
 ### `jasno dist`
 Rolldown bundles the graph jasno resolved (ADR-29): amaro strips the types first, Rolldown joins the modules into chunks and minifies whitespace and syntax, identifiers keep their names, and linked source maps point at the `.ts` files. File names gain a content hash (`index.html` and `assets/**` keep their names).
@@ -693,7 +693,7 @@ Conventions: `export const Name = component(function Name(p: NameProps): Node { 
   "name": "my-app",
   "private": true,
   "type": "module",
-  "engines": { "node": "^24.12.0 || >=26.0.0" },
+  "engines": { "node": ">=24.12.0" },
   "imports": { "#config": { "development": "./src/config.dev.ts", "default": "./src/config.prod.ts" } },
   "scripts": {
     "check": "jasno check",
@@ -749,7 +749,7 @@ Ladder (each rung exits non-zero on failure; stop at the first failing rung; a r
 
 **In 1.0:** `@jasno/core` (signal, computed, linkedSignal, untracked, flush, selector, effect, onMount, createRoot, resource, component, `h` with 98 tags, svg, show, match, each, catchError, mount, css, createContext, provide, useContext, bindValue, bindNumber, bindChecked: 25 runtime exports), `@jasno/core/router` (route, createRouter), `@jasno/core/testing` (mountTest, settled, plus `@jasno/core/testing/happy-dom`), five CLI commands (check, dev, dist, preview, explain), dev/prod builds, the diagnostics catalogue with `errors/*.md` and `errors/index.json`, `docs/recipes/*.md`, `__JASNO__`, AGENTS.md.
 
-**Floors.** Node `^24.12.0 || >=26.0.0`. Browsers: Chrome/Edge ≥ 136, Firefox ≥ 138, Safari/iOS ≥ 18.4 (`checkVisibility` needs Chrome 105, Firefox 106, Safari 17.4, inside the floor). The Navigation API path needs Chrome 102 / Firefox 147 / Safari 26.2; below that the History adapter runs. `moveBefore` and `ariaNotify` are progressive, with focus re-application and a live region as fallbacks.
+**Floors.** Node `>=24.12.0`. Browsers: Chrome/Edge ≥ 136, Firefox ≥ 138, Safari/iOS ≥ 18.4 (`checkVisibility` needs Chrome 105, Firefox 106, Safari 17.4, inside the floor). The Navigation API path needs Chrome 102 / Firefox 147 / Safari 26.2; below that the History adapter runs. `moveBefore` and `ariaNotify` are progressive, with focus re-application and a live region as fallbacks.
 
 **Non-goals:** SSR, hydration, SSG; JSX or any template language; a bundler configuration, and code transforms beyond type stripping (`jasno dist` bundles and minifies, ADR-29); decorators and class components; custom elements as the component model, shadow DOM, a custom-element factory (deferred); Proxy stores; `query` and `form` modules; portals; Suspense and transitions; nested routes and overlay routes (a detail over a list is a search param, RECIPES), file-based routing, router view transitions, POST route actions, `beforeLeave` guards; sub-path deployment (the app is served at the origin root; a `base` option is additive later; hash mode, B17.19, keeps routes working under one fixed document path, and `jasno dist --prefix` moves `src/` and `assets/` under one URL path, dist 10); web workers (`WORKER_UNSUPPORTED`); HMR (full reload only); Service-Worker or in-browser stripping; `Symbol.dispose`/`using`; WebMCP; a devtools UI.
 

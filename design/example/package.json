@@ -2,7 +2,7 @@
   "name": "jasno-example",
   "private": true,
   "type": "module",
-  "engines": { "node": "^24.12.0 || >=26.0.0" },
+  "engines": { "node": ">=24.12.0" },
   "imports": {
     "#api": { "development": "./src/api.mock.ts", "default": "./src/api.ts" }
   },

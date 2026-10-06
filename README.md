@@ -61,7 +61,7 @@ The design and its decisions are in [`design/`](https://github.com/cesbo/jasno/t
 
 ## Requirements
 
-- Node `^24.12.0` or `>=26.0.0`
+- Node `>=24.12.0`
 - TypeScript `~7.0.2`
 - Browsers: Chrome and Edge 136+, Firefox 138+, Safari 18.4+
 
