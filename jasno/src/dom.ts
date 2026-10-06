@@ -464,6 +464,13 @@ export function each(list: () => readonly unknown[], options: {
       }
       return k;
     }));
+    // Same keys in the same order: only items changed, so no row is created, disposed or moved, and indexes stay.
+    let same = keys.length === order.length;
+    for (let i = 0; same && i < keys.length; i++) same = rows.get(keys[i]) === order[i];
+    if (same) {
+      for (let i = 0; i < items.length; i++) writeRaw(order[i]!.item, items[i]);
+      return;
+    }
     const next: Row[] = [];
     const nextMap = new Map<unknown, Row>();
     let error: unknown;

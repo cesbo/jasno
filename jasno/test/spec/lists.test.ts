@@ -622,6 +622,24 @@ test('B11.5 duplicate keys: the first occurrence owns the row, later duplicates 
 
 // ---------------------------------------------------------------- errors in reconciliation
 
+test('B8.9 a row that failed to build is retried by an update with the same keys in the same order', () => {
+  const cap = capture();
+  const list = signal([1]);
+  let bad = true;
+  const { target, unmount } = host(() => h.ul(null, each(list, {
+    key: (x) => x,
+    render: (_x, _i, k) => { if (bad && k === 2) throw new Error('row 2'); return h.li(null, String(k)); },
+  })));
+  flush();
+  list.set([1, 2]); flush();
+  assert.equal(target.textContent, '1');
+  bad = false;
+  list.set([1, 2]); flush();
+  assert.equal(target.textContent, '12');
+  cap.stop();
+  unmount();
+});
+
 test('B8.9 a row throwing on first creation still inserts the other rows, and the error reaches the catchError on the stack', (t) => {
   const view = mountTest(t, () => h.div(null, catchError(
     () => h.ul(null, each(() => [1, 2, 3], { key: (x) => x, render: (_x, _i, k) => { if (k === 2) throw new Error('row 2'); return h.li(null, String(k)); } })),
