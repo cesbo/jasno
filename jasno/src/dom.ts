@@ -700,7 +700,7 @@ function lostBy(el: Element): string {
 
 hooks.flushStart = () => {
   const a = typeof document === 'object' ? document.activeElement : null;
-  focused = a && a !== document.body && [...targets].some((t) => t.contains(a)) ? a : null;
+  focused = a && a !== document.body && targets.values().some((t) => t.contains(a)) ? a : null;
 };
 /** Focus-loss checks queued for a microtask; mountTest's dispose() runs them first, so an update right before it counts. */
 const focusChecks = new Set<() => void>();
