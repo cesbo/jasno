@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-The project comes with TypeScript configs, component tests, Playwright tests, a CI workflow and `AGENTS.md`, the guide for coding agents.
+The project comes with TypeScript configs, component tests, Playwright tests, a CI workflow and `AGENTS.md`, which points coding agents to jasno's guide in `node_modules/@jasno/core/AGENTS.md`.
 
 The new project depends on `@jasno/core` at the same version as `@jasno/create`. For another version, a tag or a local build, pass any npm dependency spec with `--jasno` (npm forwards options only after `--`):
 

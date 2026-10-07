@@ -54,7 +54,7 @@ Mistakes that would fail silently in other frameworks are type errors or diagnos
 
 The package includes its documentation:
 
-- `AGENTS.md`: the guide for coding agents, also copied into every new project by `npm create @jasno`.
+- `AGENTS.md`: the guide for coding agents. The `AGENTS.md` of a project made by `npm create @jasno` points to it.
 - `dist/jasno.d.ts`: the full API, with a RECIPES block of common patterns.
 
 The design and its decisions are in [`design/`](https://github.com/cesbo/jasno/tree/HEAD/design) in the repository.
