@@ -30,9 +30,9 @@
    aria-disabled element to become enabled: test an ignored second press with click({ force: true }) or
    dispatchEvent('click').
    Drafts: a short-lived editor seeds its input once, value: untracked(p.card).title. A form that outlives saves is
-   created per record inside match() on the record id (Per-param lifecycle), so its draft and saving flag never cross
-   records and a save echo (a new object, same id) does not reset it; after the save, clear the draft only if it
-   still holds the text you sent.
+   created per record: a routed view is (a new :id builds a new view); a record picked in place (a selection, a search
+   param) gets match() on its id. So its draft and saving flag never cross records and a save echo (a new object, same
+   id) does not reset it; after the save, clear the draft only if it still holds the text you sent.
 
  Inline edit. Enter saves through a form: implicit submission ignores IME composition and cannot activate the
    element that gets focus next. Escape cancels; leaving the field saves (a default; a spec may make it cancel). In the row: const editing = signal(false);
@@ -51,11 +51,13 @@
        return title;
      })
 
- Mutations. Capture params before an await; afterwards write only if they are unchanged (the view stays mounted):
+ Mutations. A new route :id builds a new view and disposes the old one with its resources (their reload() and set()
+   are then no-ops), so a routed view needs no check after an await. A resource keyed by state that changes in place
+   (a search param, a selection) captures its params before the await and writes only if they are unchanged:
      async function add(text: string): Promise<void> {
-       const id = p.params().id;
+       const id = selectedId();
        await addNote(id, text);
-       if (p.params().id === id) notes.reload();       // reload() refetches the CURRENT params
+       if (selectedId() === id) notes.reload();       // reload() refetches the CURRENT params
      }
    Optimistic saves: optimistic() next to the resource. save(key, v) shows v at once and sends it; saves of one key run
    one after another (right when the server may apply requests out of order). A failed last save shows the last value
@@ -168,18 +170,22 @@
        } }, p.label);
      });
      h.nav({ 'aria-label': 'Main' }, menu.map(([path, label]) => NavLink({ path, label })))
-   Tabs: route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts') }) and
-   match(() => p.params().tab, (tab) => ...). Per-record title: title: (user) => user.name, or no route title and
-   effect(() => { document.title = name(); }) in the view (a view without a route title starts from index.html's title).
+   Tabs: route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts') }); each tab builds the
+   view anew, so pick the body with a typed record: const tabs = { profile: Profile, billing: Billing };
+   tabs[p.params().tab](). Tabs that must keep the view (its scroll, a shared draft) are a search param instead.
+   Per-record title: title: (user) => user.name, or no route title and onMount(() => { document.title = p.data().name; })
+   in the view (a view without a route title starts from index.html's title).
    Patterns with the same params may share one view module; otherwise one view per route, sharing a component.
-   Per-param lifecycle: a view stays mounted when only its params change, so work that must restart per param
-   (subscriptions, enter/leave writes, per-room state) goes in a body keyed by the param:
-     match(() => p.params().roomId, (id) => RoomBody({ roomId: id }))
-     // in RoomBody: const online = signal<readonly string[]>([]);
-     //              onMount(() => subscribePresence(p.roomId, online.set));   // a synchronous first callback is fine
-   Subscriptions whose callback sets signals go in onMount, never in effect(): a callback that fires during an effect
-   run is tracked by that effect and reported (EFFECT_WRITES_STATE). State that must survive a switch (a draft per
-   room) lives in a parent Map signal keyed by the param; match bodies and linkedSignal discard theirs.
+   Per-param lifecycle: a new path param builds a new view, so per-room work (subscriptions, enter/leave writes,
+   drafts, saving flags) restarts by itself, and setup may read the params:
+     const roomId = p.params().roomId;
+     const online = signal<readonly string[]>([]);
+     onMount(() => subscribePresence(roomId, online.set));   // a synchronous first callback is fine
+   Search params keep the view: work per search param goes in match(() => router.url().searchParams.get('room'),
+   (id) => ...). Subscriptions whose callback sets signals go in onMount, never in effect(): a callback that fires
+   during an effect run is tracked by that effect and reported (EFFECT_WRITES_STATE). State that must survive a switch
+   (a draft per room) lives in a Map signal in src/state.ts keyed by the param; a view, a match body and linkedSignal
+   discard theirs.
    Unsaved changes: a window 'beforeunload' listener in onMount covers tab close; in-app leave guards are not in 1.0.
    Route tests: history.replaceState(null, '', '/users/1') before mountTest(t, () => App()), await settled() (the
    lazy view), then await router.navigate(url); tests are the only place that touches history. A state that lasts
@@ -606,11 +612,13 @@ declare module '@jasno/core/router' {
     readonly params: Params<P>;
     readonly abortSignal: AbortSignal;
   }
-  /** Props of a route view: live params and loader data. The view stays mounted while the same route matches: read them inside functions, and put per-param work in match(() => p.params().id, (id) => Body({ id })). */
+  /** Props of a route view: its params and loader data, fixed for the view's lifetime: a new route or new path params build a new view (search params keep it). Setup may read them: const id = p.params().id. An effect that reads only them never re-runs: use onMount. */
   export interface ViewProps<P extends string, D = undefined> {
-    readonly params: Read<Params<P>>;
-    readonly data: Read<D>;
+    readonly params: Fixed<Params<P>>;
+    readonly data: Fixed<D>;
   }
+  /** A Read whose value never changes while the view lives (route params and data): reading it in setup is not a snapshot. */
+  interface Fixed<T> extends Read<T> {}
   type LoaderOption<P extends string, D> = [D] extends [undefined]
     ? { readonly loader?: ((ctx: LoaderContext<P>) => Promise<unknown>) | undefined }
     : { readonly loader: (ctx: LoaderContext<P>) => Promise<NoInfer<D>> };

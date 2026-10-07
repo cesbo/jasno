@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # SNAPSHOT_TO_ACCESSOR
 
-**warn**, reported by jasno check (type-aware): in a setup region (the function given to component(), a show/match/catchError callback, an each render; jasno's names resolved through the file's imports) a zero-argument call of a signal or Read whose value lands, through any expression, in a live slot: an h.* prop typed MaybeRead<T> or an h child (h.p(null, count()), step: SAT(sw()) ? '1' : 'any', h.p(null, 'IF ' + f())); reported once per call at the innermost such slot, with the slot named in the message. Nested functions are not entered: handlers and () => bindings read signals rightly, and helper functions called from setup are the runtime's STRICT_READ_UNTRACKED job.
+**warn**, reported by jasno check (type-aware): in a setup region (the function given to component(), a show/match/catchError callback, an each render; jasno's names resolved through the file's imports) a zero-argument call of a signal or Read whose value lands, through any expression, in a live slot: an h.* prop typed MaybeRead<T> or an h child (h.p(null, count()), step: SAT(sw()) ? '1' : 'any', h.p(null, 'IF ' + f())); reported once per call at the innermost such slot, with the slot named in the message. Nested functions are not entered: handlers and () => bindings read signals rightly, and helper functions called from setup are the runtime's STRICT_READ_UNTRACKED job. A route view's params and data (Fixed<T>, fixed for the view's lifetime, B17.5) are not reported.
 
 <!-- /generated:catalogue -->
 

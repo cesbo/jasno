@@ -3,7 +3,7 @@
 import { DEV } from '#dev';
 import {
   Owner, abortReason, bind, brand, checkOwned, currentOwner, dispose, flush, handleError, hooks, isFlushing, ownerPath,
-  rawSignal, readSignal, readerOf, runSetup, signalOf, untracked, writeRaw,
+  rawSignal, readSignal, runSetup, signalOf, untracked, writeRaw,
 } from './core.ts';
 import { JasnoError, warn } from './diag.ts';
 import { Region, flushFocus, focusedIn, fragmentOf, restoreFocusIn } from './dom.ts';
@@ -228,8 +228,8 @@ export function createRouter(routes: readonly RouteDef[], options: {
   let outletOwner: Owner | undefined;
   let region: Region | undefined;
   let viewOwner: Owner | undefined;
-  /** The rendered view: a route with its params/data signals, or a special view. */
-  let view: { route: Compiled; params: Params; paramsSig: ReturnType<typeof rawSignal>; dataSig: ReturnType<typeof rawSignal> } | { special: 'notFound' | 'error' } | undefined;
+  /** The rendered view: a route with its params, or a special view. */
+  let view: { route: Compiled; params: Params } | { special: 'notFound' | 'error' } | undefined;
   let current: Nav | undefined;
   let liveRegion: HTMLElement | undefined;
   let lastError: string | undefined;
@@ -296,34 +296,26 @@ export function createRouter(routes: readonly RouteDef[], options: {
     if (typeof title !== 'function') document.title = title ?? initialTitle; // a stale title never survives (B17.10)
   };
 
-  /** Builds or updates the route's view; throws what its setup throws. */
+  /** Builds the route's view, new for every route and params (B17.5); throws what its setup throws. */
   const renderView = (m: Match, mod: Module, data: unknown): void => {
-    if (view && 'route' in view && view.route === m.route) {
-      applyTitle(m.route.options.title);
-      writeRaw(view.paramsSig, m.params);
-      writeRaw(view.dataSig, data);
-      view.params = m.params;
-      return;
-    }
     teardownView();
     const o = new Owner(outletOwner, undefined);
     const label = `<view ${m.route.path}>`;
     o.comp = label;
     viewOwner = o;
-    const paramsSig = rawSignal(m.params, 'router params');
-    const dataSig = rawSignal(data, 'router data');
     try {
       const frag = runSetup(o, label, () => {
         // The title binding comes first, so it writes document.title before the view's effects run (B17.10).
         const title = m.route.options.title;
-        if (typeof title === 'function') bind(() => title(readSignal(dataSig)), (t) => { document.title = String(t); }, { name: 'router title' });
+        if (typeof title === 'function') bind(() => title(data), (t) => { document.title = String(t); }, { name: 'router title' });
         else applyTitle(title);
         const View = mod.default as unknown as (props: unknown) => unknown;
         if (typeof View !== 'function') throw new TypeError(`The module for "${m.route.path}" has no default export component.`);
-        return fragmentOf(View({ params: readerOf(paramsSig), data: readerOf(dataSig) }));
+        // Fixed for the view's lifetime (a new route or params builds a new view), so setup may read them.
+        return fragmentOf(View({ params: () => m.params, data: () => data }));
       });
       region!.insert(frag);
-      view = { route: m.route, params: m.params, paramsSig, dataSig };
+      view = { route: m.route, params: m.params };
     } catch (e) {
       dispose(o);
       viewOwner = undefined;

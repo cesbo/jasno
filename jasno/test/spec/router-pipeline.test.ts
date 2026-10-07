@@ -22,7 +22,8 @@ function probe(name: string, extra: (p: { params: Read<any>; data: Read<any> }) 
       s.builds++;
       s.setupTitle.push(document.title);
       let first = true;
-      effect(() => { p.params(); if (first) { first = false; s.firstEffectTitle.push(document.title); } });
+      const live = signal(0); // params and data are fixed per view: the effect needs a source of its own
+      effect(() => { live(); if (first) { first = false; s.firstEffectTitle.push(document.title); } });
       onMount(() => () => { s.cleanups++; });
       return h.section(null, h.h1(null, name), h.p({ class: 'params' }, () => JSON.stringify(p.params())), h.p({ class: 'data' }, () => String(p.data())), extra(p));
     }) as ViewModule['default'],
@@ -110,7 +111,7 @@ test('B17.5 success: at resolution the view is rendered, focus moved, announced,
   assert.equal(document.title, 'Next page');
 });
 
-test('B17.5 same route, new params: view kept (no rebuild, no cleanup), params/data/url update together, title function re-runs', async (t) => {
+test('B17.5 same route, new params: a new view (old one cleaned up), its params, data and url in step, title function re-runs', async (t) => {
   const pairs: string[] = [];
   let router!: ReturnType<typeof setup>['router'];
   const v = probe('u', (p) => { effect(() => { pairs.push(`${p.params().id}:${router.url().pathname}:${p.data()}`); }); return h.p(null); });
@@ -118,21 +119,36 @@ test('B17.5 same route, new params: view kept (no rebuild, no cleanup), params/d
   await settled();
   assert.equal(document.title, 'T D1');
   assert.equal(await router.navigate('/u/2'), 'done');
-  assert.equal(v.s.builds, 1);
-  assert.equal(v.s.cleanups, 0);
+  assert.equal(v.s.builds, 2);
+  assert.equal(v.s.cleanups, 1);
+  assert.equal(document.querySelectorAll('main .params').length, 1);
   assert.equal(document.querySelector('main .params')?.textContent, '{"id":"2"}');
   assert.equal(document.querySelector('main .data')?.textContent, 'D2');
   assert.equal(document.title, 'T D2');
   assert.deepEqual(pairs, ['1:/u/1:D1', '2:/u/2:D2'], 'an effect never sees params, data and url out of step');
 });
 
-test('B17.5/B17.10 same route, new params: a view effect that writes document.title still wins over the title binding', async (t) => {
-  const v = probe('u', (p) => { effect(() => { document.title = `Effect ${p.params().id}`; }); return h.p(null); });
-  const { router } = setup(t, [route('/u/:id', { view: v.view, loader: async ({ params }) => params.id, title: (d) => `Binding ${d}` })], '/u/1');
+test('B17.5/B17.10 same route, new params: the view\'s own title (onMount) still wins over the route title', async (t) => {
+  const v = probe('u', (p) => { onMount(() => { document.title = `Own ${p.params().id}`; }); return h.p(null); });
+  const { router } = setup(t, [route('/u/:id', { view: v.view, loader: async ({ params }) => params.id, title: (d) => `Route ${d}` })], '/u/1');
   await settled();
-  assert.equal(document.title, 'Effect 1');
+  assert.equal(document.title, 'Own 1');
   await router.navigate('/u/2');
-  assert.equal(document.title, 'Effect 2');
+  assert.equal(document.title, 'Own 2');
+});
+
+test('B17.5 a view may read its params and data in setup: they are fixed for its lifetime (no STRICT_READ_UNTRACKED)', async (t) => {
+  const cap = capture();
+  t.after(() => cap.stop());
+  const seen: string[] = [];
+  const v = probe('u', (p) => { const id: string = p.params().id; seen.push(`${id}:${p.data()}`); return h.p({ class: 'id' }, id); });
+  const { router } = setup(t, [route('/u/:id', { view: v.view, loader: async ({ params }) => `D${params.id}` })], '/u/1');
+  await settled();
+  await router.navigate('/u/2');
+  cap.stop();
+  assert.deepEqual(seen, ['1:D1', '2:D2']);
+  assert.equal(document.querySelector('main .id')?.textContent, '2');
+  assert.deepEqual(cap.codes(), []);
 });
 
 test('B17.5/B17.10 the title binding is created before the view is built: setup and the first effect run see the new title', async (t) => {
@@ -911,11 +927,11 @@ test('B17.5 url() already shows the new URL when the new view is built (setup) a
 
 test('B17.10 a same-route param navigation on a route without title does not keep the previous record\'s title', async (t) => {
   document.title = 'Index';
-  const v = probe('u', (p) => { const id = untracked(p.params).id as string; onMount(() => { document.title = `User ${id}`; }); return h.p(null); });
+  const v = probe('u', (p) => { const id = p.params().id as string; onMount(() => { if (id === '1') document.title = `User ${id}`; }); return h.p(null); });
   const { router } = setup(t, [route('/u/:id', { view: v.view })], '/u/1');
   await settled();
   assert.equal(document.title, 'User 1');
   await router.navigate('/u/2');
-  assert.equal(v.s.builds, 1);
+  assert.equal(v.s.builds, 2);
   assert.notEqual(document.title, 'User 1', 'a stale title never survives a navigation');
 });

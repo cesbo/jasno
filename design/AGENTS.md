@@ -50,7 +50,7 @@ const user = resource({ params: () => p.id(), loader: ({ params, abortSignal }) 
 show(() => user.hasValue() && user.value(), (u) => h.h2(null, () => u().name), () => h.p({ role: 'status' }, 'Loading'));
 ```
 
-Gate content on `hasValue()` (never `value()!`), spinners on `isLoading()`, errors on `status() === 'error'`. No `params` = load once. The loader is untracked: read signals only in `params`; resolve `null`, never `undefined`. New params abort the old load; `reload()` refetches. After an `await`, write only if params are unchanged (views stay mounted). Optimistic saves: `optimistic(resource, { get, put, send })` (RECIPES: Mutations); never `reload()` after a save.
+Gate content on `hasValue()` (never `value()!`), spinners on `isLoading()`, errors on `status() === 'error'`. No `params` = load once. The loader is untracked: read signals only in `params`; resolve `null`, never `undefined`. New params abort the old load; `reload()` refetches. After an `await`, write only if params are unchanged (a routed view needs no check: a new `:id` builds a new view). Optimistic saves: `optimistic(resource, { get, put, send })` (RECIPES: Mutations); never `reload()` after a save.
 
 ## Routing (`@jasno/core/router`)
 
@@ -62,7 +62,7 @@ export const router = createRouter([
 export default component(function UserView(p: ViewProps<'/users/:id', User>): Node { /* p.params().id, p.data().name */ });
 ```
 
-App is `h.header(null, nav)` + `h.main(null, router.outlet())`; the menu marks its current link with `aria-current` (RECIPES: Menu); every view has an `h.h1` (focused after navigation). Links: `h.a({ href: router.href('/users/:id', { id }) })`. Search params: `router.url().searchParams.get('q')`; set with `router.navigate('?q=x', { replace: true })`. Use `{ replace: true }` after delete/create; close a detail with `router.back('/')`. Never touch `history` or `location`. Views stay mounted when only params change: per-param work goes in `match(() => p.params().id, (id) => Body({ id }))`, `onMount` inside.
+App is `h.header(null, nav)` + `h.main(null, router.outlet())`; the menu marks its current link with `aria-current` (RECIPES: Menu); every view has an `h.h1` (focused after navigation). Links: `h.a({ href: router.href('/users/:id', { id }) })`. Search params: `router.url().searchParams.get('q')`; set with `router.navigate('?q=x', { replace: true })`. Use `{ replace: true }` after delete/create; close a detail with `router.back('/')`. Never touch `history` or `location`. A new path param builds a new view, so setup may read `p.params().id` and per-record drafts and `onMount` subscriptions restart by themselves; search params keep the view (per-search-param work: `match(() => router.url().searchParams.get('x'), ...)`).
 
 ## Context, cleanup, state
 

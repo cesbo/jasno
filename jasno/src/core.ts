@@ -457,7 +457,7 @@ function devWrite(n: SignalNode | ComputedNode): void {
     for (let l = S_effect.deps; l; l = l.nextDep) if (l.dep === n) { read = true; break; }
     if (n.subs || read) {
       warn('EFFECT_WRITES_STATE', `Effect "${nameOf(S_effect)}" wrote signal "${nameOf(n)}" during its run.`,
-        'Derive it with computed() or linkedSignal(), or write it in the event handler that caused the change; effects only sync the outside world. A subscription whose callback sets signals goes in onMount (per route param: inside match(() => p.params().id, (id) => Body({ id }))).',
+        'Derive it with computed() or linkedSignal(), or write it in the event handler that caused the change; effects only sync the outside world. A subscription whose callback sets signals goes in onMount (a new route param builds a new view, so it restarts per param).',
         { ownerPath: ownerPath(S_effect.parent), node: nameOf(n), key: `${S_effect.id}:${n.id}`, owner: S_effect });
     }
   } else if (S_setup && n.setupId !== S_setup) {

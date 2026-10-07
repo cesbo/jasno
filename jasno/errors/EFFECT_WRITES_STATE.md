@@ -4,7 +4,7 @@
 **warn**, runtime, dev builds: an effect run wrote a signal that something observes, or that the effect itself read.
 
 - Message: `Effect "{effect}" wrote signal "{signal}" during its run.`
-- Hint: Derive it with computed() or linkedSignal(), or write it in the event handler that caused the change; effects only sync the outside world. A subscription whose callback sets signals goes in onMount (per route param: inside match(() => p.params().id, (id) => Body({ id }))).
+- Hint: Derive it with computed() or linkedSignal(), or write it in the event handler that caused the change; effects only sync the outside world. A subscription whose callback sets signals goes in onMount (a new route param builds a new view, so it restarts per param).
 
 <!-- design.md: B5.3 -->
 <!-- /generated:catalogue -->
@@ -19,7 +19,7 @@ Effects only sync the outside world (`document.title`, `localStorage`, a widget)
 
 - A value that follows other state: use `computed()`. State that resets when an input changes but can also be edited: use `linkedSignal({ source: p.userId, computation: () => '' })`.
 - A change the user causes: write it in the event handler.
-- A subscription (socket, store, presence) whose callback sets signals: subscribe in `onMount` and return the unsubscribe. To resubscribe per route param, put the subscription in a body keyed by the param. Use `match(() => p.params().id, (id) => Body({ id }))`, with `onMount` inside.
+- A subscription (socket, store, presence) whose callback sets signals: subscribe in `onMount` and return the unsubscribe. A new route param builds a new view, so the view's `onMount` subscribes again per param. For a search param, key a body with `match(() => router.url().searchParams.get('room'), (id) => Body({ id }))` and subscribe in its `onMount`.
 - Neither a callback nor `untracked()` hides the write. A subscription that emits its current state before the effect returns also writes during the run.
 
 ## Example

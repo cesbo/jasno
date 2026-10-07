@@ -72,7 +72,7 @@ test('B17.14 href: encoding, optional segments dropped, splat per sub-segment, n
 
 // ---------------------------------------------------------------- navigation (B17.5-B17.7, B17.13, B17.16)
 
-test('B17.5 same route with new params keeps the view and updates its params and data Reads', async (t) => {
+test('B17.5 same route with new params builds a new view with the new params and data', async (t) => {
   let builds = 0;
   const { router, text } = setup(t, [route('/u/:id', {
     view: async () => ({ default: component(function U(p: { params: Read<{ id: string }>; data: Read<string> }): Node { builds++; return h.section(null, h.h1(null, () => p.data()), h.p(null, () => p.params().id)); }) }),
@@ -82,7 +82,7 @@ test('B17.5 same route with new params keeps the view and updates its params and
   assert.equal(text('h1'), 'user 1');
   await router.navigate('/u/2');
   assert.equal(text('h1'), 'user 2');
-  assert.equal(builds, 1);
+  assert.equal(builds, 2);
 });
 
 test('B17.7 a search-only navigate() updates url synchronously and keeps the view', async (t) => {

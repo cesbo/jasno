@@ -54,12 +54,13 @@ export const CardTitle = component(function CardTitle(p: { card: Read<Card>; onR
 });
 
 // Mutations
-export const Notes = component(function Notes(p: ViewProps<'/users/:id'>): Node {
-  const notes = resource({ params: () => p.params().id, loader: ({ params, abortSignal }) => listNotes(params, abortSignal) });
+export const Notes = component(function Notes(p: { selectedId: Read<string> }): Node {
+  const selectedId = p.selectedId;
+  const notes = resource({ params: () => selectedId(), loader: ({ params, abortSignal }) => listNotes(params, abortSignal) });
   async function add(text: string): Promise<void> {
-    const id = p.params().id;
+    const id = selectedId();
     await addNote(id, text);
-    if (p.params().id === id) notes.reload();       // the kept-mounted view may show another :id by now
+    if (selectedId() === id) notes.reload();       // another record may be selected by now
   }
   return h.section(null, h.h1(null, 'Notes'), h.button({ onclick: () => void add('x') }, 'Add'),
     each(() => (notes.hasValue() ? notes.value() : []), { key: (n) => n.id, render: (n) => h.p(null, () => n().text) }));
@@ -185,18 +186,22 @@ const Login = component(function Login(): Node { return h.h1(null, 'Sign in'); }
 export const Shell = component(function Shell(): Node {
   return h.main(null, show(session, () => router.outlet(), () => Login()));
 });
+const Profile = component(function Profile(): Node { return h.p(null, 'Profile'); });
+const Billing = component(function Billing(): Node { return h.p(null, 'Billing'); });
+const tabs = { profile: Profile, billing: Billing };
 export const Tabs = component(function Tabs(p: ViewProps<'/settings/:tab(profile|billing)'>): Node {
-  return h.section(null, h.h1(null, 'Settings'), match(() => p.params().tab, (tab) => h.p(null, tab)));
+  return h.section(null, h.h1(null, 'Settings'), tabs[p.params().tab]());
 });
-const RoomBody = component(function RoomBody(p: { roomId: string }): Node {
-  const online = signal<readonly string[]>([]);
-  onMount(() => subscribePresence(p.roomId, online.set));   // a synchronous first callback is fine
-  return h.p(null, () => online().join(', '));
-});
+const drafts = signal<ReadonlyMap<string, string>>(new Map());   // src/state.ts: survives switching rooms
 export const Room = component(function Room(p: ViewProps<'/rooms/:roomId'>): Node {
-  const drafts = signal<ReadonlyMap<string, string>>(new Map());
-  return h.section(null, h.h1(null, () => p.params().roomId), h.p(null, () => drafts().get(p.params().roomId) ?? ''),
-    match(() => p.params().roomId, (id) => RoomBody({ roomId: id })));
+  const roomId = p.params().roomId;
+  const online = signal<readonly string[]>([]);
+  onMount(() => subscribePresence(roomId, online.set));   // a synchronous first callback is fine
+  return h.section(null, h.h1(null, roomId), h.p(null, () => drafts().get(roomId) ?? ''), h.p(null, () => online().join(', ')));
+});
+export const RoomFromSearch = component(function RoomFromSearch(): Node {
+  const room = computed(() => router.url().searchParams.get('room'));
+  return h.section(null, h.h1(null, 'Rooms'), match(room, (id) => (id === null ? '' : h.p(null, id))));
 });
 export const startAt = (url: string) => history.replaceState(null, '', url);   // route tests only
 export const TitleByView = component(function TitleByView(): Node {

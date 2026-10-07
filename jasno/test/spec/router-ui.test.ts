@@ -937,14 +937,15 @@ test('B17.3 an outlet that an async gate shows on page load (focus on body) stay
   assert.deepEqual(view.diagnostics, []);
 });
 
-test('RECIPES Tabs: :tab(profile|billing) + match on p.params().tab swaps the body and keeps the view; other tabs are notFound', async (t) => {
+test('RECIPES Tabs: :tab(profile|billing) builds the view per tab from a typed record; other tabs are notFound', async (t) => {
   let builds = 0;
+  const tabs = { profile: () => h.p({ id: 'body' }, 'Your profile'), billing: () => h.p({ id: 'body' }, 'Your invoices') };
   const Settings = component(function Settings(p: P): Node {
     builds++;
     return h.section(null, h.h1(null, 'Settings'),
       h.nav(null, h.a({ href: router.href('/settings/:tab(profile|billing)', { tab: 'profile' }), id: 'profile' }, 'Profile'),
         h.a({ href: router.href('/settings/:tab(profile|billing)', { tab: 'billing' }), id: 'billing' }, 'Billing')),
-      match(() => p.params().tab as 'profile' | 'billing', (tab) => (tab === 'profile' ? h.p({ id: 'body' }, 'Your profile') : h.p({ id: 'body' }, 'Your invoices'))));
+      tabs[p.params().tab as keyof typeof tabs]());
   });
   let router!: Router;
   let r!: ReturnType<typeof setup>;
@@ -957,14 +958,14 @@ test('RECIPES Tabs: :tab(profile|billing) + match on p.params().tab swaps the bo
   assert.equal(click(r.$('#billing')), true);
   await settled();
   assert.equal(r.$('#body')?.textContent, 'Your invoices');
-  assert.equal(builds, 1);
+  assert.equal(builds, 2, 'a new tab is a new view');
   assert.equal(document.activeElement, r.$('h1'), 'a params change is a navigation: focus on the h1');
   assert.equal(await router.navigate('/settings/other'), 'done');
   assert.equal(r.$('h1')?.textContent, 'Not found');
   assert.deepEqual(r.view.diagnostics, []);
 });
 
-test('RECIPES Per-param lifecycle: match on p.params().id restarts the subscription per id, with zero diagnostics', async (t) => {
+test('RECIPES Per-param lifecycle: a new :roomId builds a new view, so its onMount subscription restarts per id, with zero diagnostics', async (t) => {
   const log: string[] = [];
   const presence: Record<string, string[]> = { a: ['ann'], b: ['bob', 'bea'] };
   function subscribePresence(roomId: string, cb: (users: readonly string[]) => void): () => void {
@@ -972,15 +973,13 @@ test('RECIPES Per-param lifecycle: match on p.params().id restarts the subscript
     cb(presence[roomId]!); // a synchronous first callback
     return () => { log.push(`unsub ${roomId}`); };
   }
-  const RoomBody = component(function RoomBody(p: { roomId: string }): Node {
-    const online = signal<readonly string[]>([]);
-    onMount(() => subscribePresence(p.roomId, online.set));
-    return h.p({ id: 'online' }, () => online().join(','));
-  });
   let builds = 0;
   const Room = component(function Room(p: P): Node {
     builds++;
-    return h.section(null, h.h1(null, () => `Room ${p.params().roomId}`), match(() => p.params().roomId as string, (id) => RoomBody({ roomId: id })));
+    const roomId = p.params().roomId as string;
+    const online = signal<readonly string[]>([]);
+    onMount(() => subscribePresence(roomId, online.set));
+    return h.section(null, h.h1(null, `Room ${roomId}`), h.p({ id: 'online' }, () => online().join(',')));
   });
   const { router, view, $ } = setup(t, [route('/rooms/:roomId', { view: async () => ({ default: Room as ViewModule['default'] }) })], '/rooms/a');
   await settled();
@@ -988,7 +987,7 @@ test('RECIPES Per-param lifecycle: match on p.params().id restarts the subscript
   await router.navigate('/rooms/b');
   assert.equal($('#online')?.textContent, 'bob,bea');
   assert.equal($('h1')?.textContent, 'Room b');
-  assert.equal(builds, 1);
+  assert.equal(builds, 2);
   assert.deepEqual(log, ['sub a', 'unsub a', 'sub b']);
   view.dispose();
   assert.deepEqual(log, ['sub a', 'unsub a', 'sub b', 'unsub b']);

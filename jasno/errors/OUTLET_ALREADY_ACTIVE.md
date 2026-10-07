@@ -24,7 +24,7 @@ Render `router.outlet()` once, in App: `h.main(null, router.outlet())`. Then rem
 ## Example
 
 ```ts
-import { component, h, match } from '@jasno/core';
+import { component, h } from '@jasno/core';
 import type { Router, ViewProps } from '@jasno/core/router';
 
 declare const router: Router<'/settings/:tab(profile|billing)'>;
@@ -40,10 +40,10 @@ export const SettingsWrong = component(function SettingsWrong(): Node {
   return h.section(null, h.h1(null, 'Settings'), router.outlet());
 });
 
-// Right: route('/settings/:tab(profile|billing)', ...) and switch on the param
+// Right: route('/settings/:tab(profile|billing)', ...); each tab builds the view, which picks its body
+const tabs = { profile: Profile, billing: Billing };
 export default component(function Settings(p: ViewProps<'/settings/:tab(profile|billing)'>): Node {
-  return h.section(null, h.h1(null, 'Settings'),
-    match(() => p.params().tab, (tab) => (tab === 'profile' ? Profile() : Billing())));
+  return h.section(null, h.h1(null, 'Settings'), tabs[p.params().tab]());
 });
 ```
 
