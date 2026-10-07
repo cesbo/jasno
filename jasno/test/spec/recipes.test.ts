@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   bindChecked, bindNumber, bindValue, catchError, component, computed, createContext, createRoot, css, each, effect, flush, h,
-  linkedSignal, match, onMount, provide, resource, selector, show, signal, svg, untracked, useContext, type Read,
+  linkedSignal, match, onMount, optimistic, provide, resource, selector, show, signal, svg, untracked, useContext, type Read,
 } from '@jasno/core';
 import { mountTest, settled } from '@jasno/core/testing';
 import { capture, deferred, tick } from '../helpers.ts';
@@ -388,7 +388,7 @@ test('Mutations: add() reloads only when params are unchanged after the await', 
   assert.deepEqual(texts(view.root), ['n2:3']);
 });
 
-// Optimistic save queue: exactly the recipe, with a module-level resource in createRoot.
+// Optimistic saves: exactly the recipe (optimistic() on a module-level resource in createRoot).
 let serverCards: Card[] = [{ id: 'c1', title: 'Server' }];
 let listImpl: () => Promise<readonly Card[]> = async () => serverCards.map((c) => ({ ...c }));
 const saves: { id: string; title: string; d: ReturnType<typeof deferred<void>> }[] = [];
@@ -400,22 +400,13 @@ const saveTitle = (id: string, title: string, _s: AbortSignal): Promise<void> =>
 const toastLog: string[] = [];
 const toast = (m: string) => { toastLog.push(m); };
 const cards = createRoot(() => resource({ loader: () => listImpl(), debugName: 'cards' }));
-const confirmed = new Map<string, string>();
-const queue = new Map<string, Promise<void>>();
-function rename(id: string, title: string): Promise<void> {
-  if (!cards.hasValue()) return Promise.resolve();
-  const show = (to: string) => { if (cards.hasValue())
-    cards.set(cards.value().map((c) => (c.id === id ? { ...c, title: to } : c))); };
-  if (!confirmed.has(id)) confirmed.set(id, cards.value().find((c) => c.id === id)?.title ?? title);
-  show(title);
-  const run: Promise<void> = (queue.get(id) ?? Promise.resolve()).then(async () => {
-    const last = () => queue.get(id) === run;
-    try { await saveTitle(id, title, AbortSignal.timeout(10_000)); confirmed.set(id, title); if (last()) show(title); }
-    catch { if (last()) { show(confirmed.get(id) ?? title); toast('Not saved; your change was undone'); } }
-    finally { if (last()) { queue.delete(id); confirmed.delete(id); } }
-  });
-  queue.set(id, run);
-  return run;
+const save = optimistic(cards, {
+  get: (list, id: string) => list.find((c) => c.id === id)?.title,
+  put: (list, id, title) => list.map((c) => (c.id === id ? { ...c, title } : c)),
+  send: (id, title, abortSignal) => saveTitle(id, title, abortSignal),
+});
+async function rename(id: string, title: string): Promise<void> {
+  if (await save(id, title) === 'undone') toast('Not saved; your change was undone');
 }
 
 async function cardList(t: import('node:test').TestContext) {
@@ -445,8 +436,6 @@ test('Mutations: a failed single save shows the confirmed value again and toasts
   flush();
   assert.equal(title(), 'Server');
   assert.deepEqual(toastLog, ['Not saved; your change was undone']);
-  assert.equal(queue.size, 0);
-  assert.equal(confirmed.size, 0);
 });
 
 test('Mutations: last queued save fails after an earlier one succeeded: shows the earlier accepted value', async (t) => {

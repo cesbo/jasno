@@ -50,7 +50,7 @@ const user = resource({ params: () => p.id(), loader: ({ params, abortSignal }) 
 show(() => user.hasValue() && user.value(), (u) => h.h2(null, () => u().name), () => h.p({ role: 'status' }, 'Loading'));
 ```
 
-Gate content on `hasValue()` (never `value()!`), spinners on `isLoading()`, errors on `status() === 'error'`. No `params` = load once. The loader is untracked: read signals only in `params`; resolve `null`, never `undefined`. New params abort the old load; `reload()` refetches. After an `await`, write only if params are unchanged (views stay mounted); undo a failed optimistic `set()` with `set()`, never `reload()`.
+Gate content on `hasValue()` (never `value()!`), spinners on `isLoading()`, errors on `status() === 'error'`. No `params` = load once. The loader is untracked: read signals only in `params`; resolve `null`, never `undefined`. New params abort the old load; `reload()` refetches. After an `await`, write only if params are unchanged (views stay mounted). Optimistic saves: `optimistic(resource, { get, put, send })` (RECIPES: Mutations); never `reload()` after a save.
 
 ## Routing (`@jasno/core/router`)
 

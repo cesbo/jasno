@@ -46,6 +46,8 @@ function plain(v: unknown): v is Record<string, unknown> {
 }
 
 let resources = 0;
+/** Each resource's current params (undefined when idle or disposed), for optimistic() (B9.15). */
+const paramsOf = new WeakMap<object, () => unknown>();
 
 export function resource(options: {
   params?: (() => unknown) | undefined;
@@ -179,7 +181,7 @@ export function resource(options: {
   // B9.9: never throws; another params' value never shows (their state is LOADING or IDLE, with no last).
   const latest = field('latest', (s) => (s.has ? s.value : s.last));
 
-  return {
+  const api = {
     value,
     status: field('status', (s) => s.status),
     error: field('error', (s) => (s.status === 'error' ? s.error : undefined)),
@@ -188,5 +190,44 @@ export function resource(options: {
     latest,
     reload,
     set,
+  };
+  paramsOf.set(api, currentParams);
+  return api;
+}
+
+type SaveResult = 'saved' | 'undone' | 'superseded';
+
+/**
+ * B9.15: optimistic saves into a resource, queued per key. A failed last save shows the last value the server
+ * accepted; a successful last save shows its value again (a reload() may have replaced it); a save never writes
+ * into a resource whose params changed after it started.
+ */
+export function optimistic<K, V>(target: { hasValue(): boolean; value(): unknown; set(v: unknown): void }, options: {
+  get: (value: unknown, key: K) => V | undefined;
+  put: (value: unknown, key: K, v: V) => unknown;
+  send: (key: K, v: V, abortSignal: AbortSignal) => Promise<unknown>;
+  timeout?: number | undefined;
+}): (key: K, v: V) => Promise<SaveResult> {
+  const { get, put, send, timeout = 10_000 } = options;
+  const paramsNow = paramsOf.get(target) ?? (() => ONCE);
+  // Per key (a record on the server, whatever the params): the last value the server accepted and the last queued save.
+  const confirmed = new Map<K, V>();
+  const queue = new Map<K, Promise<SaveResult>>();
+  return (key, v) => {
+    const p = paramsNow();
+    if (p === undefined || !target.hasValue()) return Promise.resolve('undone');
+    const show = (to: V): void => {
+      if (paramsEqual(paramsNow(), p) && target.hasValue()) target.set(put(target.value(), key, to));
+    };
+    if (!confirmed.has(key)) { const was = get(target.value(), key); confirmed.set(key, was === undefined ? v : was); }
+    show(v);
+    const run: Promise<SaveResult> = (queue.get(key) ?? Promise.resolve()).then(async () => {
+      const last = () => queue.get(key) === run;
+      try { await send(key, v, AbortSignal.timeout(timeout)); confirmed.set(key, v); if (last()) show(v); return 'saved'; }
+      catch { if (!last()) return 'superseded'; show(confirmed.get(key) as V); return 'undone'; }
+      finally { if (last()) { queue.delete(key); confirmed.delete(key); } }
+    });
+    queue.set(key, run);
+    return run;
   };
 }

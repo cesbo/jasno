@@ -1,5 +1,5 @@
 // Every snippet of the RECIPES block at the top of jasno.d.ts, in context. Must compile with 0 errors.
-import { bindChecked, bindNumber, bindValue, component, computed, createRoot, each, effect, flush, h, match, onMount, resource, selector, show, signal, svg, untracked, type MaybeRead, type Read } from '@jasno/core';
+import { bindChecked, bindNumber, bindValue, component, computed, createRoot, each, effect, flush, h, match, onMount, optimistic, resource, selector, show, signal, svg, untracked, type MaybeRead, type Read } from '@jasno/core';
 import { createRouter, route, type ViewProps } from '@jasno/core/router';
 import { addNote, getUser, listCards, listNotes, makeChart, saveTitle, search, subscribePresence, type Card } from './api.ts';
 import { router } from './routes.ts';
@@ -67,22 +67,13 @@ export const Notes = component(function Notes(p: ViewProps<'/users/:id'>): Node 
 
 declare function toast(message: string): void;
 export const cards = createRoot(() => resource({ loader: ({ abortSignal }) => listCards(abortSignal) }));
-const confirmed = new Map<string, string>();     // last title the server accepted, while saves are queued
-const queue = new Map<string, Promise<void>>();  // the last queued save per card
-export function rename(id: string, title: string): Promise<void> {
-  if (!cards.hasValue()) return Promise.resolve();
-  const show = (to: string) => { if (cards.hasValue())
-    cards.set(cards.value().map((c) => (c.id === id ? { ...c, title: to } : c))); };
-  if (!confirmed.has(id)) confirmed.set(id, cards.value().find((c) => c.id === id)?.title ?? title);
-  show(title);
-  const run: Promise<void> = (queue.get(id) ?? Promise.resolve()).then(async () => {
-    const last = () => queue.get(id) === run;
-    try { await saveTitle(id, title, AbortSignal.timeout(10_000)); confirmed.set(id, title); if (last()) show(title); }
-    catch { if (last()) { show(confirmed.get(id) ?? title); toast('Not saved; your change was undone'); } }
-    finally { if (last()) { queue.delete(id); confirmed.delete(id); } }
-  });
-  queue.set(id, run);
-  return run;
+const save = optimistic(cards, {
+  get: (list, id: string) => list.find((c) => c.id === id)?.title,
+  put: (list, id, title) => list.map((c) => (c.id === id ? { ...c, title } : c)),
+  send: (id, title, abortSignal) => saveTitle(id, title, abortSignal),   // abortSignal times out after 10 s
+});
+export async function rename(id: string, title: string): Promise<void> {
+  if (await save(id, title) === 'undone') toast('Not saved; your change was undone');
 }
 export const newId = () => crypto.randomUUID();
 

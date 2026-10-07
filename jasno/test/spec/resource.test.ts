@@ -1,8 +1,8 @@
-// Spec conformance: resource (design.md B9, B7.2, B7.4, B12.3, ADR-15, Resource JSDoc, RECIPES "Mutations").
+// Spec conformance: resource (design.md B9, B7.2, B7.4, B12.3, ADR-15, Resource JSDoc, optimistic() B9.15).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  catchError, component, computed, createRoot, each, effect, flush, h, mount, onMount, resource, show, signal, untracked,
+  catchError, component, computed, createRoot, each, effect, flush, h, mount, onMount, optimistic, resource, show, signal, untracked,
 } from '@jasno/core';
 import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred, tick } from '../helpers.ts';
@@ -1129,95 +1129,87 @@ test('B9.4/B2.3 status consumers: a params change re-runs them once, the request
   stop(); x.dispose();
 });
 
-// ---------------------------------------------------------------- RECIPES "Mutations": optimistic saves (ADR-15)
+// ---------------------------------------------------------------- optimistic(): queued optimistic saves (B9.15, ADR-15)
 
 interface Card { id: string; title: string }
-type Cards = ReturnType<typeof resource<readonly Card[]>>;
 
-/** The recipe verbatim, with its free names (cards, saveTitle, toast) injected. */
-function recipe(cards: Cards, saveTitle: (id: string, title: string, s: AbortSignal) => Promise<void>, toast: (m: string) => void) {
-  const confirmed = new Map<string, string>();     // last title the server accepted, while saves are queued
-  const queue = new Map<string, Promise<void>>();  // the last queued save per card
-  function rename(id: string, title: string): Promise<void> {
-    if (!cards.hasValue()) return Promise.resolve();
-    const show = (to: string) => { if (cards.hasValue())
-      cards.set(cards.value().map((c) => (c.id === id ? { ...c, title: to } : c))); };
-    if (!confirmed.has(id)) confirmed.set(id, cards.value().find((c) => c.id === id)?.title ?? title);
-    show(title);
-    const run: Promise<void> = (queue.get(id) ?? Promise.resolve()).then(async () => {
-      const last = () => queue.get(id) === run;
-      try { await saveTitle(id, title, AbortSignal.timeout(10_000)); confirmed.set(id, title); if (last()) show(title); }
-      catch { if (last()) { show(confirmed.get(id) ?? title); toast('Not saved; your change was undone'); } }
-      finally { if (last()) { queue.delete(id); confirmed.delete(id); } }
-    });
-    queue.set(id, run);
-    return run;
-  }
-  return { rename, confirmed, queue };
-}
-
-/** A fake server plus controllable saves and reloads. */
-function world(snapshotAt: 'call' | 'resolve' = 'call') {
-  const server = { title: 'A' };
+/**
+ * A fake server with two boards, controllable saves and loads, and a resource that shows the current board's card.
+ * Separate: each board has its own card (id = board), as a detail view does. Shared: both boards show one card 'c',
+ * as two filters of one list do.
+ */
+function world(snapshotAt: 'call' | 'resolve' = 'call', shared = false) {
+  const server: Record<string, string> = { 1: 'A', 2: 'A', c: 'A' };
+  const record = (b: string) => (shared ? 'c' : b);
+  const board = signal('1');
   const saves: { title: string; ok: () => void; fail: () => void }[] = [];
   const loads: (() => void)[] = [];
-  const toasts: string[] = [];
   let dispose = () => {};
-  const cards = createRoot((d) => {
+  const card = createRoot((d) => {
     dispose = d;
-    return resource<readonly Card[]>({
-      loader: () => new Promise<readonly Card[]>((res) => {
-        const snap = server.title;
-        loads.push(() => res([{ id: '1', title: snapshotAt === 'call' ? snap : server.title }]));
+    return resource<Card, string>({
+      params: () => board(),
+      loader: ({ params: b }) => new Promise<Card>((res) => {
+        const snap = server[record(b)]!;
+        loads.push(() => res({ id: record(b), title: snapshotAt === 'call' ? snap : server[record(b)]! }));
       }),
-      debugName: 'cards',
+      debugName: 'card',
     });
   });
-  const saveTitle = (_id: string, title: string) => new Promise<void>((res, rej) => {
-    saves.push({ title, ok: () => { server.title = title; res(); }, fail: () => rej(new Error('timeout')) });
+  const save = optimistic(card, {
+    get: (c) => c.title,
+    put: (c, _id, title) => ({ ...c, title }),
+    send: (id: string, title: string) => new Promise<void>((res, rej) => {
+      saves.push({ title, ok: () => { server[id] = title; res(); }, fail: () => rej(new Error('timeout')) });
+    }),
   });
-  const api = recipe(cards, saveTitle, (m) => toasts.push(m));
-  const screen = () => (cards.hasValue() ? cards.value().find((c) => c.id === '1')?.title : `<${cards.status()}>`);
-  return { server, saves, loads, toasts, cards, screen, dispose, ...api };
+  const rename = (title: string) => save(record(board()), title);
+  const screen = () => (card.hasValue() ? card.value().title : `<${card.status()}>`);
+  const truth = () => server[record(board())];
+  return { server, board, saves, loads, card, rename, screen, truth, dispose };
 }
 
-test('Recipe: a failed save undoes to the server value and toasts; a successful one stays', async () => {
+test('optimistic: a failed save undoes to the server value; a successful one stays', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
   const w = world();
   w.loads.shift()!(); await tick();
-  const p1 = w.rename('1', 'B');
+  const p1 = w.rename('B');
   assert.equal(w.screen(), 'B', 'optimistic');
   await tick();
-  w.saves[0]!.fail(); await p1;
+  w.saves[0]!.fail();
+  assert.equal(await p1, 'undone');
   assert.equal(w.screen(), 'A');
-  assert.deepEqual(w.toasts, ['Not saved; your change was undone']);
-  const p2 = w.rename('1', 'C'); await tick();
-  w.saves[1]!.ok(); await p2;
+  const p2 = w.rename('C'); await tick();
+  w.saves[1]!.ok();
+  assert.equal(await p2, 'saved');
   assert.equal(w.screen(), 'C');
-  assert.equal(w.cards.status(), 'local');
+  assert.equal(w.card.status(), 'local');
   w.dispose();
 });
 
-test('Recipe (ADR-15 review case): two overlapping saves both failing, earlier first, end on the server value', async () => {
+test('optimistic (ADR-15 review case): two overlapping saves both failing, earlier first, end on the server value', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
   const w = world();
   w.loads.shift()!(); await tick();
-  const p1 = w.rename('1', 'B');
-  const p2 = w.rename('1', 'C');
+  const p1 = w.rename('B');
+  const p2 = w.rename('C');
   await tick();
-  assert.equal(w.saves.length, 1, 'saves of one record are serialized');
+  assert.equal(w.saves.length, 1, 'saves of one key are serialized');
   w.saves[0]!.fail(); await tick();
   assert.equal(w.screen(), 'C', 'an earlier failure changes nothing');
-  w.saves[1]!.fail(); await Promise.all([p1, p2]);
+  assert.equal(await p1, 'superseded');
+  w.saves[1]!.fail();
+  assert.equal(await p2, 'undone');
   assert.equal(w.screen(), 'A');
-  assert.equal(w.queue.size, 0);
-  assert.equal(w.confirmed.size, 0);
   w.dispose();
 });
 
-test('Recipe: a concurrent reload() replacing an in-flight optimistic value is corrected by the successful save', async () => {
+test('optimistic: a concurrent reload() replacing an in-flight optimistic value is corrected by the successful save', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
   const w = world();
   w.loads.shift()!(); await tick();
-  const p = w.rename('1', 'B'); await tick();
-  w.cards.reload(); flush();
+  const p = w.rename('B'); await tick();
+  w.card.reload(); flush();
   w.loads.shift()!(); await tick();
   assert.equal(w.screen(), 'A', 'JSDoc: the reload result replaces the optimistic value');
   w.saves[0]!.ok(); await p;
@@ -1225,36 +1217,120 @@ test('Recipe: a concurrent reload() replacing an in-flight optimistic value is c
   w.dispose();
 });
 
-test('Recipe: every interleaving of up to 3 saves with at most one reload() ends with the screen equal to the server', async () => {
-  type Ev = 'R' | 'S+' | 'S-' | 'L' | 'Lr';
+test('optimistic: a save that ends after the params changed never writes into the new params', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+  const w = world();
+  w.loads.shift()!(); await tick();
+  const p1 = w.rename('B'); await tick();
+  w.board.set('2'); flush();
+  w.loads.shift()!(); await tick();
+  assert.equal(w.screen(), 'A');
+  const p2 = w.rename('C'); await tick();
+  assert.equal(w.saves.length, 2, 'another key: not queued behind board 1');
+  w.saves[0]!.fail();
+  assert.equal(await p1, 'undone');
+  assert.equal(w.screen(), 'C', 'board 1 rollback stays out of board 2');
+  w.saves[1]!.fail();
+  assert.equal(await p2, 'undone');
+  assert.equal(w.screen(), 'A');
+  assert.equal(w.card.status(), 'local');
+  w.dispose();
+});
+
+test('optimistic: a record shown under both params: a save started after the switch queues behind the earlier one and undoes to what the server accepted', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+  const w = world('call', true);
+  w.loads.shift()!(); await tick();
+  const p1 = w.rename('B'); await tick();
+  w.board.set('2'); flush();
+  w.loads.shift()!(); await tick();
+  assert.equal(w.screen(), 'A', 'loaded while the save was in flight');
+  const p2 = w.rename('C'); await tick();
+  assert.equal(w.saves.length, 1, 'one record: queued behind the save started on board 1');
+  w.saves[0]!.ok();
+  assert.equal(await p1, 'saved');
+  assert.equal(w.screen(), 'C');
+  await tick();
+  w.saves[1]!.fail();
+  assert.equal(await p2, 'undone');
+  assert.equal(w.screen(), 'B', 'the value the server accepted, not the one board 2 loaded');
+  assert.equal(w.truth(), 'B');
+  w.dispose();
+});
+
+test('optimistic: no value to show (loading, error) sends nothing and resolves undone', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+  const w = world();
+  assert.equal(await w.rename('B'), 'undone');
+  assert.equal(w.saves.length, 0);
+  w.loads.shift()!(); await tick();
+  w.dispose();
+  assert.equal(await w.rename('B'), 'undone', 'disposed');
+  assert.equal(w.saves.length, 0);
+});
+
+test('optimistic: saves of two keys roll back per key, not per resource', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+  const sent: { id: string; ok: () => void; fail: () => void }[] = [];
+  let dispose = () => {};
+  const list = createRoot((d) => { dispose = d; return resource({ loader: async () => [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }] }); });
+  await tick();
+  const rename = optimistic(list, {
+    get: (cards, id: string) => cards.find((c) => c.id === id)?.title,
+    put: (cards, id, title) => cards.map((c) => (c.id === id ? { ...c, title } : c)),
+    send: (id, _title: string) => new Promise<void>((ok, fail) => { sent.push({ id, ok: () => ok(), fail: () => fail(new Error('500')) }); }),
+  });
+  const titles = () => (list.hasValue() ? list.value().map((c) => c.title).join() : '');
+  const pa = rename('a', 'A2');
+  const pb = rename('b', 'B2');
+  await tick();
+  assert.equal(sent.length, 2, 'different keys are not queued');
+  assert.equal(titles(), 'A2,B2');
+  sent[0]!.fail();
+  assert.equal(await pa, 'undone');
+  assert.equal(titles(), 'A,B2');
+  sent[1]!.ok();
+  assert.equal(await pb, 'saved');
+  assert.equal(titles(), 'A,B2');
+  dispose();
+});
+
+test('optimistic: every interleaving of up to 3 saves with at most one reload() and one params change ends with the screen equal to the server', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+  type Ev = 'R' | 'S+' | 'S-' | 'L' | 'Lr' | 'P';
   const seqs: Ev[][] = [];
-  const gen = (n: number, r: number, s: number, l: number, acc: Ev[]) => {
+  const gen = (n: number, r: number, s: number, l: number, p: boolean, acc: Ev[]) => {
     if (r === n && s === n && l !== 1) seqs.push([...acc]);
-    if (r < n) gen(n, r + 1, s, l, [...acc, 'R']);
-    if (s < r) { gen(n, r, s + 1, l, [...acc, 'S+']); gen(n, r, s + 1, l, [...acc, 'S-']); }
-    if (l === 0) gen(n, r, s, 1, [...acc, 'L']);
-    if (l === 1) gen(n, r, s, 2, [...acc, 'Lr']);
+    if (r < n) gen(n, r + 1, s, l, p, [...acc, 'R']);
+    if (s < r) { gen(n, r, s + 1, l, p, [...acc, 'S+']); gen(n, r, s + 1, l, p, [...acc, 'S-']); }
+    if (l === 0) gen(n, r, s, 1, p, [...acc, 'L']);
+    if (l === 1) gen(n, r, s, 2, p, [...acc, 'Lr']);
+    if (!p && n < 3) gen(n, r, s, l, true, [...acc, 'P']); // ponytail: 3 saves with a switch is ~10x the runs; 2 cover it
   };
-  for (const n of [1, 2, 3]) gen(n, 0, 0, 0, []);
+  for (const n of [1, 2, 3]) gen(n, 0, 0, 0, false, []);
   const bad: string[] = [];
   for (const mode of ['call', 'resolve'] as const) {
     for (const seq of seqs) {
       const w = world(mode);
       w.loads.shift()!(); await tick();
-      const runs: Promise<void>[] = [];
+      const runs: Promise<unknown>[] = [];
       let renames = 0, settled = 0;
+      const next = () => (settled < w.saves.length ? w.saves[settled++] : undefined); // a save skipped while the new board loads leaves fewer saves than renames
       for (const ev of seq) {
-        if (ev === 'R') runs.push(w.rename('1', `T${++renames}`));
-        else if (ev === 'S+') w.saves[settled++]!.ok();
-        else if (ev === 'S-') w.saves[settled++]!.fail();
-        else if (ev === 'L') w.cards.reload();
-        else w.loads.shift()!();
+        if (ev === 'R') runs.push(w.rename(`T${++renames}`));
+        else if (ev === 'S+') next()?.ok();
+        else if (ev === 'S-') next()?.fail();
+        else if (ev === 'L') w.card.reload();
+        else if (ev === 'Lr') w.loads.shift()?.();
+        else { w.board.set('2'); flush(); w.loads.shift()?.(); }
+        flush(); await tick();
+      }
+      for (let s; (s = w.saves[settled]) || w.loads.length; ) {
+        if (s) { settled++; s.ok(); } else w.loads.shift()!();
         flush(); await tick();
       }
       await Promise.all(runs); flush();
-      if (w.screen() !== w.server.title || w.queue.size || w.confirmed.size) {
-        bad.push(`${mode} ${seq.join(' ')}: screen ${w.screen()} server ${w.server.title}`);
-      }
+      if (w.screen() !== w.truth()) bad.push(`${mode} ${seq.join(' ')}: screen ${w.screen()} server ${w.truth()}`);
       w.dispose();
     }
   }
@@ -1262,13 +1338,14 @@ test('Recipe: every interleaving of up to 3 saves with at most one reload() ends
   assert.deepEqual(bad.slice(0, 10), [], `${bad.length} of ${seqs.length * 2} interleavings failed`);
 });
 
-test('Recipe: renders through each() in mountTest with no diagnostics; a rename from a handler updates the row', async (t) => {
+test('optimistic: renders through each() in mountTest with no diagnostics; a rename from a handler updates the row', async (t) => {
+  t.mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
   const w = world();
   w.loads.shift()!(); await tick();
-  let pending: Promise<void> | undefined;
-  const view = mountTest(t, () => h.ul(null, each(() => (w.cards.hasValue() ? w.cards.value() : []), {
+  let pending: Promise<unknown> | undefined;
+  const view = mountTest(t, () => h.ul(null, each(() => (w.card.hasValue() ? [w.card.value()] : []), {
     key: (c) => c.id,
-    render: (c) => h.li(null, h.button({ type: 'button', onclick: () => { pending = w.rename(c().id, 'B'); } }, () => c().title)),
+    render: (c) => h.li(null, h.button({ type: 'button', onclick: () => { pending = w.rename('B'); } }, () => c().title)),
   })));
   assert.equal(view.root.textContent, 'A');
   view.root.querySelector('button')!.click();

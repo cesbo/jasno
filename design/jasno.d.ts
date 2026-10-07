@@ -57,33 +57,24 @@
        await addNote(id, text);
        if (p.params().id === id) notes.reload();       // reload() refetches the CURRENT params
      }
-   Optimistic saves: set() before the await. Saves of one record run one after another here, which is right when the
-   server may apply requests out of order; when it applies them in the order sent and each change must go out at
-   once, send every save immediately instead and, once none is pending, show the response of the newest sent request
-   that succeeded (per field), else the last accepted value. In the queued form, when the last queued save
-   fails, show the last value the server accepted, not the value before this save (an earlier save may still be
-   unconfirmed); an earlier failure changes nothing, since a newer value is still being saved. A successful last save
-   shows its value again, in case a reload() (polling, Retry) replaced it meanwhile. Never reload() after an optimistic
-   save: a failed reload() clears the value. Give the request a timeout. confirmed and queue are plain module variables
-   that @jasno/core/testing does not reset, so a test awaits every rename it starts. App-wide data lives in
-   src/state.ts as export const cards = createRoot(() => resource({ loader: ... })), changed by functions there:
-     const confirmed = new Map<string, string>();     // last title the server accepted, while saves are queued
-     const queue = new Map<string, Promise<void>>();  // the last queued save per card
-     function rename(id: string, title: string): Promise<void> {
-       if (!cards.hasValue()) return Promise.resolve();
-       const show = (to: string) => { if (cards.hasValue())
-         cards.set(cards.value().map((c) => (c.id === id ? { ...c, title: to } : c))); };
-       if (!confirmed.has(id)) confirmed.set(id, cards.value().find((c) => c.id === id)?.title ?? title);
-       show(title);
-       const run: Promise<void> = (queue.get(id) ?? Promise.resolve()).then(async () => {
-         const last = () => queue.get(id) === run;
-         try { await saveTitle(id, title, AbortSignal.timeout(10_000)); confirmed.set(id, title); if (last()) show(title); }
-         catch { if (last()) { show(confirmed.get(id) ?? title); toast('Not saved; your change was undone'); } }
-         finally { if (last()) { queue.delete(id); confirmed.delete(id); } }
-       });
-       queue.set(id, run);
-       return run;
+   Optimistic saves: optimistic() next to the resource. save(key, v) shows v at once and sends it; saves of one key run
+   one after another (right when the server may apply requests out of order). A failed last save shows the last value
+   the server accepted and resolves 'undone' (tell the user); an earlier failure changes nothing ('superseded'); a
+   successful last save shows its value again in case a reload() (polling, Retry) replaced it; a save never writes after
+   the resource's params changed. The key names the record on the server: send gets only the key. Never reload() after
+   a save: a failed reload() clears the value. The queue is module state that @jasno/core/testing does not reset, so a
+   test awaits every rename it starts. App-wide data lives in src/state.ts as export const cards = createRoot(() =>
+   resource({ loader: ... })), changed by functions there:
+     const save = optimistic(cards, {
+       get: (list, id: string) => list.find((c) => c.id === id)?.title,
+       put: (list, id, title) => list.map((c) => (c.id === id ? { ...c, title } : c)),
+       send: (id, title, abortSignal) => saveTitle(id, title, abortSignal),   // abortSignal times out after 10 s
+     });
+     export async function rename(id: string, title: string): Promise<void> {
+       if (await save(id, title) === 'undone') toast('Not saved; your change was undone');
      }
+   A server that applies requests in the order sent, where each change must go out at once, needs no queue: send every
+   save immediately and, once none is pending, show the response of the newest that succeeded (per field).
    New items get their id on the client (crypto.randomUUID()), sent as the idempotency key: the saved item keeps
    its key, so its row survives the server echo, and a retry cannot create a duplicate.
 
@@ -364,7 +355,7 @@ declare module '@jasno/core' {
     readonly latest: Signal<T | undefined>;
     /** Refetches the current params, keeping the value (status 'reloading'); aborts a load in flight; no-op while idle. Its result replaces set() values, optimistic ones of saves still in flight included; if it fails value() is gone (status 'error') and latest() keeps it. */
     readonly reload: () => void;
-    /** Replaces the value now (status 'local') and aborts a load in flight. Optimistic: set() before the await; after an await only if params are unchanged (undo a failed save this way, never by reload()). In 'loading' (no value yet) it warns RESOURCE_SET_WHILE_LOADING. */
+    /** Replaces the value now (status 'local') and aborts a load in flight. After an await, set() only if params are unchanged; optimistic saves go through optimistic(), never undone by reload(). In 'loading' (no value yet) it warns RESOURCE_SET_WHILE_LOADING. */
     readonly set: (value: T) => void;
   }
   /** A Resource narrowed by hasValue(): value() returns T. */
@@ -373,6 +364,17 @@ declare module '@jasno/core' {
   }
   /** Async state: resource({ params: () => p.id(), loader: ({ params, abortSignal }) => getUser(params, abortSignal) }). The loader resolves null, never undefined or void, for "no data". */
   export function resource<T extends {} | null, P = unknown>(options: ResourceOptions<T, P>): Resource<Frozen<T>>;
+  /** optimistic() options: get reads the key's field from the resource value (undefined when the key is absent), put returns a new value with it set, send makes the request (abortSignal times out after timeout ms, default 10000). */
+  export interface OptimisticOptions<T, K, V> {
+    readonly get: (value: T, key: K) => V | undefined;
+    readonly put: (value: T, key: K, v: V) => T;
+    readonly send: (key: K, v: V, abortSignal: AbortSignal) => Promise<unknown>;
+    readonly timeout?: number | undefined;
+  }
+  /** 'saved' the server accepted it; 'undone' it failed and the resource shows the last accepted value again (also when the resource had no value, so nothing was sent); 'superseded' it failed while a newer save of the key was queued: nothing changed. */
+  export type SaveResult = 'saved' | 'undone' | 'superseded';
+  /** Optimistic saves into a resource: save(key, v) puts v at once, then sends; saves of one key run one after another. A failed last save shows the last value the server accepted; a successful one shows its value again in case a reload() replaced it; a save never writes after the resource's params changed, so a value the new params loaded while a save of the same record was in flight may predate it. The key names the record on the server (send gets only the key). Never rejects. Create it next to the resource (RECIPES: Mutations). */
+  export function optimistic<T, K, V>(target: Resource<T>, options: OptimisticOptions<T, K, V>): (key: K, v: V) => Promise<SaveResult>;
 
   // ---------------------------------------------------------------- components and DOM
 
@@ -480,6 +482,10 @@ declare module '@jasno/core' {
   export const useEffect: { readonly 'jasno: use effect(fn) (it tracks what it reads) or onMount(fn) for one-time work': never };
   /** Not in jasno: use resource({ params, loader }). */
   export const createResource: { readonly 'jasno: use resource({ params, loader })': never };
+  /** Not in jasno: use optimistic(resource, { get, put, send }). */
+  export const useOptimistic: { readonly 'jasno: use optimistic(resource, { get, put, send }): save(key, v) shows v, sends it, undoes it on failure': never };
+  /** Not in jasno: use optimistic(resource, { get, put, send }). */
+  export const useMutation: { readonly 'jasno: use optimistic(resource, { get, put, send }): save(key, v) shows v, sends it, undoes it on failure': never };
   /** Not in jasno: h.* returns the element; keep it in a const. */
   export const useRef: { readonly 'jasno: no refs; h.* returns the element: const input = h.input(...)': never };
   /** Not in jasno: h.* returns the element; keep it in a const. */

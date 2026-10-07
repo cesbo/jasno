@@ -8,7 +8,7 @@ export {
   computed, createContext, createRoot, effect, flush, linkedSignal, onMount, provide, selector, signal, untracked, useContext,
 } from './core.ts';
 export { bindChecked, bindNumber, bindValue, catchError, component, css, each, h, match, mount, show, svg } from './dom.ts';
-export { resource } from './resource.ts';
+export { optimistic, resource } from './resource.ts';
 
 export const version = '0.1.7';
 
