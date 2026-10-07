@@ -6,7 +6,7 @@ The specification of jasno: architecture decisions (a), semantics (b), the diagn
 |---|---|
 | `jasno.d.ts` | The complete public API: `@jasno/core`, `@jasno/core/router`, `@jasno/core/testing`, `@jasno/core/testing/happy-dom`, the `window.__JASNO__` type, and a RECIPES block (patterns that are not one function). 49.5 KB; it references `jasno.elements.d.ts`. |
 | `jasno.elements.d.ts` | The generated element props (`GlobalProps`, one `*Props` interface per element class, the `H` tag table), merged into module `@jasno/core`; 49.8 KB that tsc checks and agents rarely need to read. |
-| `AGENTS.md` | The agent guide shipped in the package (ASCII, under the byte limit of ADR-30). With `jasno.d.ts` (and the `jasno.elements.d.ts` it references, which tsc needs and agents rarely read) it is everything a fresh agent gets. |
+| `AGENTS.md` | The agent guide shipped in the package (ASCII, ADR-30). With `jasno.d.ts` (and the `jasno.elements.d.ts` it references, which tsc needs and agents rarely read) it is everything a fresh agent gets. |
 | `example/` | A multi-file app (router with a param route, lazy views, notFound, resources, keyed lists, a form, context, cleanup, an SVG icon, `selector`, a toast region) and three `node:test` files. The people are server data: its fetch functions are imported as `#api`, which `package.json` maps to `api.mock.ts` under the `development` condition, so the app runs under `jasno dev` and in tests without a backend. The notes are app-wide state in `src/state.ts`: a signal stored in `localStorage`, changed only through its functions (store first, then show), and kept in step with other tabs through the `storage` event, subscribed in App's `onMount`. |
 | `tools/agents-samples/` | Every AGENTS.md sample and every RECIPES snippet as compiling files; `jasno/test/cli/spec/check.test.ts` runs them through `jasno check --strict`. |
 
@@ -34,7 +34,7 @@ The specification of jasno: architecture decisions (a), semantics (b), the diagn
 | Hash mode | `createRouter(routes, { hash: true })`: the fragment is the route, `url()` stays the route URL, History adapter | 21 |
 | Selection | `selector(source)` | 31 |
 | Focus | router, boundaries and keyed moves restore focus; `FOCUS_LOST`, `VIEW_NO_HEADING`, `KEY_ACTIVATES_NEW_FOCUS`; `jasno check` `FOCUS_STYLE_REMOVED` | 33 |
-| Docs channel | AGENTS.md (≤ 8 KB) + RECIPES block in jasno.d.ts (+ `docs/recipes/` in the package) | 30 |
+| Docs channel | AGENTS.md + RECIPES block in jasno.d.ts (+ `docs/recipes/` in the package) | 30 |
 | Dependencies | npm packages imported by name; served file by file in dev, bundled by `jasno dist`; `#name` only for app aliases and `#config` | 26, 35 |
 | Production build | `jasno dist` bundles with Rolldown: a hashed chunk per lazy view, shared chunks, source maps | 29 |
 | TS programs | browser `tsconfig.json` (`types: []`) and `tsconfig.test.json` (`types: ["node"]`) | 26 |
@@ -192,9 +192,9 @@ Each ADR gives the decision, the rationale and the rejected alternatives.
 - **Rejected.** Unbundled production, as the default or as an option (the cost above; per-module budgets only limit it; an option is a second build to test and document for rare debugging, which source maps cover); Vite (it replaces `jasno dev`, with its production CSP, allowlist and hints, and adds a configuration file); esbuild (fast, and the first bundler here, but npm 11 warns about its install script on every install); letting the bundler resolve imports and parse TypeScript itself (it could disagree with `jasno check` and `jasno dev`); `?v=` query busting; publishing everything except a denylist (a denylist misses the next secret).
 
 ### ADR-30 The docs channel: AGENTS.md plus a RECIPES block
-- **Decision.** AGENTS.md (≤ 8,192 bytes) holds the rules and the examples; the RECIPES block at the top of `jasno.d.ts` holds patterns that are not one function (forms, mutations, dialog, popover, toasts, focus, polling, debounce, keep-last-value, search params, guards, loader vs resource, per-record titles, tabs, lazy components, app-wide state, timers, persistence, render-function children, selection, row labels, icons, animation, widgets, config, inline edit, per-param lifecycle, detail over a list, optimistic saves, a dev backend, chat/log lists, Tailwind). The package also ships the recipes as `docs/recipes/*.md`, the same text as the RECIPES block, which AGENTS.md points to (AGENTS.md has no room for a separate index line). The top-mistakes table lists only mistakes tsc accepts.
-- **Rationale.** AGENTS.md alone has no room and no place for native patterns; mistakes that already have self-explaining errors need no table row; in docs, examples matter most. An agent may be given only AGENTS.md and jasno.d.ts (plus jasno.elements.d.ts for tsc), so recipes must be in one of the first two; jasno.d.ts has no byte budget. The generated element props (half the declarations) live in `jasno.elements.d.ts`, which jasno.d.ts references, so the part an agent reads is 49.5 KB: 17.0 KB of RECIPES and the hand-written API. Every recipe snippet compiles (`tools/agents-samples/recipes.ts`).
-- **Rejected.** A docs index pointing only to `node_modules/@jasno/core/docs` (invisible to sandboxed agents without the package); growing AGENTS.md past 8 KB.
+- **Decision.** AGENTS.md holds the rules and the examples; the RECIPES block at the top of `jasno.d.ts` holds patterns that are not one function (forms, mutations, dialog, popover, toasts, focus, polling, debounce, keep-last-value, search params, menus, guards, loader vs resource, per-record titles, tabs, lazy components, app-wide state, timers, persistence, render-function children, selection, row labels, icons, animation, widgets, config, inline edit, per-param lifecycle, detail over a list, optimistic saves, a dev backend, chat/log lists, Tailwind). The package also ships the recipes as `docs/recipes/*.md`, the same text as the RECIPES block, which AGENTS.md points to. The top-mistakes table lists only mistakes tsc accepts.
+- **Rationale.** AGENTS.md is read whole in every session, so it keeps rules and leaves native patterns to RECIPES, read on demand; mistakes that already have self-explaining errors need no table row; in docs, examples matter most. An agent may be given only AGENTS.md and jasno.d.ts (plus jasno.elements.d.ts for tsc), so recipes must be in one of the first two. The generated element props (half the declarations) live in `jasno.elements.d.ts`, which jasno.d.ts references, so the part an agent reads is 49.5 KB: 17.0 KB of RECIPES and the hand-written API. Every recipe snippet compiles (`tools/agents-samples/recipes.ts`).
+- **Rejected.** A docs index pointing only to `node_modules/@jasno/core/docs` (invisible to sandboxed agents without the package); a byte limit on AGENTS.md (8 KB through 0.1.7: each new rule had to cost an old one).
 
 ### ADR-31 `selector()`
 - **Decision.** `selector<K>(source: Read<K>): (key: K) => boolean`; a call is a tracked read that depends only on whether `source() === key` flips. Also: a binding whose new value is `Object.is`-equal to the last applied value does not touch the DOM (B15.3).
@@ -620,7 +620,7 @@ my-app/
   .gitattributes      * text=auto eol=lf   (same bytes, hashes and integrity on every OS)
   .gitignore          node_modules/, dist/, .jasno/
   .nvmrc              the Node version CI pins
-  AGENTS.md           jasno block (≤ 8 KB) between <!-- jasno:begin --> / <!-- jasno:end -->; CLAUDE.md contains @AGENTS.md
+  AGENTS.md           jasno block between <!-- jasno:begin --> / <!-- jasno:end -->; CLAUDE.md contains @AGENTS.md
   src/
     main.ts           mount(App, document.getElementById('app'))
     app.ts            App shell: h.header(null, nav) + h.main(null, router.outlet()), providers, toast region

@@ -168,6 +168,16 @@ export const Search = component(function Search(): Node {
     h.a({ href: () => router.href('/users/:id', { id: 7 }) + router.url().search }, 'Ada'),
     h.button({ onclick: () => void router.back('/') }, 'Close'));
 });
+const menu = [['/', 'Home'], ['/users', 'Users']] as const;
+const NavLink = component(function NavLink(p: { path: (typeof menu)[number][0]; label: string }): Node {
+  return h.a({ href: router.href(p.path), 'aria-current': () => {
+    const here = router.url().pathname;
+    return here === p.path ? 'page' : here.startsWith(p.path + '/') ? 'true' : null;
+  } }, p.label);
+});
+export const Nav = component(function Nav(): Node {
+  return h.nav({ 'aria-label': 'Main' }, menu.map(([path, label]) => NavLink({ path, label })));
+});
 const session = signal<string | null>(null);
 export const guardLoader = async () => { if (!session()) { void router.navigate('/login', { replace: true }); return null; } return session(); };
 export const guardedRouter = createRouter([

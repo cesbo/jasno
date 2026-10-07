@@ -34,7 +34,7 @@ export const TodoList = component(function TodoList(p: TodoListProps): Node {
 
 ## Components
 
-`component(function Name(p: Props): Node { ... })`: named, annotated `: Node`, called directly: `Card({ title })`. Data props are `Read<T>` (pass `count`, a computed or `() => x`); plain `T` only for ids fixed at creation; optional: `sub?: Read<string> | undefined`. Content that may not render or must see this component's context is a function prop (`panel: () => Child`), not `children`.
+`component(function Name(p: Props): Node { ... })`: named, annotated `: Node`, called directly: `NavLink({ path, label })`. Repeated markup is a component, not a shared class string. Data props are `Read<T>` (pass `count`, a computed or `() => x`); plain `T` only for ids fixed at creation; optional: `sub?: Read<string> | undefined`. Content that may not render or must see this component's context is a function prop (`panel: () => Child`), not `children`.
 
 ## Markup and events
 
@@ -63,7 +63,7 @@ export const router = createRouter([
 export default component(function UserView(p: ViewProps<'/users/:id', User>): Node { /* p.params().id, p.data().name */ });
 ```
 
-App is `h.header(null, nav)` + `h.main(null, router.outlet())`; every view has an `h.h1` (focused after navigation). Links: `h.a({ href: router.href('/users/:id', { id }) })`. Search params: `router.url().searchParams.get('q')`; set with `router.navigate('?q=x', { replace: true })`. Use `{ replace: true }` after delete/create; close a detail with `router.back('/')`. Never touch `history` or `location`. Views stay mounted when only params change: per-param work goes in `match(() => p.params().id, (id) => Body({ id }))`, `onMount` inside.
+App is `h.header(null, nav)` + `h.main(null, router.outlet())`; the menu marks its current link with `aria-current` (RECIPES: Menu); every view has an `h.h1` (focused after navigation). Links: `h.a({ href: router.href('/users/:id', { id }) })`. Search params: `router.url().searchParams.get('q')`; set with `router.navigate('?q=x', { replace: true })`. Use `{ replace: true }` after delete/create; close a detail with `router.back('/')`. Never touch `history` or `location`. Views stay mounted when only params change: per-param work goes in `match(() => p.params().id, (id) => Body({ id }))`, `onMount` inside.
 
 ## Context, cleanup, state
 

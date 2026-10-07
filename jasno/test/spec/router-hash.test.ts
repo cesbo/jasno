@@ -73,6 +73,27 @@ test('B17.19 an empty fragment, "#" and a fragment without its leading slash', a
   }
 });
 
+test('RECIPES Menu: aria-current compares url().pathname with the route path: "page" on it, "true" below it', async (t) => {
+  history.replaceState(null, '', '/app/#/users/7');
+  const router = createRouter([route('/', { view: page('home').view }), route('/users', { view: page('users').view }),
+    route('/users/:id', { view: page('user').view })], { error: errorView, notFound, hash: true });
+  const NavLink = component(function NavLink(p: { path: '/' | '/users'; label: string }): Node {
+    return h.a({ href: router.href(p.path), 'aria-current': () => {
+      const here = router.url().pathname;
+      return here === p.path ? 'page' : here.startsWith(p.path + '/') ? 'true' : null;
+    } }, p.label);
+  });
+  const view = mountTest(t, () => h.div(null, h.nav(null, NavLink({ path: '/', label: 'Home' }), NavLink({ path: '/users', label: 'Users' })),
+    h.main(null, router.outlet())));
+  const current = () => [...view.root.querySelectorAll('nav a')].map((a) => a.getAttribute('aria-current'));
+  await settled();
+  assert.deepEqual(current(), [null, 'true']);
+  await router.navigate('/users');
+  assert.deepEqual(current(), [null, 'page']);
+  await router.navigate('/');
+  assert.deepEqual(current(), ['page', null]);
+});
+
 test('B17.19 href() returns a fragment; a click on it navigates inside the document', async (t) => {
   const { routes, user } = users();
   const click = clicker(t);

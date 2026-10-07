@@ -8,6 +8,7 @@ const ErrorPanel = component(function ErrorPanel(p: { error: unknown; retry: () 
 const NotFound = component(function NotFound(): Node { return h.h1(null, 'Page not found'); });
 export const router = createRouter([
   route('/', { view: () => import('./views/home.ts'), title: 'Home' }),
+  route('/users', { view: () => import('./views/home.ts'), title: 'Users' }),
   route('/users/new', { view: () => import('./views/home.ts'), title: 'New user' }),
   route('/users/:id', { loader: ({ params, abortSignal }) => getUser(params.id, abortSignal), view: () => import('./views/user.ts'), title: (u) => u.name }),
   route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts'), title: 'Settings' }),

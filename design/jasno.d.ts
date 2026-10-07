@@ -165,6 +165,18 @@
    Loader or resource? A route loader when the view cannot render without the data (router.isLoading, error view);
    a resource in the view when the page shows its own loading and error UI.
    After delete or create: void router.navigate(url, { replace: true }). Close a detail: void router.back('/').
+   Menu: entries in an array, one NavLink each. aria-current marks the current link for screen readers, and CSS styles
+   that attribute (a[aria-current]; Tailwind aria-[current]:, since aria-current: matches only "true"): no active
+   class. Compare url().pathname with the route path, not with href() ('#/users' in hash mode). A section link stays
+   current on the pages below it:
+     const menu = [['/', 'Home'], ['/users', 'Users']] as const;
+     const NavLink = component(function NavLink(p: { path: (typeof menu)[number][0]; label: string }): Node {
+       return h.a({ href: router.href(p.path), 'aria-current': () => {
+         const here = router.url().pathname;
+         return here === p.path ? 'page' : here.startsWith(p.path + '/') ? 'true' : null;
+       } }, p.label);
+     });
+     h.nav({ 'aria-label': 'Main' }, menu.map(([path, label]) => NavLink({ path, label })))
    Tabs: route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts') }) and
    match(() => p.params().tab, (tab) => ...). Per-record title: title: (user) => user.name, or no route title and
    effect(() => { document.title = name(); }) in the view (a view without a route title starts from index.html's title).
