@@ -5,7 +5,7 @@
 
 <!-- /generated:catalogue -->
 
-`index.html` contains its own `<script type="importmap">`. `jasno dev` and `jasno dist` generate the import map and put it at `<!--jasno:head-->`. The generated map covers source files, packages and `#imports` keys. In dist, it also covers the hashed file names with their integrity.
+`index.html` contains its own `<script type="importmap">`. `jasno dev` and `jasno dist` generate the import map and put it at `<!--jasno:head-->`. In dev, the generated map covers source files, packages and `#imports` keys. In dist, Rolldown bundles the packages and the keys into the chunks. There the map holds the hashed name of the entry and the integrity of every chunk.
 
 With a handwritten map in the page, `jasno dev` injects nothing. It serves an error page instead of the app. `jasno check` and `jasno dist` fail.
 <!-- design.md: (c) check/dev, (e) dev, (f) -->

@@ -7,7 +7,7 @@
 
 A package that the app imports cannot run in the browser as installed.
 
-jasno does not bundle. `jasno dev` serves each file of the import closure of a dependency as an ES module. `jasno dist` copies those files as they are.
+`jasno dev` does not bundle. It serves each file of the import closure of a dependency as an ES module, and the browser runs the file as it is. `jasno dist` bundles these files with Rolldown, but it checks them the same way. So a package that cannot run in dev also fails the build.
 
 jasno reports this error in these cases:
 

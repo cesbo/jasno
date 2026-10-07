@@ -7,7 +7,7 @@
 
 A browser file creates a `Worker` or `SharedWorker`. Or it registers a service worker with `navigator.serviceWorker.register`.
 
-jasno resolves `@jasno/core`, your dependencies and `#imports` keys through the page's import map. Import maps do not apply to workers. So worker code cannot import them. jasno v1 has no supported way to build or ship workers.
+In dev, jasno resolves `@jasno/core`, your dependencies and `#imports` keys through the page's import map. Import maps do not apply to workers. So worker code cannot import them. `jasno dist` bundles only what the entry imports, so a worker file does not ship. jasno v1 has no supported way to build or ship workers.
 
 A class of your own named `Worker` is not reported.
 

@@ -5,15 +5,15 @@
 
 <!-- /generated:catalogue -->
 
-A browser file imports a bare name that the import map will not contain. There is no bundler. The browser resolves bare names only through the import map that `jasno dev` and `jasno dist` generate.
+A browser file imports a bare name that jasno does not map. In dev, the browser resolves bare names only through the import map that `jasno dev` generates. `jasno dist` bundles the imports with Rolldown at build time.
 
-The import map holds these names:
+jasno maps these names:
 
 - `@jasno/core` and `@jasno/core/router`
 - the packages in `dependencies`
 - the package.json `"imports"` keys (`#config`)
 
-Any other name fails to load in the browser. Every module that imports it fails too.
+In dev, any other name fails to load in the browser, and every module that imports it fails too. `jasno dist` fails the build instead.
 <!-- design.md: (c) check/dev/dist, (e) check 3, ADR-35 -->
 
 ## Fix
