@@ -458,7 +458,7 @@
           "build": "dev",
           "when": "a flush disposed router.outlet() and rendered another one, as an outlet in each branch of a show does (B17.3)",
           "message": "router.outlet() moved within one flush: the view is built again, its loader runs again, and focus does not move.",
-          "hint": "Render router.outlet() once, where it never switches; show what changes beside it (RECIPES: Layout)."
+          "hint": "Render router.outlet() once, where it never switches; UI a section shares is a layout route (RECIPES: Layout)."
         }
       ]
     },
@@ -482,7 +482,7 @@
           "source": "Runtime",
           "severity": "warn",
           "build": "dev (the reload happens in both builds)",
-          "when": "a view module failed to load (B17.17)",
+          "when": "a view or layout module failed to load (B17.17)",
           "message": "The module for \"{route}\" failed to load ({error}); reloading {url}.",
           "hint": "Usually a deploy replaced the files: keep previous deploys (npm run dist -- --keep 2)."
         }

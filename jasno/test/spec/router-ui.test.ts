@@ -5,7 +5,7 @@ import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { component, computed, flush, h, match, mount, onMount, show, signal, type Read } from '@jasno/core';
+import { component, computed, createContext, effect, flush, h, match, mount, onMount, provide, show, signal, useContext, type Read } from '@jasno/core';
 import { createRouter, route } from '@jasno/core/router';
 import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred } from '../helpers.ts';
@@ -965,7 +965,280 @@ test('RECIPES Tabs: :tab(profile|billing) builds the view per tab from a typed r
   assert.deepEqual(r.view.diagnostics, []);
 });
 
-/** The Layout recipe's app (or the rejected shape: an outlet in each branch of the show), started at '/'. */
+// ================================================================ Layout routes (B17.5, B17.8, B17.9, B17.15, B17.17)
+
+type LayoutModule = { default: (p: { view: Node }) => Node };
+/** A layout module counting imports, builds and cleanups; extra renders beside the view (a page list). */
+function shell(name: string, extra: () => Node = () => h.nav({ 'aria-label': name }, name), own: 'main' | 'none' = 'main') {
+  const s = { imports: 0, builds: 0, cleanups: 0 };
+  const Layout = component(function Layout(p: { view: Node }): Node {
+    s.builds++;
+    onMount(() => () => { s.cleanups++; });
+    return h.div({ class: `layout-${name}` }, extra(), own === 'main' ? h.main(null, p.view) : p.view);
+  });
+  // A new loader function per call, as an inline () => import(...) per route gives: the module is what is shared.
+  return { s, load: () => async (): Promise<LayoutModule> => { s.imports++; return { default: Layout }; } };
+}
+const plain = (x: Node) => h.div(null, x);
+
+test('RECIPES Layout: routes whose layout modules resolve to one component keep it (and its DOM) across params and patterns', async (t) => {
+  const docs = shell('Docs');
+  const index = page('Docs index');
+  const doc = page('Doc', (p) => h.p({ class: 'id' }, p.params().page));
+  const { router, view, $ } = setup(t, [
+    route('/', { view: page('Home').view }),
+    route('/docs', { layout: docs.load(), view: index.view }),
+    route('/docs/:page', { layout: docs.load(), view: doc.view }),
+  ], '/docs/a', { shell: plain });
+  await settled();
+  const nav = $('nav[aria-label="Docs"]');
+  assert.ok(nav);
+  assert.equal($('.layout-Docs main h1')?.textContent, 'Doc');
+  await router.navigate('/docs/b');
+  assert.equal($('.id')?.textContent, 'b');
+  assert.equal(document.activeElement?.textContent, 'Doc', 'focus on the view heading');
+  await router.navigate('/docs');
+  assert.equal($('.layout-Docs main h1')?.textContent, 'Docs index');
+  assert.ok($('nav[aria-label="Docs"]') === nav, 'the same layout element');
+  assert.deepEqual([docs.s.builds, docs.s.cleanups, doc.s.builds, index.s.builds], [1, 0, 2, 1]);
+  assert.equal(docs.s.imports, 2, 'two loader functions, one module: one layout');
+  await router.navigate('/');
+  assert.deepEqual([docs.s.builds, docs.s.cleanups], [1, 1], 'a route without the layout disposes it');
+  assert.equal($('nav[aria-label="Docs"]'), null);
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('B17.5 a route with another layout builds that one; Back to the first builds the first again', async (t) => {
+  const docs = shell('Docs');
+  const admin = shell('Admin');
+  const { router, view, $ } = setup(t, [
+    route('/docs/:page', { layout: docs.load(), view: page('Doc').view }),
+    route('/admin/:x', { layout: admin.load(), view: page('Admin page').view }),
+  ], '/docs/a', { shell: plain });
+  await settled();
+  await router.navigate('/admin/1');
+  assert.deepEqual([docs.s.cleanups, admin.s.builds], [1, 1]);
+  assert.ok($('.layout-Admin main h1'));
+  history.back();
+  await new Promise((r) => setTimeout(r, 0));
+  await settled();
+  assert.deepEqual([docs.s.builds, admin.s.cleanups], [2, 1]);
+  assert.equal($('.layout-Docs main h1')?.textContent, 'Doc');
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('B17.8/B17.9 focus and the announcement come from the view, never the layout (its own h1 and [autofocus])', async (t) => {
+  // The recipe's shape: App's h.main holds the outlet, the layout has no main of its own.
+  const docs = shell('Docs', () => h.div(null, h.h1(null, 'Section'), h.input({ autofocus: true, 'aria-label': 'Filter' })), 'none');
+  const { router, view } = setup(t, [
+    route('/', { view: page('Home').view }),
+    route('/docs/:page', { layout: docs.load(), view: page('Page').view }),
+  ]);
+  await settled();
+  await router.navigate('/docs/a');
+  assert.equal(document.activeElement?.textContent, 'Page');
+  assert.ok(liveRegions().some((r) => r.textContent === 'Page'));
+  await router.navigate('/docs/b');
+  assert.equal(document.activeElement?.textContent, 'Page');
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('B17.5 a data route under a layout: the loader runs per navigation, the title follows the data, the layout stays', async (t) => {
+  const docs = shell('Docs');
+  const loads: string[] = [];
+  const { router, view, $ } = setup(t, [
+    route('/docs/:page', { layout: docs.load(), view: page('Doc', (p) => h.p({ class: 'data' }, String(p.data()))).view,
+      loader: async ({ params }) => { loads.push(params.page); return `D${params.page}`; }, title: (d) => `T ${d}` }),
+  ], '/docs/a', { shell: plain });
+  await settled();
+  await router.navigate('/docs/b');
+  assert.deepEqual(loads, ['a', 'b']);
+  assert.equal($('.data')?.textContent, 'Db');
+  assert.equal(document.title, 'T Db');
+  assert.deepEqual([docs.s.builds, docs.s.imports], [1, 1]);
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('B17.7 a search-only navigation keeps the layout and the view', async (t) => {
+  const docs = shell('Docs');
+  const doc = page('Doc');
+  const { router } = setup(t, [route('/docs/:page', { layout: docs.load(), view: doc.view })], '/docs/a', { shell: plain });
+  await settled();
+  await router.navigate('?q=1');
+  assert.deepEqual([docs.s.builds, doc.s.builds], [1, 1]);
+});
+
+test('B17.6/B17.12 notFound and the error view render without the layout; the next navigation builds it again', async (t) => {
+  const docs = shell('Docs');
+  let fail = false;
+  const { router, view, $ } = setup(t, [
+    route('/docs/:page', { layout: docs.load(), view: page('Doc').view, loader: async () => { if (fail) throw new Error('down'); return 1; } }),
+  ], '/docs/a', { shell: plain });
+  await settled();
+  assert.equal(await router.navigate('/nope'), 'done');
+  assert.equal($('h1')?.textContent, 'Not found');
+  assert.deepEqual([docs.s.builds, docs.s.cleanups], [1, 1]);
+  fail = true;
+  assert.equal(await router.navigate('/docs/b'), 'failed');
+  assert.equal($('[role=alert] h1')?.textContent, 'Error');
+  assert.equal($('nav[aria-label="Docs"]'), null);
+  fail = false;
+  assert.equal(await router.navigate('/docs/c'), 'done');
+  assert.deepEqual([docs.s.builds, docs.s.cleanups], [2, 1]);
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('B17.12 an effect error in the view under a layout swaps both for the error view', async (t) => {
+  const docs = shell('Docs');
+  const boom = signal(false);
+  const { view, $ } = setup(t, [
+    route('/docs/:page', { layout: docs.load(), view: page('Doc', () => { effect(() => { if (boom()) throw new Error('view broke'); }); return ''; }).view }),
+  ], '/docs/a', { shell: plain, expect: [] });
+  await settled();
+  boom.set(true);
+  await settled();
+  assert.match($('[role=alert]')?.textContent ?? '', /view broke/);
+  assert.deepEqual(docs.s.cleanups, 1);
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('B17.5 a layout that does not place p.view fails the navigation with a TypeError (the error view names the route)', async (t) => {
+  const Broken = component(function Broken(_p: { view: Node }): Node { return h.div(null, 'no page here'); });
+  const { router, $ } = setup(t, [
+    route('/', { view: page('Home').view }),
+    route('/docs/:page', { layout: async () => ({ default: Broken }), view: page('Doc').view }),
+  ], '/', { shell: plain });
+  await settled();
+  assert.equal(await router.navigate('/docs/a'), 'failed');
+  assert.match($('[role=alert]')?.textContent ?? '', /The layout for "\/docs\/:page" did not place p\.view\./);
+});
+
+test('B17.5 dev: a layout that places p.view inside a show branch fails at once (the page would vanish when the branch closes)', async (t) => {
+  const open = signal(true);
+  const InBranch = component(function InBranch(p: { view: Node }): Node { return h.div(null, show(open, () => h.main(null, p.view))); });
+  const { router, $ } = setup(t, [
+    route('/', { view: page('Home').view }),
+    route('/docs/:page', { layout: async () => ({ default: InBranch }), view: page('Doc').view }),
+  ], '/', { shell: plain });
+  await settled();
+  assert.equal(await router.navigate('/docs/a'), 'failed');
+  assert.match($('[role=alert]')?.textContent ?? '', /placed p\.view inside a show, match, each or catchError branch/);
+});
+
+test('B17.5 dev: p.view placed bare or in an array inside a branch fails at once too (no element of its own around it)', async (t) => {
+  const open = signal(true);
+  for (const [name, L] of [
+    ['bare', component(function Bare(p: { view: Node }): Node { return h.div(null, show(open, () => p.view)); })],
+    ['array', component(function InArray(p: { view: Node }): Node { return h.div(null, show(open, () => [h.h2(null, 'Docs'), p.view])); })],
+  ] as const) {
+    const { router, view, $ } = setup(t, [
+      route('/', { view: page('Home').view }),
+      route('/docs/:page', { layout: async () => ({ default: L }), view: page('Doc').view }),
+    ], '/', { shell: plain });
+    await settled();
+    assert.equal(await router.navigate('/docs/a'), 'failed', name);
+    assert.match($('[role=alert]')?.textContent ?? '', /placed p\.view inside a show/, name);
+    view.dispose();
+  }
+});
+
+test('B17.5 a layout whose view region left the document is built again on the next navigation, not reused', async (t) => {
+  const docs = shell('Docs');
+  const { router, view, $ } = setup(t, [route('/docs/:page', { layout: docs.load(), view: page('Doc', (p) => p.params().page).view })], '/docs/a', { shell: plain });
+  await settled();
+  $('.layout-Docs main')!.remove(); // what a branch closing around p.view does in production
+  assert.equal(await router.navigate('/docs/b'), 'done');
+  assert.equal($('.layout-Docs main section')?.textContent, 'Docb');
+  assert.deepEqual([docs.s.builds, docs.s.cleanups], [2, 1]);
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('B17.9/B17.12 a layout effect that throws on its first run: the error view replaces both, gets focus and is announced', async (t) => {
+  const Throwing = component(function Throwing(p: { view: Node }): Node {
+    const tick = signal(0);
+    effect(() => { if (tick() === 0) throw new Error('layout broke'); });
+    return h.div({ class: 'throwing' }, p.view);
+  });
+  const { router, $ } = setup(t, [
+    route('/', { view: page('Home').view }),
+    route('/docs/:page', { layout: async () => ({ default: Throwing }), view: page('Doc').view, title: 'Docs title' }),
+  ], '/', { shell: plain });
+  await settled();
+  assert.equal(await router.navigate('/docs/a'), 'failed');
+  assert.match($('[role=alert]')?.textContent ?? '', /layout broke/);
+  assert.equal($('.throwing'), null);
+  assert.equal(document.activeElement?.textContent, 'Error');
+  assert.equal(liveRegions().at(-1)?.textContent, 'Error', 'not the failed route title');
+});
+
+test('B13/B17.5 context provided inside a layout does not reach the view; context provided above the outlet does', async (t) => {
+  const Theme = createContext<string>('Theme', 'default');
+  const seen: string[] = [];
+  const Providing = component(function Providing(p: { view: Node }): Node {
+    return provide(Theme, 'from layout', () => h.div(null, p.view));
+  });
+  const Doc = component(function Doc(): Node { seen.push(useContext(Theme)); return h.h1(null, 'Doc'); });
+  history.replaceState(null, '', '/');
+  const router = createRouter([
+    route('/', { view: page('Home').view }),
+    route('/docs/:page', { layout: async () => ({ default: Providing }), view: async () => ({ default: Doc as ViewModule['default'] }) }),
+  ], opts);
+  mountTest(t, () => provide(Theme, 'from App', () => h.div(null, router.outlet()))); // the outlet is created under the provider
+  await settled();
+  await router.navigate('/docs/a');
+  assert.deepEqual(seen, ['from App']);
+});
+
+test('B12.1 a layout that is a plain function runs its setup in the region <layout pattern>', async (t) => {
+  const cap = capture();
+  t.after(() => cap.stop());
+  const s = signal('x', { debugName: 'layoutRead' });
+  const plainLayout = (p: { view: Node }): Node => h.div(null, s(), p.view);
+  const { router } = setup(t, [
+    route('/', { view: page('Home').view }),
+    route('/docs/:page', { layout: async () => ({ default: plainLayout }), view: page('Doc').view }),
+  ], '/', { shell: plain });
+  await settled();
+  await router.navigate('/docs/a');
+  cap.stop();
+  const d = cap.diags.find((x) => x.code === 'STRICT_READ_UNTRACKED');
+  assert.ok(d && JSON.stringify(d).includes('<layout /docs/:page>'), JSON.stringify(cap.diags));
+});
+
+test('B17.15 intent preload starts the layout import with the view import', async (t) => {
+  const docs = shell('Docs');
+  const doc = page('Doc');
+  const { router, $ } = setup(t, [
+    route('/', { view: page('Home', () => h.a({ href: '/docs/a', id: 'go' }, 'Docs')).view }),
+    route('/docs/:page', { layout: docs.load(), view: doc.view }),
+  ], '/', { shell: plain });
+  await settled();
+  $('#go')!.dispatchEvent(new PointerEvent('pointerenter'));
+  await settled();
+  assert.deepEqual([docs.s.imports, doc.s.imports], [1, 1]);
+  await router.navigate('/docs/a');
+  assert.deepEqual([docs.s.imports, doc.s.imports, docs.s.builds], [1, 1, 1]);
+});
+
+test('B17.17 a layout import TypeError reloads the document once, like a view import TypeError', async (t) => {
+  sessionStorage.clear();
+  const assigned: string[] = [];
+  t.mock.method(location, 'assign', (u: string) => { assigned.push(u); });
+  const cap = capture();
+  t.after(() => cap.stop());
+  const { router } = setup(t, [
+    route('/', { view: page('Home').view }),
+    route('/docs/:page', { layout: (): Promise<LayoutModule> => Promise.reject(new TypeError('Failed to fetch dynamically imported module')), view: page('Doc').view }),
+  ], '/', { shell: plain });
+  await settled();
+  assert.equal(await router.navigate('/docs/a'), 'failed');
+  cap.stop();
+  assert.deepEqual(assigned, ['http://localhost/docs/a']);
+  assert.deepEqual(cap.codes(), ['VIEW_IMPORT_FAILED']);
+  sessionStorage.clear();
+});
+
+/** UI beside the one outlet, shown by url() (or the rejected shape: an outlet in each branch of the show), started at '/'. */
 async function docsApp(t: Ctx, shape: 'beside' | 'in branches') {
   history.replaceState(null, '', '/');
   const Doc = component(function Doc(p: P): Node { return h.h1(null, `Doc ${p.params().page}`); });
@@ -987,7 +1260,7 @@ async function docsApp(t: Ctx, shape: 'beside' | 'in branches') {
   return { view, click };
 }
 
-test('RECIPES Layout: a page list beside the one outlet stays across pages; every navigation focuses and announces the new h1', async (t) => {
+test('B17.3 UI beside the one outlet, shown by url(), stays across pages; every navigation focuses and announces the new h1', async (t) => {
   const { view, click } = await docsApp(t, 'beside');
   assert.equal(document.activeElement?.textContent, 'Doc a', 'landing → docs');
   assert.ok(liveRegions().some((r) => r.textContent === 'Doc a'));
@@ -1002,7 +1275,7 @@ test('RECIPES Layout: a page list beside the one outlet stays across pages; ever
   assert.deepEqual(view.diagnostics, []);
 });
 
-test('RECIPES Layout claim: an outlet in each branch of a show leaves focus on the clicked link, announces nothing and reports OUTLET_MOVED', async (t) => {
+test('B17.3 OUTLET_MOVED: an outlet in each branch of a show leaves focus on the clicked link, announces nothing and reports OUTLET_MOVED', async (t) => {
   const cap = capture();
   t.after(() => cap.stop());
   const { view } = await docsApp(t, 'in branches');
@@ -1012,7 +1285,7 @@ test('RECIPES Layout claim: an outlet in each branch of a show leaves focus on t
   assert.ok(!liveRegions().some((r) => r.textContent === 'Doc a'));
   assert.deepEqual(cap.codes(), ['OUTLET_MOVED']);
   assert.match(cap.diags[0]!.message, /router\.outlet\(\) moved within one flush: the view is built again, its loader runs again, and focus does not move\./);
-  assert.equal(cap.diags[0]!.hint, 'Render router.outlet() once, where it never switches; show what changes beside it (RECIPES: Layout).');
+  assert.equal(cap.diags[0]!.hint, 'Render router.outlet() once, where it never switches; UI a section shares is a layout route (RECIPES: Layout).');
 });
 
 test('B17.3 OUTLET_MOVED is not reported for a login wall: signing out and in again, each in its own flush of one task', async (t) => {

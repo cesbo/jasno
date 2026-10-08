@@ -6,7 +6,7 @@ import {
   rawSignal, readSignal, runSetup, signalOf, untracked, writeRaw,
 } from './core.ts';
 import { JasnoError, warn } from './diag.ts';
-import { Region, flushFocus, focusedIn, fragmentOf, restoreFocusIn } from './dom.ts';
+import { Region, flushFocus, focusedIn, fragmentOf, placedBy, restoreFocusIn } from './dom.ts';
 
 export type NavigateResult = 'done' | 'superseded' | 'failed';
 type Params = Record<string, string>;
@@ -14,6 +14,7 @@ type Module = { readonly default: (props: never) => Node };
 
 interface RouteOptions {
   readonly view: () => Promise<Module>;
+  readonly layout?: (() => Promise<Module>) | undefined;
   readonly loader?: ((ctx: { params: Params; abortSignal: AbortSignal }) => Promise<unknown>) | undefined;
   readonly title?: string | ((data: unknown) => string) | undefined;
 }
@@ -228,6 +229,8 @@ export function createRouter(routes: readonly RouteDef[], options: {
   let outletOwner: Owner | undefined;
   let region: Region | undefined;
   let viewOwner: Owner | undefined;
+  /** The rendered layout (B17.5): its component, owner and the region it placed p.view in. */
+  let layout: { component: Function; owner: Owner; region: Region } | undefined;
   /** The rendered view: a route with its params, or a special view. */
   let view: { route: Compiled; params: Params } | { special: 'notFound' | 'error' } | undefined;
   let current: Nav | undefined;
@@ -257,6 +260,27 @@ export function createRouter(routes: readonly RouteDef[], options: {
     return r.module;
   };
 
+  /** dev: the owner that placed p.view is a show/match/each/catchError branch inside the layout (B17.5). */
+  const BRANCHES = new Set(['show', 'match', 'each row', 'catchError']);
+  const inBranch = (placer: Owner | undefined, top: Owner): boolean => {
+    for (let o = placer; o && o !== top; o = o.parent) if (BRANCHES.has(o.name ?? '')) return true;
+    return false;
+  };
+
+  /** Layout modules by loader; routes that share a layout share the module the loader resolves to (B17.5). */
+  const layouts = new Map<() => Promise<Module>, Promise<Module>>();
+  const importLayout = (r: Compiled): Promise<Module | undefined> => {
+    const load = r.options.layout;
+    if (!load) return Promise.resolve(undefined);
+    let p = layouts.get(load);
+    if (!p) {
+      p = Promise.resolve().then(load);
+      layouts.set(load, p);
+      p.catch(() => { layouts.delete(load); });
+    }
+    return p;
+  };
+
   const finish = (nav: Nav, result: NavigateResult): void => {
     if (nav.done) return;
     nav.done = true;
@@ -268,7 +292,9 @@ export function createRouter(routes: readonly RouteDef[], options: {
 
   const teardownView = (): void => {
     if (viewOwner) dispose(viewOwner);
+    if (layout) dispose(layout.owner);
     viewOwner = undefined;
+    layout = undefined;
     view = undefined;
     region!.clear();
   };
@@ -298,10 +324,40 @@ export function createRouter(routes: readonly RouteDef[], options: {
     if (typeof title !== 'function') document.title = title ?? initialTitle; // a stale title never survives (B17.10)
   };
 
-  /** Builds the route's view, new for every route and params (B17.5); throws what its setup throws. */
-  const renderView = (m: Match, mod: Module, data: unknown): void => {
-    teardownView();
-    const o = new Owner(outletOwner, undefined);
+  /** Builds the route's layout unless the same one is rendered, then the view inside it (B17.5); throws what setup throws. */
+  const renderView = (m: Match, mod: Module, data: unknown, layoutMod: Module | undefined): void => {
+    const L = layoutMod?.default as unknown as ((props: unknown) => unknown) | undefined;
+    if (layoutMod && typeof L !== 'function') throw new TypeError(`The layout module for "${m.route.path}" has no default export component.`);
+    // A layout whose view region left the document (a branch closed around p.view) is built again, not reused.
+    if (L && layout?.component === L && (layout.region.end.isConnected || !region!.end.isConnected)) {
+      // The same layout stays, with its DOM and state; only the view is built again inside it.
+      if (viewOwner) dispose(viewOwner);
+      viewOwner = undefined;
+      view = undefined;
+      layout.region.clear();
+    } else {
+      teardownView();
+      if (L) {
+        const lo = new Owner(outletOwner, undefined);
+        const label = `<layout ${m.route.path}>`;
+        lo.comp = label;
+        const vr = new Region();
+        if (DEV) placedBy.set(vr.fragment(), undefined);
+        try {
+          const frag = runSetup(lo, label, () => fragmentOf(L({ view: vr.fragment() })));
+          if (!frag.contains(vr.start)) throw new TypeError(`The layout for "${m.route.path}" did not place p.view.`);
+          if (DEV && inBranch(placedBy.get(vr.fragment()), lo)) {
+            throw new TypeError(`The layout for "${m.route.path}" placed p.view inside a show, match, each or catchError branch: the page would vanish when the branch closes. Place p.view outside them.`);
+          }
+          region!.insert(frag);
+        } catch (e) {
+          dispose(lo);
+          throw e;
+        }
+        layout = { component: L, owner: lo, region: vr };
+      }
+    }
+    const o = new Owner(layout?.owner ?? outletOwner, undefined);
     const label = `<view ${m.route.path}>`;
     o.comp = label;
     viewOwner = o;
@@ -316,7 +372,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
         // Fixed for the view's lifetime (a new route or params builds a new view), so setup may read them.
         return fragmentOf(View({ params: () => m.params, data: () => data }));
       });
-      region!.insert(frag);
+      (layout?.region ?? region!).insert(frag);
       view = { route: m.route, params: m.params };
     } catch (e) {
       dispose(o);
@@ -327,8 +383,11 @@ export function createRouter(routes: readonly RouteDef[], options: {
 
   // ------------------------------------------------ focus, announcement (B17.8, B17.9)
 
+  /** The view's own region: inside the layout when there is one (B17.8, B17.9). */
+  const viewRegion = (): Region => layout?.region ?? region!;
+
   const focusView = (routePath: string): void => {
-    const els = region!.nodes().filter((n): n is HTMLElement => n instanceof Element);
+    const els = viewRegion().nodes().filter((n): n is HTMLElement => n instanceof Element);
     const visible = (el: HTMLElement): boolean => {
       if (typeof el.checkVisibility === 'function' && !el.checkVisibility()) return false;
       if (el.closest('dialog:not([open])')) return false;
@@ -337,7 +396,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
     };
     const auto = els.flatMap((e) => [...(e.matches('[autofocus]') ? [e] : []), ...e.querySelectorAll<HTMLElement>('[autofocus]')]).find(visible);
     const h1 = els.map((e) => (e.matches('h1') ? e : e.querySelector<HTMLElement>('h1'))).find(Boolean) ?? undefined;
-    const main = (region!.end.parentNode as Element | null)?.closest?.('main') as HTMLElement | null;
+    const main = (viewRegion().end.parentNode as Element | null)?.closest?.('main') as HTMLElement | null;
     if (DEV && !auto && !h1) {
       warn('VIEW_NO_HEADING', `The view for "${routePath}" has no h1 or visible [autofocus]; the router focused <main>.`,
         'Render an h.h1 in every view, outside show/match (its text may be live).', { node: routePath });
@@ -354,7 +413,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
     const title = m?.route.options.title;
     let text = typeof title === 'function' ? untracked(() => { try { return String(title(data)); } catch { return ''; } }) : title ?? '';
     if (!text) {
-      const h1 = region!.nodes().map((n) => (n instanceof Element ? (n.matches('h1') ? n : n.querySelector('h1')) : null)).find(Boolean);
+      const h1 = viewRegion().nodes().map((n) => (n instanceof Element ? (n.matches('h1') ? n : n.querySelector('h1')) : null)).find(Boolean);
       text = h1?.textContent?.trim() ?? '';
     }
     if (!text) return;
@@ -410,7 +469,8 @@ export function createRouter(routes: readonly RouteDef[], options: {
       if (nav.done || !outletOwner || outletOwner.state) return; // superseded or disposed during that flush
       if (!quiet) {
         focusView(m?.route.path ?? 'notFound');
-        announce(announceMatch, data);
+        // An effect of the new view or layout that failed in that flush swapped in the error view (B17.9).
+        announce(view && 'special' in view && view.special === 'error' ? undefined : announceMatch, data);
         if (adapter instanceof HistoryAdapter) adapter.scroll(how);
       }
       if (how.top) queueMicrotask(() => { flush(); if (typeof window.scrollTo === 'function') window.scrollTo(0, 0); });
@@ -428,15 +488,17 @@ export function createRouter(routes: readonly RouteDef[], options: {
       }
       const { route: r, params } = m;
       const signal = AbortSignal.any([nav.ac.signal, signalOf(outletOwner!)]);
-      const [modR, dataR] = await Promise.allSettled([
+      const [modR, dataR, layR] = await Promise.allSettled([
         importView(r),
         r.options.loader ? Promise.try(r.options.loader, { params, abortSignal: signal }) : Promise.resolve(undefined),
+        importLayout(r),
       ]);
       if (nav !== current) return; // superseded or the outlet is gone
-      if (modR.status === 'rejected' && modR.reason instanceof TypeError && !reloadedBefore(nav.url)) {
-        // B17.17: usually a deploy replaced the module; one full document navigation.
+      const lost = [modR, layR].find((x): x is PromiseRejectedResult => x.status === 'rejected' && x.reason instanceof TypeError);
+      if (lost && !reloadedBefore(nav.url)) {
+        // B17.17: usually a deploy replaced the view or layout module; one full document navigation.
         if (DEV) {
-          warn('VIEW_IMPORT_FAILED', `The module for "${r.path}" failed to load (${modR.reason.message}); reloading ${nav.url.href}.`,
+          warn('VIEW_IMPORT_FAILED', `The module for "${r.path}" failed to load (${lost.reason.message}); reloading ${nav.url.href}.`,
             'Usually a deploy replaced the files: keep previous deploys (npm run dist -- --keep 2).', { node: r.path });
         }
         markReloaded(nav.url);
@@ -446,7 +508,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
         else fullNavigation(nav.url.href);
         return;
       }
-      const failure = modR.status === 'rejected' ? modR : dataR.status === 'rejected' ? dataR : undefined;
+      const failure = [modR, layR, dataR].find((x): x is PromiseRejectedResult => x.status === 'rejected');
       writeRaw(urlSig, nav.url);
       if (failure) {
         renderError(failure.reason);
@@ -456,7 +518,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
       clearReloaded(nav.url);
       const data = (dataR as PromiseFulfilledResult<unknown>).value;
       try {
-        renderView(m, (modR as PromiseFulfilledResult<Module>).value, data);
+        renderView(m, (modR as PromiseFulfilledResult<Module>).value, data, (layR as PromiseFulfilledResult<Module | undefined>).value);
       } catch (e) {
         renderError(e);
         after(undefined, undefined);
@@ -631,14 +693,14 @@ export function createRouter(routes: readonly RouteDef[], options: {
     }
   }
 
-  /** B17.15: intent preload of a matching link's view module. */
+  /** B17.15: intent preload of a matching link's view and layout modules. */
   const listenPreload = (signal: AbortSignal): void => {
     const preload = (e: Event): void => {
       const a = (e.target as Element | null)?.closest?.('a[href]');
       if (!a) return;
       const url = toRoute(new URL(a.getAttribute('href')!, location.href));
       const m = url ? match(url.pathname) : undefined;
-      if (m) importView(m.route).catch(() => {});
+      if (m) { importView(m.route).catch(() => {}); importLayout(m.route).catch(() => {}); }
     };
     document.addEventListener('pointerenter', preload, { capture: true, signal });
     document.addEventListener('focusin', preload, { signal });
@@ -675,7 +737,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
     }
     if (DEV && disposedInFlush !== -1 && disposedInFlush === flushId()) {
       warn('OUTLET_MOVED', 'router.outlet() moved within one flush: the view is built again, its loader runs again, and focus does not move.',
-        'Render router.outlet() once, where it never switches; show what changes beside it (RECIPES: Layout).', { ownerPath: ownerPath(currentOwner()) });
+        'Render router.outlet() once, where it never switches; UI a section shares is a layout route (RECIPES: Layout).', { ownerPath: ownerPath(currentOwner()) });
     }
     started = true;
     hasRendered = false;
@@ -708,6 +770,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
       if (DEV) disposedInFlush = flushId();
       view = undefined;
       viewOwner = undefined;
+      layout = undefined;
       writeRaw(loading, false);
     });
     // FOCUS_LOST waits for a navigation that will move focus itself (a late outlet's first render, B20.2).

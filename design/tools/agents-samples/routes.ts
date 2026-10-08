@@ -12,6 +12,7 @@ export const router = createRouter([
   route('/users/new', { view: () => import('./views/home.ts'), title: 'New user' }),
   route('/users/:id', { loader: ({ params, abortSignal }) => getUser(params.id, abortSignal), view: () => import('./views/user.ts'), title: (u) => u.name }),
   route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts'), title: 'Settings' }),
+  route('/docs/:page', { layout: () => import('./layouts/docs.ts'), view: () => import('./views/home.ts'), title: 'Docs' }),
 ], { error: (error, retry) => ErrorPanel({ error, retry }), notFound: () => NotFound() });
 export async function afterDelete(): Promise<void> {
   const result = await router.navigate('/', { replace: true });

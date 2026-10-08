@@ -6,4 +6,4 @@ export {
   ownerPath, rawSignal, readSignal, readerOf, report, resetOutsideSignals, runSetup, signalOf, untracked, writeRaw,
 } from './core.ts';
 export { JasnoError, diagHooks, warn } from './diag.ts';
-export { Region, flushFocus, focusedIn, fragmentOf, mount, restoreFocusIn, runFocusChecks } from './dom.ts';
+export { Region, flushFocus, focusedIn, fragmentOf, mount, placedBy, restoreFocusIn, runFocusChecks } from './dom.ts';

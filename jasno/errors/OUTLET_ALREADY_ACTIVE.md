@@ -18,7 +18,7 @@ When the second call is inside a view, the router's error view shows this error 
 
 Render `router.outlet()` once, in App: `h.main(null, router.outlet())`. Then remove whatever renders it a second time:
 
-- A view or layout that renders `router.outlet()` for nested routes. jasno has no nested outlets. Give each route its own view that uses a shared layout component. Switch sub-pages on a param: `route('/settings/:tab(profile|billing)', ...)` with `match(() => p.params().tab, ...)` in the view.
+- A view or layout that renders `router.outlet()` for nested routes. jasno has no nested outlets. UI that a section shares is a layout route: `route(path, { layout: () => import('./layouts/docs.ts'), view })`, whose component places `p.view` (RECIPES: Layout). Sub-pages on a param are routes too: `route('/settings/:tab(profile|billing)', ...)`, each tab a new view.
 - App mounted twice, for example two `mountTest()` calls in one test. Mount it once. After an outlet is disposed (`unmount()`, the end of a test), the router can render a new one.
 
 ## Example

@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # VIEW_IMPORT_FAILED
 
-**warn**, runtime, dev builds (the reload happens in both builds): a view module failed to load.
+**warn**, runtime, dev builds (the reload happens in both builds): a view or layout module failed to load.
 
 - Message: `The module for "{route}" failed to load ({error}); reloading {url}.`
 - Hint: Usually a deploy replaced the files: keep previous deploys (npm run dist -- --keep 2).
@@ -9,7 +9,7 @@
 <!-- design.md: B17.17 -->
 <!-- /generated:catalogue -->
 
-During a navigation, the `import()` of the route's view module failed with a `TypeError`. The browser could not fetch that module or one it imports. Or its integrity check failed.
+During a navigation, the `import()` of the route's view or layout module failed with a `TypeError`. The browser could not fetch that module or one it imports. Or its integrity check failed.
 
 Almost always, the tab was opened before a deploy. The new deploy removed the hashed files that the old page still asks for.
 

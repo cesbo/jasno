@@ -170,12 +170,19 @@
        } }, p.label);
      });
      h.nav({ 'aria-label': 'Main' }, menu.map(([path, label]) => NavLink({ path, label })))
-   Layout: UI that outlives a view (a section's page list beside its pages) sits beside the one outlet, shown by the
-   URL. A new page builds a new view; the list stays, with its scroll and focus:
-     const inDocs = computed(() => router.url().pathname.startsWith('/docs/'));
-     h.div({ class: () => (inDocs() ? 'docs' : '') }, show(inDocs, () => DocsNav()), h.main(null, router.outlet()))
-   Never an outlet in each branch of a show: the flip during a navigation renders the view again without moving focus
-   or announcing it (OUTLET_MOVED).
+   Layout: UI that outlives a view (a section's page list beside its pages) is a layout route. Routes whose layout
+   modules resolve to one component keep it, with its DOM and state, across params of one route and across routes; only
+   the view is built again inside it. A scroll container in it keeps its scroll; the window goes to the top (B17.11):
+     route('/docs/:page', { layout: () => import('./layouts/docs.ts'), view: () => import('./views/doc.ts') }),
+     // layouts/docs.ts: p.view once, outside show/match (inside App's <main>: no main of its own)
+     export default component(function DocsLayout(p: LayoutProps): Node {
+       return h.div({ class: 'docs' }, DocsNav(), p.view);
+     });
+   A layout reads the URL with router.url() (it gets no params: it outlives them), marks the current page as the Menu
+   recipe does (aria-current from router.url().pathname), and loads its own data with a resource. notFound and the
+   error view render without it. Focus and the announcement come from the view's [autofocus] or h1, never the layout's.
+   Context the layout provides does not reach the view: provide it above the outlet. Never an outlet in each branch of
+   a show (OUTLET_MOVED).
    Tabs: route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts') }); each tab builds the
    view anew, so pick the body with a typed record: const tabs = { profile: Profile, billing: Billing };
    tabs[p.params().tab](). Tabs that must keep the view (its scroll, a shared draft) are a search param instead.
@@ -618,6 +625,10 @@ declare module '@jasno/core/router' {
     readonly params: Params<P>;
     readonly abortSignal: AbortSignal;
   }
+  /** Props of a route layout: view is the router's place for the page; put it in the layout once (outside show/match). A layout reads the URL with router.url(); it gets no params, since it outlives them. */
+  export interface LayoutProps {
+    readonly view: Node;
+  }
   /** Props of a route view: its params and loader data, fixed for the view's lifetime: a new route or new path params build a new view (search params keep it). Setup may read them: const id = p.params().id. An effect that reads only them never re-runs: use onMount. */
   export interface ViewProps<P extends string, D = undefined> {
     readonly params: Fixed<Params<P>>;
@@ -628,9 +639,10 @@ declare module '@jasno/core/router' {
   type LoaderOption<P extends string, D> = [D] extends [undefined]
     ? { readonly loader?: ((ctx: LoaderContext<P>) => Promise<unknown>) | undefined }
     : { readonly loader: (ctx: LoaderContext<P>) => Promise<NoInfer<D>> };
-  /** Route definition: lazy view module (default export; a component without props works too), eager loader (once per navigation, untracked: a signal it reads, such as a guard's session(), is a snapshot), optional title (a live binding; without it the router restores index.html's title and the view may set its own). The view's ViewProps<P, D> decides D: if D is not undefined, loader is required and must resolve to D. */
+  /** Route definition: lazy view module (default export; a component without props works too), optional lazy layout module (routes whose layout modules resolve to the same component keep it mounted between them; only the view is built again), eager loader (once per navigation, untracked: a signal it reads, such as a guard's session(), is a snapshot), optional title (a live binding; without it the router restores index.html's title and the view may set its own). The view's ViewProps<P, D> decides D: if D is not undefined, loader is required and must resolve to D. */
   export type RouteOptions<P extends string, D> = {
     readonly view: () => Promise<{ readonly default: (props: ViewProps<P, D>) => Node }>;
+    readonly layout?: (() => Promise<{ readonly default: (props: LayoutProps) => Node }>) | undefined;
     readonly title?: string | ((data: NoInfer<D>) => string) | undefined;
   } & LoaderOption<P, D>;
   /** A route created by route(); only its pattern is visible to types. */

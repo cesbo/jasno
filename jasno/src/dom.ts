@@ -18,6 +18,8 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /** Element → owner that created it (B14.4): __JASNO__.inspect(node), NODE_OUTSIDE_REGION. */
 export const elementOwner = new WeakMap<Node, Owner | undefined>();
+/** Watched nodes (a layout's p.view, B17.5) → the owner whose setup appended them. */
+export const placedBy = new WeakMap<Node, Owner | undefined>();
 const unnamed: { el: Element; tries: number }[] = [];
 const INTERACTIVE = new Set(['button', 'a', 'input', 'select', 'textarea', 'dialog', 'meter', 'progress']);
 
@@ -206,6 +208,7 @@ function append(parent: Node, c: Child): void {
   if (Array.isArray(c)) { appendAll(parent, c); return; }
   if (typeof c === 'function') { parent.appendChild(liveText(c as () => unknown)); return; }
   if (c instanceof Node) {
+    if (DEV && placedBy.has(c)) placedBy.set(c, currentOwner());
     if (DEV && c.parentNode && !(c instanceof DocumentFragment)) {
       warn('NODE_MOVED', `<${(c as Element).localName ?? c.nodeName}> already had a parent and was moved into ${ownerPath(currentOwner()) || '<root>'}.`,
         'A node lives in one place: create it where it is used (a function returning a new node); render children once.', here());
