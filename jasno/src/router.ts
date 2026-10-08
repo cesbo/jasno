@@ -2,7 +2,7 @@
 // pipeline, focus, announcement, title, scroll (design.md B17).
 import { DEV } from '#dev';
 import {
-  Owner, abortReason, bind, brand, checkOwned, currentOwner, dispose, flush, handleError, hooks, isFlushing, ownerPath,
+  Owner, abortReason, bind, brand, checkOwned, currentOwner, dispose, flush, flushId, handleError, hooks, isFlushing, ownerPath,
   rawSignal, readSignal, runSetup, signalOf, untracked, writeRaw,
 } from './core.ts';
 import { JasnoError, warn } from './diag.ts';
@@ -238,6 +238,8 @@ export function createRouter(routes: readonly RouteDef[], options: {
   let lateOutlet = false;
   /** Set while navigate() hands a URL to the adapter: before the first render that is a redirect, and stays quiet. */
   let byCode = false;
+  /** dev: the flush that disposed the outlet; another outlet() in that flush moved it (OUTLET_MOVED, B17.3). */
+  let disposedInFlush = -1;
 
   const match = (pathname: string): Match | undefined => {
     const segs = segmentsOf(pathname);
@@ -671,6 +673,10 @@ export function createRouter(routes: readonly RouteDef[], options: {
       throw new JasnoError('OUTLET_ALREADY_ACTIVE', `router.outlet() is already rendered in ${ownerPath(outletOwner?.parent) || '<root>'}.`,
         'Render router.outlet() exactly once, in App.', { ownerPath: ownerPath(outletOwner?.parent) });
     }
+    if (DEV && disposedInFlush !== -1 && disposedInFlush === flushId()) {
+      warn('OUTLET_MOVED', 'router.outlet() moved within one flush: the view is built again, its loader runs again, and focus does not move.',
+        'Render router.outlet() once, where it never switches; show what changes beside it (RECIPES: Layout).', { ownerPath: ownerPath(currentOwner()) });
+    }
     started = true;
     hasRendered = false;
     // B17.3: swapped in by a flush that removed the focused element (a login wall replacing its form): its first
@@ -699,6 +705,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
       liveRegion?.remove();
       liveRegion = undefined;
       started = false;
+      if (DEV) disposedInFlush = flushId();
       view = undefined;
       viewOwner = undefined;
       writeRaw(loading, false);

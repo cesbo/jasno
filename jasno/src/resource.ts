@@ -87,7 +87,7 @@ export function resource(options: {
     // settled() waits until the result can count: it settles, or jasno aborts the request (B19.6, B7.4).
     if (hooks.pending) {
       const aborted = new Promise<void>((r) => runBare(() => c.signal.addEventListener('abort', () => r(), { once: true })));
-      hooks.pending(Promise.race([promise, aborted]), name);
+      hooks.pending(Promise.race([promise, aborted]), `loader of ${name}`);
     }
     const settle = (status: 'resolved' | 'error', x: unknown): void => {
       // B9.6, B7.4: only the current request counts, and not when jasno aborted it.
@@ -228,6 +228,7 @@ export function optimistic<K, V>(target: { hasValue(): boolean; value(): unknown
       finally { if (last()) { queue.delete(key); confirmed.delete(key); } }
     });
     queue.set(key, run);
+    hooks.pending?.(run, `optimistic save of ${JSON.stringify(key) ?? String(key)}`); // settled() waits for it (B19.6)
     return run;
   };
 }

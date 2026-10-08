@@ -1041,7 +1041,7 @@ for (const [code, trigger] of Object.entries(catalogue)) {
 }
 
 test('(c) every runtime and testing catalogue row outside the router has a trigger in this file', () => {
-  const router = new Set(['INVALID_ROUTE_PATTERN', 'ROUTE_SHADOWED', 'OUTLET_ALREADY_ACTIVE', 'ROUTER_NOT_STARTED', 'VIEW_NO_HEADING', 'VIEW_IMPORT_FAILED']);
+  const router = new Set(['INVALID_ROUTE_PATTERN', 'ROUTE_SHADOWED', 'OUTLET_ALREADY_ACTIVE', 'OUTLET_MOVED', 'ROUTER_NOT_STARTED', 'VIEW_NO_HEADING', 'VIEW_IMPORT_FAILED']);
   const missing = [...runtimeRows.keys(), ...testingRows.keys()].filter((c) => !router.has(c) && !(c in catalogue));
   assert.deepEqual(missing, []);
 });

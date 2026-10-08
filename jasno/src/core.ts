@@ -965,6 +965,8 @@ function microFlush(): void {
 /** True while a flush runs (the router's outlet created in a flush is a late outlet, B17.3). */
 /** True while a flush runs (the router's late-outlet check, B17.3). */
 export const isFlushing = (): boolean => flushing;
+/** The running flush, or -1 between flushes: two calls in one flush return the same number. */
+export const flushId = (): number => (flushing ? epoch : -1);
 
 export function isIdle(): boolean {
   return !scheduled && !flushing && heap.length === 0 && queueB.length === 0 && deferred.length === 0;

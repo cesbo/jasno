@@ -449,6 +449,19 @@
         }
       ]
     },
+    "OUTLET_MOVED": {
+      "code": "OUTLET_MOVED",
+      "rows": [
+        {
+          "source": "Runtime",
+          "severity": "warn",
+          "build": "dev",
+          "when": "a flush disposed router.outlet() and rendered another one, as an outlet in each branch of a show does (B17.3)",
+          "message": "router.outlet() moved within one flush: the view is built again, its loader runs again, and focus does not move.",
+          "hint": "Render router.outlet() once, where it never switches; show what changes beside it (RECIPES: Layout)."
+        }
+      ]
+    },
     "VIEW_NO_HEADING": {
       "code": "VIEW_NO_HEADING",
       "rows": [

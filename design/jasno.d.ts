@@ -64,8 +64,8 @@
    the server accepted and resolves 'undone' (tell the user); an earlier failure changes nothing ('superseded'); a
    successful last save shows its value again in case a reload() (polling, Retry) replaced it; a save never writes after
    the resource's params changed. The key names the record on the server: send gets only the key. Never reload() after
-   a save: a failed reload() clears the value. The queue is module state that @jasno/core/testing does not reset, so a
-   test awaits every rename it starts. App-wide data lives in src/state.ts as export const cards = createRoot(() =>
+   a save: a failed reload() clears the value. settled() waits for queued saves, also those a handler did not return;
+   the queue is module state that @jasno/core/testing does not reset, so every save a test starts settles in it. App-wide data lives in src/state.ts as export const cards = createRoot(() =>
    resource({ loader: ... })), changed by functions there:
      const save = optimistic(cards, {
        get: (list, id: string) => list.find((c) => c.id === id)?.title,
@@ -175,7 +175,7 @@
      const inDocs = computed(() => router.url().pathname.startsWith('/docs/'));
      h.div({ class: () => (inDocs() ? 'docs' : '') }, show(inDocs, () => DocsNav()), h.main(null, router.outlet()))
    Never an outlet in each branch of a show: the flip during a navigation renders the view again without moving focus
-   or announcing it, and no diagnostic reports that.
+   or announcing it (OUTLET_MOVED).
    Tabs: route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts') }); each tab builds the
    view anew, so pick the body with a typed record: const tabs = { profile: Profile, billing: Billing };
    tabs[p.params().tab](). Tabs that must keep the view (its scroll, a shared draft) are a search param instead.
@@ -385,7 +385,7 @@ declare module '@jasno/core' {
   }
   /** 'saved' the server accepted it; 'undone' it failed and the resource shows the last accepted value again (also when the resource had no value, so nothing was sent); 'superseded' it failed while a newer save of the key was queued: nothing changed. */
   export type SaveResult = 'saved' | 'undone' | 'superseded';
-  /** Optimistic saves into a resource: save(key, v) puts v at once, then sends; saves of one key run one after another. A failed last save shows the last value the server accepted; a successful one shows its value again in case a reload() replaced it; a save never writes after the resource's params changed, so a value the new params loaded while a save of the same record was in flight may predate it. The key names the record on the server (send gets only the key). Never rejects. Create it next to the resource (RECIPES: Mutations). */
+  /** Optimistic saves into a resource: save(key, v) puts v at once, then sends; saves of one key run one after another. A failed last save shows the last value the server accepted; a successful one shows its value again in case a reload() replaced it; a save never writes after the resource's params changed, so a value the new params loaded while a save of the same record was in flight may predate it. The key names the record on the server (send gets only the key). Never rejects; settled() waits for queued saves. Create it next to the resource (RECIPES: Mutations). */
   export function optimistic<T, K, V>(target: Resource<T>, options: OptimisticOptions<T, K, V>): (key: K, v: V) => Promise<SaveResult>;
 
   // ---------------------------------------------------------------- components and DOM
@@ -524,7 +524,7 @@ declare module '@jasno/core' {
     | 'EFFECT_NO_DEPS' | 'NO_OWNER' | 'WRITE_IN_SETUP' | 'LEAK_IN_SETUP' | 'RESOURCE_SET_WHILE_LOADING'
     | 'DUPLICATE_KEY' | 'UNSTABLE_KEY' | 'UNKNOWN_PROP' | 'NODE_MOVED' | 'NODE_OUTSIDE_REGION'
     | 'INTERACTIVE_NO_NAME' | 'FOCUS_LOST' | 'KEY_ACTIVATES_NEW_FOCUS' | 'SUBMIT_NOT_PREVENTED'
-    | 'INVALID_ROUTE_PATTERN' | 'ROUTE_SHADOWED' | 'OUTLET_ALREADY_ACTIVE' | 'ROUTER_NOT_STARTED'
+    | 'INVALID_ROUTE_PATTERN' | 'ROUTE_SHADOWED' | 'OUTLET_ALREADY_ACTIVE' | 'OUTLET_MOVED' | 'ROUTER_NOT_STARTED'
     | 'VIEW_NO_HEADING' | 'VIEW_IMPORT_FAILED'
     | 'EFFECT_LEAKED' | 'EXPECTED_DIAGNOSTIC_MISSING' | 'SETTLE_TIMEOUT' | 'UNCAUGHT_ERROR' | 'TESTING_REQUIRES_DEV_BUILD';
   /** One deduplicated diagnostic event; message starts with "[CODE]" and is self-contained. */
@@ -679,6 +679,7 @@ declare module '@jasno/core/testing' {
     | 'STRICT_READ_UNTRACKED' | 'LOADER_READ_UNTRACKED' | 'UNTRACKED_IN_DERIVATION' | 'PENDING_READ_UNTRACKED'
     | 'SIGNAL_COERCED' | 'NODE_IN_TEXT_BINDING' | 'EFFECT_WRITES_STATE' | 'EFFECT_NO_DEPS' | 'WRITE_IN_SETUP'
     | 'LEAK_IN_SETUP' | 'NO_OWNER' | 'UNSTABLE_KEY' | 'NODE_OUTSIDE_REGION' | 'COMPONENT_RETURN_NOT_NODE' | 'KEY_ACTIVATES_NEW_FOCUS'
+    | 'OUTLET_MOVED'
     | 'EFFECT_LEAKED' | 'EXPECTED_DIAGNOSTIC_MISSING' | 'SETTLE_TIMEOUT' | 'UNCAUGHT_ERROR' | 'TESTING_REQUIRES_DEV_BUILD';
   /** The part of node:test's TestContext that mountTest uses: pass the t of test('name', (t) => ...). */
   export interface TestContextLike {

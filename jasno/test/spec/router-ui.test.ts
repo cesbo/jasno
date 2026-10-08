@@ -5,7 +5,7 @@ import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { component, computed, h, match, mount, onMount, show, signal, type Read } from '@jasno/core';
+import { component, computed, flush, h, match, mount, onMount, show, signal, type Read } from '@jasno/core';
 import { createRouter, route } from '@jasno/core/router';
 import { mountTest, settled } from '@jasno/core/testing';
 import { capture, codeOf, deferred } from '../helpers.ts';
@@ -1002,11 +1002,33 @@ test('RECIPES Layout: a page list beside the one outlet stays across pages; ever
   assert.deepEqual(view.diagnostics, []);
 });
 
-test('RECIPES Layout claim: an outlet in each branch of a show leaves focus on the clicked link, announces nothing, reports nothing', async (t) => {
+test('RECIPES Layout claim: an outlet in each branch of a show leaves focus on the clicked link, announces nothing and reports OUTLET_MOVED', async (t) => {
+  const cap = capture();
+  t.after(() => cap.stop());
   const { view } = await docsApp(t, 'in branches');
+  cap.stop();
   assert.equal(view.root.querySelector('.docs main h1')?.textContent, 'Doc a', 'the page renders');
   assert.equal(document.activeElement?.id, 'docs');
   assert.ok(!liveRegions().some((r) => r.textContent === 'Doc a'));
+  assert.deepEqual(cap.codes(), ['OUTLET_MOVED']);
+  assert.match(cap.diags[0]!.message, /router\.outlet\(\) moved within one flush: the view is built again, its loader runs again, and focus does not move\./);
+  assert.equal(cap.diags[0]!.hint, 'Render router.outlet() once, where it never switches; show what changes beside it (RECIPES: Layout).');
+});
+
+test('B17.3 OUTLET_MOVED is not reported for a login wall: signing out and in again, each in its own flush of one task', async (t) => {
+  history.replaceState(null, '', '/');
+  const home = page('Home');
+  const router = createRouter([route('/', { view: home.view })], opts);
+  const session = signal(true);
+  const view = mountTest(t, () => show(session, () => h.main(null, router.outlet()), () => h.p(null, 'Sign in')));
+  await settled();
+  session.set(false);
+  flush();
+  session.set(true);
+  flush();
+  await settled();
+  assert.equal(view.root.querySelector('h1')?.textContent, 'Home');
+  assert.equal(home.s.builds, 2);
   assert.deepEqual(view.diagnostics, []);
 });
 

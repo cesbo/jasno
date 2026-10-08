@@ -480,7 +480,7 @@ test('Mutations: a successful last save shows its value again after a reload() r
   const pa = rename('c1', 'A');
   await until(1);
   cards.reload(); // polling or Retry: the server still says 'Server'
-  await settled().catch(() => {}); // the save is pending (not tracked); loaders settle
+  while (cards.status() === 'reloading') await tick(); // settled() would wait for the pending save too
   await tick();
   flush();
   assert.equal(title(), 'Server');
@@ -496,7 +496,7 @@ test('Mutations claim: a failed reload() clears the value (never reload() after 
   rename('c1', 'A').catch(() => {});
   listImpl = async () => { throw new Error('offline'); };
   cards.reload();
-  await settled();
+  while (cards.status() === 'reloading') await tick(); // settled() would wait for the pending save too
   assert.equal(cards.status(), 'error');
   assert.equal(cards.hasValue(), false);
   assert.equal(title(), undefined);
@@ -505,6 +505,25 @@ test('Mutations claim: a failed reload() clears the value (never reload() after 
   listImpl = async () => serverCards.map((c) => ({ ...c }));
   cards.reload();
   await settled();
+});
+
+test('Mutations: settled() waits for a save that the handler did not return; SETTLE_TIMEOUT names a save that never ends', async (t) => {
+  const { title, until } = await cardList(t);
+  const view = mountTest(t, () => h.button({ type: 'button', onclick: () => { void rename('c1', 'A'); } }, 'Rename'));
+  view.root.querySelector('button')!.click();
+  await until(1);
+  const answer = setTimeout(() => saves[0]!.d.resolve(), 20); // the server answers later, on its own
+  t.after(() => clearTimeout(answer));
+  await settled();
+  flush();
+  assert.equal(title(), 'A', 'settled() returned after the save');
+  void rename('c1', 'B');
+  await until(2);
+  await assert.rejects(settled({ timeout: 100 }), /SETTLE_TIMEOUT.*optimistic save of "c1"/);
+  saves[1]!.d.resolve();
+  await settled();
+  flush();
+  assert.equal(title(), 'B');
 });
 
 test('Mutations: a client id (crypto.randomUUID) keeps the row through the server echo', async (t) => {

@@ -40,7 +40,7 @@ const underAppRoot = (o: Owner): boolean => {
   return false;
 };
 
-hooks.pending = (p, name) => track(p, `loader of ${name}`);
+hooks.pending = (p, what) => track(p, what);
 hooks.handlerPromise = (p, what) => {
   track(p, what);
   p.then(undefined, (e) => (active ? uncaught(e, `The promise returned by the ${what}`) : report(e)));
