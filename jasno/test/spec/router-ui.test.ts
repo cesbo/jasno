@@ -855,6 +855,33 @@ test('RECIPES Detail over a list: browser Back closes the dialog without rebuild
   assert.deepEqual(view.diagnostics, []);
 });
 
+test('RECIPES Detail over a list, page shape: the list is the layout of /cards and /cards/:id; each card loads, gets focus, and the list stays', async (t) => {
+  let listBuilds = 0;
+  const loads: string[] = [];
+  const CardList = component(function CardList(p: { view: Node }): Node {
+    listBuilds++;
+    return h.div(null, h.ul(null, ['1', '2'].map((id) => h.li(null, h.a({ href: `/cards/${id}`, id: `c${id}` }, `Card ${id}`)))), p.view);
+  });
+  const { router, view, $ } = setup(t, [
+    route('/cards', { layout: async () => ({ default: CardList }), view: page('Pick a card').view }),
+    route('/cards/:id', { layout: async () => ({ default: CardList }), view: page('Card', (p) => h.p({ class: 'body' }, String(p.data()))).view,
+      loader: async ({ params }) => { loads.push(params.id); return `body ${params.id}`; } }),
+  ], '/cards');
+  await settled();
+  const list = $('ul');
+  const click = clicker(t);
+  for (const id of ['1', '2']) {
+    $(`#c${id}`)!.focus();
+    assert.equal(click($(`#c${id}`)), true);
+    await settled();
+    assert.equal($('.body')?.textContent, `body ${id}`);
+    assert.equal(document.activeElement?.textContent, 'Card', 'focus on the detail h1');
+  }
+  assert.ok($('ul') === list, 'the list is the same element');
+  assert.deepEqual([listBuilds, loads], [1, ['1', '2']]);
+  assert.deepEqual(view.diagnostics, []);
+});
+
 test('RECIPES Detail over a list: a deep link opens the dialog on the first render; Close replaces the entry with the list', async (t) => {
   const { router, view, $, s } = board(t, '/?card=2');
   await settled();

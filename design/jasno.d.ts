@@ -89,8 +89,10 @@
    close() returns focus to the element that opened the dialog; Escape keeps the last returnValue (Firefox,
    WebKit), hence the reset. Removing an open dialog fires no close event and drops focus, so a dialog that lives
    in a branch opens and closes itself: onMount(() => { d.showModal(); return () => d.close(); }).
-   Detail over a list (a card, a message): put it on the list's route as a search param. The list stays mounted
-   (scroll, focus, drafts), Back closes the detail and deep links work; a path route would rebuild the list:
+   Detail over a list (a card, a message) has two shapes. A modal detail goes on the list's route as a search param:
+   the list view stays (scroll, focus, drafts), no loader runs, Back closes the detail and deep links work. A detail
+   that is a page of its own beside the list (its own loader, title and h1) is a path route, and the list is the
+   layout both routes share (Layout); a path route without that layout rebuilds the list. The modal shape:
      const heading = h.h1({ tabIndex: -1 }, 'Board');                 // the list's h1, rendered by the list view
      const cardId = computed(() => router.url().searchParams.get('card'));
      match(cardId, (id) => (id === null ? '' : CardDialog({ id, heading })))   // open it with h.a({ href: '?card=' + id }, 'Open')
