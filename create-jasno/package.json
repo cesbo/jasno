@@ -1,6 +1,6 @@
 {
   "name": "@jasno/create",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Scaffold a jasno app: npm create @jasno <directory>",
   "keywords": ["jasno", "create", "scaffold", "spa"],
   "license": "MIT",
