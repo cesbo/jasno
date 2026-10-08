@@ -186,6 +186,13 @@ const Login = component(function Login(): Node { return h.h1(null, 'Sign in'); }
 export const Shell = component(function Shell(): Node {
   return h.main(null, show(session, () => router.outlet(), () => Login()));
 });
+const DocsNav = component(function DocsNav(): Node {
+  return h.nav({ 'aria-label': 'Docs' }, h.a({ href: '/docs/intro' }, 'Intro'));
+});
+export const DocsApp = component(function DocsApp(): Node {
+  const inDocs = computed(() => router.url().pathname.startsWith('/docs/'));
+  return h.div({ class: () => (inDocs() ? 'docs' : '') }, show(inDocs, () => DocsNav()), h.main(null, router.outlet()));
+});
 const Profile = component(function Profile(): Node { return h.p(null, 'Profile'); });
 const Billing = component(function Billing(): Node { return h.p(null, 'Billing'); });
 const tabs = { profile: Profile, billing: Billing };

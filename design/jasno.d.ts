@@ -170,6 +170,12 @@
        } }, p.label);
      });
      h.nav({ 'aria-label': 'Main' }, menu.map(([path, label]) => NavLink({ path, label })))
+   Layout: UI that outlives a view (a section's page list beside its pages) sits beside the one outlet, shown by the
+   URL. A new page builds a new view; the list stays, with its scroll and focus:
+     const inDocs = computed(() => router.url().pathname.startsWith('/docs/'));
+     h.div({ class: () => (inDocs() ? 'docs' : '') }, show(inDocs, () => DocsNav()), h.main(null, router.outlet()))
+   Never an outlet in each branch of a show: the flip during a navigation renders the view again without moving focus
+   or announcing it, and no diagnostic reports that.
    Tabs: route('/settings/:tab(profile|billing)', { view: () => import('./views/settings.ts') }); each tab builds the
    view anew, so pick the body with a typed record: const tabs = { profile: Profile, billing: Billing };
    tabs[p.params().tab](). Tabs that must keep the view (its scroll, a shared draft) are a search param instead.

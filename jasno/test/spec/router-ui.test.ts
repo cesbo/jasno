@@ -965,6 +965,51 @@ test('RECIPES Tabs: :tab(profile|billing) builds the view per tab from a typed r
   assert.deepEqual(r.view.diagnostics, []);
 });
 
+/** The Layout recipe's app (or the rejected shape: an outlet in each branch of the show), started at '/'. */
+async function docsApp(t: Ctx, shape: 'beside' | 'in branches') {
+  history.replaceState(null, '', '/');
+  const Doc = component(function Doc(p: P): Node { return h.h1(null, `Doc ${p.params().page}`); });
+  const router = createRouter([
+    route('/', { view: bare(() => h.h1(null, 'Home')) }),
+    route('/docs/:page', { view: async () => ({ default: Doc as ViewModule['default'] }) }),
+  ], opts);
+  const inDocs = computed(() => router.url().pathname.startsWith('/docs/'));
+  const DocsNav = () => h.nav({ 'aria-label': 'Docs' }, h.a({ href: '/docs/b', id: 'b' }, 'B'));
+  const link = h.a({ href: '/docs/a', id: 'docs' }, 'Docs');
+  const view = mountTest(t, () => h.div(null, h.header(null, link), shape === 'beside'
+    ? h.div({ class: () => (inDocs() ? 'docs' : '') }, show(inDocs, () => DocsNav()), h.main(null, router.outlet()))
+    : show(inDocs, () => h.div({ class: 'docs' }, DocsNav(), h.main(null, router.outlet())), () => h.main(null, router.outlet()))));
+  await settled();
+  const click = clicker(t);
+  link.focus();
+  assert.equal(click(link), true);
+  await settled();
+  return { view, click };
+}
+
+test('RECIPES Layout: a page list beside the one outlet stays across pages; every navigation focuses and announces the new h1', async (t) => {
+  const { view, click } = await docsApp(t, 'beside');
+  assert.equal(document.activeElement?.textContent, 'Doc a', 'landing → docs');
+  assert.ok(liveRegions().some((r) => r.textContent === 'Doc a'));
+  const list = view.root.querySelector('nav[aria-label="Docs"]');
+  assert.ok(list);
+  assert.equal(view.root.querySelector('.docs main h1')?.textContent, 'Doc a');
+  view.root.querySelector<HTMLElement>('#b')!.focus();
+  assert.equal(click(view.root.querySelector('#b')), true);
+  await settled();
+  assert.equal(document.activeElement?.textContent, 'Doc b');
+  assert.ok(view.root.querySelector('nav[aria-label="Docs"]') === list, 'the list is the same element: its scroll and state stay');
+  assert.deepEqual(view.diagnostics, []);
+});
+
+test('RECIPES Layout claim: an outlet in each branch of a show leaves focus on the clicked link, announces nothing, reports nothing', async (t) => {
+  const { view } = await docsApp(t, 'in branches');
+  assert.equal(view.root.querySelector('.docs main h1')?.textContent, 'Doc a', 'the page renders');
+  assert.equal(document.activeElement?.id, 'docs');
+  assert.ok(!liveRegions().some((r) => r.textContent === 'Doc a'));
+  assert.deepEqual(view.diagnostics, []);
+});
+
 test('RECIPES Per-param lifecycle: a new :roomId builds a new view, so its onMount subscription restarts per id, with zero diagnostics', async (t) => {
   const log: string[] = [];
   const presence: Record<string, string[]> = { a: ['ann'], b: ['bob', 'bea'] };
