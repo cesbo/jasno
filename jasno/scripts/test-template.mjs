@@ -4,7 +4,7 @@
 // create-jasno packs every template file, shares jasno's version, and has an AGENTS.md that points to the guide the
 // installed package ships.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,7 +32,6 @@ run('node', ['scripts/build-package.mjs', '--pack'], ROOT);
 const tgz = join(ROOT, 'release', `jasno-core-${jasno.version}.tgz`);
 const tmp = mkdtempSync(join(tmpdir(), 'jasno-template-'));
 try {
-  mkdirSync(join(tmp, 'my-app', '.git'), { recursive: true }); // a target with only .git counts as empty
   run('node', [join(CREATE, 'index.js'), 'my-app', '--jasno', `file:${tgz}`], tmp);
   const app = join(tmp, 'my-app');
   for (const f of ['.gitignore', '.gitattributes', '.nvmrc', '.github/workflows/ci.yml']) readFileSync(join(app, f));
