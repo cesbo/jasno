@@ -260,6 +260,7 @@ declare module '@jasno/core' {
     value?: MaybeRead<HTMLButtonElement['value'] | undefined> | undefined;
     popoverTargetAction?: MaybeRead<HTMLButtonElement['popoverTargetAction'] | undefined> | undefined;
     popoverTargetElement?: MaybeRead<HTMLButtonElement['popoverTargetElement'] | undefined> | undefined;
+    form?: MaybeRead<string | undefined> | undefined;
   }
   /** Props for h.canvas (HTMLCanvasElement). */
   export interface HTMLCanvasElementProps extends GlobalProps<HTMLCanvasElement> {
@@ -302,6 +303,7 @@ declare module '@jasno/core' {
   export interface HTMLFieldSetElementProps extends GlobalProps<HTMLFieldSetElement> {
     disabled?: MaybeRead<HTMLFieldSetElement['disabled'] | undefined> | undefined;
     name?: MaybeRead<HTMLFieldSetElement['name'] | undefined> | undefined;
+    form?: MaybeRead<string | undefined> | undefined;
   }
   /** Props for h.form (HTMLFormElement). */
   export interface HTMLFormElementProps extends GlobalProps<HTMLFormElement> {
@@ -391,6 +393,8 @@ declare module '@jasno/core' {
     width?: MaybeRead<HTMLInputElement['width'] | undefined> | undefined;
     popoverTargetAction?: MaybeRead<HTMLInputElement['popoverTargetAction'] | undefined> | undefined;
     popoverTargetElement?: MaybeRead<HTMLInputElement['popoverTargetElement'] | undefined> | undefined;
+    list?: MaybeRead<string | undefined> | undefined;
+    form?: MaybeRead<string | undefined> | undefined;
   }
   /** Props for h.label (HTMLLabelElement). */
   export interface HTMLLabelElementProps extends GlobalProps<HTMLLabelElement> {
@@ -442,6 +446,7 @@ declare module '@jasno/core' {
     htmlFor?: MaybeRead<string | undefined> | undefined;
     name?: MaybeRead<HTMLOutputElement['name'] | undefined> | undefined;
     value?: MaybeRead<HTMLOutputElement['value'] | undefined> | undefined;
+    form?: MaybeRead<string | undefined> | undefined;
   }
   /** Props for h.p (HTMLParagraphElement). */
   export interface HTMLParagraphElementProps extends GlobalProps<HTMLParagraphElement> {}
@@ -464,6 +469,7 @@ declare module '@jasno/core' {
     selectedIndex?: MaybeRead<HTMLSelectElement['selectedIndex'] | undefined> | undefined;
     size?: MaybeRead<HTMLSelectElement['size'] | undefined> | undefined;
     value?: MaybeRead<HTMLSelectElement['value'] | undefined> | undefined;
+    form?: MaybeRead<string | undefined> | undefined;
   }
   /** Props for h.source (HTMLSourceElement). */
   export interface HTMLSourceElementProps extends GlobalProps<HTMLSourceElement> {
@@ -512,6 +518,7 @@ declare module '@jasno/core' {
     selectionStart?: MaybeRead<HTMLTextAreaElement['selectionStart'] | undefined> | undefined;
     value?: MaybeRead<HTMLTextAreaElement['value'] | undefined> | undefined;
     wrap?: MaybeRead<HTMLTextAreaElement['wrap'] | undefined> | undefined;
+    form?: MaybeRead<string | undefined> | undefined;
   }
   /** Props for h.time (HTMLTimeElement). */
   export interface HTMLTimeElementProps extends GlobalProps<HTMLTimeElement> {

@@ -33,6 +33,11 @@ const OMIT = new Set(['innerHTML', 'outerHTML', 'innerText', 'outerText', 'textC
   // URL decomposition on a/area: href is the one way to set a link target.
   'hash', 'host', 'hostname', 'password', 'pathname', 'port', 'protocol', 'search', 'username']);
 
+// Content attributes whose DOM property is a readonly element reference: the prop is the attribute, an id (B15.4).
+// lib.dom cannot tell them apart: label, legend and option also have a readonly form property but no form attribute.
+const ID_ATTRS = { HTMLInputElement: ['list', 'form'], HTMLButtonElement: ['form'], HTMLFieldSetElement: ['form'],
+  HTMLOutputElement: ['form'], HTMLSelectElement: ['form'], HTMLTextAreaElement: ['form'] };
+
 const isReadonly = (p) => {
   const decls = declsOf(p);
   return decls.every((d) =>
@@ -113,7 +118,8 @@ for (const tagSym of propsOf(typeOf('HTMLElementTagNameMap'))) {
   const own = propsOf(elType).filter((p) => !baseNames.has(p.name) && keep(p))
     .map((p) => el === 'HTMLDialogElement' && p.name === 'open'
       ? `    open?: ${banned('open makes a NON-modal dialog; call el.showModal() in a handler and el.close() to close')};`
-      : `    ${p.name}?: MaybeRead<${propType(p, el)}> | undefined;`);
+      : `    ${p.name}?: MaybeRead<${propType(p, el)}> | undefined;`)
+    .concat((ID_ATTRS[el] ?? []).map((a) => `    ${a}?: MaybeRead<string | undefined> | undefined;`));
   const body = [...own, ...extraEvents(el)];
   lines.push(`  /** Props for h.${tag}${el === 'HTMLElement' ? ' and every other tag whose element is a plain HTMLElement' : ''} (${el}). */`);
   lines.push(`  export interface ${iface} extends GlobalProps<${el}> {${body.length ? '\n' + body.join('\n') + '\n  ' : ''}}`);

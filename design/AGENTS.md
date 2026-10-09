@@ -37,7 +37,7 @@ export const TodoList = component(function TodoList(p: TodoListProps): Node {
 
 ## Markup and events
 
-`h.tag(props | null, ...children)` returns the real element: keep it in a const (no refs). Props are DOM properties: `class` (string or `{ name: Read<boolean> }`), `style` (`{ marginTop: '4px', '--gap': () => g() }`), `htmlFor`, `'aria-*'`, `'data-*'`. Events are lowercase (`onclick`, `onsubmit`); `e.currentTarget` is the element: copy it to a const before any `await`. A function child is live **text**; switch nodes with `show(when, then, otherwise?)` or `match(key, render)`. `` css`.card { .title { font-weight: 600; } }` `` is global: put `class: 'card'` on the root. Boundary: `catchError(() => Chart(), (err, reset) => Retry({ reset }))`.
+`h.tag(props | null, ...children)` returns the real element: keep it in a const (no refs). Props are DOM properties: `class` (string or `{ name: Read<boolean> }`), `style` (`{ marginTop: '4px', '--gap': () => g() }`), `htmlFor`, `'aria-*'`, `'data-*'`, `list`/`form` (an id, set as the attribute). Events are lowercase (`onclick`, `onsubmit`); `e.currentTarget` is the element: copy it to a const before any `await`. A function child is live **text**; switch nodes with `show(when, then, otherwise?)` or `match(key, render)`. `` css`.card { .title { font-weight: 600; } }` `` is global: put `class: 'card'` on the root. Boundary: `catchError(() => Chart(), (err, reset) => Retry({ reset }))`.
 
 ## Lists
 

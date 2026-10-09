@@ -388,6 +388,22 @@ test('B15.4 data-*: strings and numbers as String, true as "", false/null/undefi
   }
 });
 
+test('B15.4 list and form set the attribute, an id (their properties are readonly); null/undefined remove', (t) => {
+  const list = signal<string | undefined>('fruits');
+  const view = mountTest(t, () => h.div(null,
+    h.form({ id: 'order' }),
+    h.datalist({ id: 'fruits' }, h.option({ value: 'apple' })),
+    h.input({ 'aria-label': 'Fruit', list, form: 'order' }),
+    h.button({ type: 'submit', form: 'order' }, 'Order')));
+  const input = view.root.querySelector('input')!;
+  assert.equal(input.getAttribute('list'), 'fruits');
+  assert.ok(input.list === view.root.querySelector('datalist'));
+  assert.ok(input.form === view.root.querySelector('form'));
+  assert.ok(view.root.querySelector('button')!.form === view.root.querySelector('form'));
+  list.set(undefined); flush();
+  assert.equal(input.hasAttribute('list'), false);
+});
+
 test('B15.4 other keys assign the element property (hidden, tabIndex, htmlFor, id)', (t) => {
   const view = mountTest(t, () => h.div(null, h.label({ htmlFor: 'i', id: 'l' }, 'L'), h.input({ id: 'i', hidden: true, tabIndex: 3 })));
   const input = view.root.querySelector('input')!;

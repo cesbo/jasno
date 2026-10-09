@@ -139,6 +139,8 @@ function setter(el: HTMLElement, key: string): (v: unknown) => void {
   if (DEV && !known) {
     unknownProp(el, key, FORBIDDEN_PROPS[key] ? `jasno: ${FORBIDDEN_PROPS[key]}.` : 'Check the prop name against jasno.elements.d.ts (onClick → onclick, className → class, for → htmlFor).');
   }
+  // list and form: the property is a readonly element reference, so the prop sets the attribute, an id (B15.4).
+  if (key === 'list' || key === 'form') return (v) => (v == null ? el.removeAttribute(key) : el.setAttribute(key, String(v)));
   const prop = key === 'class' ? 'className' : key;
   const attr = ATTR[prop] ?? prop.toLowerCase();
   if (known && !(prop in el)) {

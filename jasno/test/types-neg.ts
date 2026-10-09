@@ -69,6 +69,10 @@ export function negatives(): void {
   h.textarea(null, 'x');
   // @ts-expect-error A19: aria-* keys are closed
   h.div({ 'aria-lable': 'x' });
+  // @ts-expect-error B15.4: label has a readonly form property but no form attribute
+  h.label({ form: 'f' });
+  // @ts-expect-error B15.4: list and form take the id, not the element
+  h.input({ list: h.datalist(null) });
   // @ts-expect-error A27: provide's scope must render a Node
   provide(Theme, 'dark', () => {});
   // @ts-expect-error A28: match keys are primitives or components, not objects
