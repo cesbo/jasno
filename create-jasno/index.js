@@ -13,7 +13,8 @@ if (values.help || positionals.length !== 1) {
 }
 const self = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 const dir = resolve(positionals[0]);
-if (existsSync(dir) && readdirSync(dir).length) {
+// A fresh `git init` is empty enough.
+if (existsSync(dir) && readdirSync(dir).some((f) => f !== '.git')) {
   console.error(`${dir} exists and is not empty`);
   process.exit(1);
 }
