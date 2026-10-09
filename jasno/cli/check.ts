@@ -322,6 +322,8 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
   for (const f of nodeFiles) problems.push(...importRules(root, pkg, f, false, withAst));
 
   const configs = [join(root, 'tsconfig.json'), join(root, 'tsconfig.test.json')].filter((f) => existsSync(f));
+  // An empty test program is tsc's TS18003; jasno names what is missing instead ((c) TSCONFIG_DRIFT, warn).
+  const noTests: Problem = { code: 'TSCONFIG_DRIFT', severity: 'warn', message: 'tsconfig.test.json matches no files: the project has no tests, and a test run that finds none still passes.', hint: 'Add a src/**/*.test.ts file, or delete tsconfig.test.json until there is one.', file: join(root, 'tsconfig.test.json') };
   let browserProgramFiles: readonly string[] | undefined;
   let tsFirst = false;
   if (ts.sync && ts.ast) {
@@ -341,6 +343,7 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
         const diags = [...program.getConfigFileParsingDiagnostics(), ...program.getProgramDiagnostics(), ...program.getSyntacticDiagnostics(), ...program.getSemanticDiagnostics()];
         const isTest = cfg.endsWith('tsconfig.test.json');
         for (const d of diags) {
+          if (isTest && d.code === 18003) { problems.push(noTests); continue; }
           // A browser module a test imports is checked by the test program with Node types too; its errors
           // there are not the browser program's (setTimeout(): Timeout, C1 in reverse).
           if (isTest && d.fileName && !nodeSet.has(d.fileName)) continue;
@@ -388,7 +391,8 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
     problems.push({ code: 'TYPE_RULES_UNAVAILABLE', severity: 'warn', message: `The TypeScript API did not load (${ts.error}); tsc ran as a subprocess, and the rules that need the syntax tree or types were skipped.`, hint: 'Reinstall typescript@~7.0.2; the warning fails the check under --strict or CI.' });
     for (const cfg of configs) {
       const r = spawnSync(process.execPath, [ts.tsc, '--pretty', 'false', '--noEmit', '-p', cfg], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-      problems.push(...fromTscOutput(r.stdout, root).filter((p) => !p.file || p.file.startsWith(root + sep)));
+      problems.push(...fromTscOutput(r.stdout, root).filter((p) => !p.file || p.file.startsWith(root + sep))
+        .map((p) => (p.code === 'TS18003' && cfg === noTests.file ? noTests : p)));
       if (cfg.endsWith('tsconfig.json')) {
         const list = spawnSync(process.execPath, [ts.tsc, '--listFilesOnly', '-p', cfg], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
         browserProgramFiles = list.stdout.split('\n').map((l) => l.trim()).filter(Boolean).map((f) => resolve(root, f));

@@ -211,6 +211,17 @@ test('TSCONFIG_DRIFT: options, lib, types, test files in the browser program, a 
   }
 });
 
+test('TSCONFIG_DRIFT warns, in place of TS18003, when tsconfig.test.json matches no file', async () => {
+  const files = { ...BASE, 'tsconfig.test.json': JSON.stringify({ extends: './tsconfig.json', compilerOptions: { types: ['node'] }, include: ['src/**/*.test.ts'], exclude: [] }) };
+  for (const api of [true, false]) {
+    const r = await run(files, { api });
+    assert.ok(r.has('tsconfig.test.json TSCONFIG_DRIFT'), r.lines.join('\n'));
+    assert.ok(!r.lines.some((l) => l.includes('TS18003')), r.lines.join('\n'));
+    assert.equal(r.code, 0, r.lines.join('\n'));
+    assert.equal((await run(files, { api, strict: true })).code, 1);
+  }
+});
+
 test('IMPORT_MAP_HANDWRITTEN', async () => {
   const r = await run({ ...BASE, 'index.html': INDEX.replace('<!--jasno:head-->', '<script type="importmap">{}</script>') });
   assert.ok(r.has('index.html:6:3 IMPORT_MAP_HANDWRITTEN'), r.lines.join('\n'));

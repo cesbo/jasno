@@ -828,9 +828,9 @@
       "rows": [
         {
           "source": "jasno check, jasno dev, jasno dist",
-          "severity": "error",
+          "severity": "error / warn",
           "tool": "check",
-          "when": "a required compiler option missing or changed in either config, esnext.disposable in lib, test files included in the browser program, types other than [] there, test or e2e files with no tsconfig.test.json (a project without them needs none), or package.json without \"type\": \"module\""
+          "when": "a required compiler option missing or changed in either config, esnext.disposable in lib, test files included in the browser program, types other than [] there, test or e2e files with no tsconfig.test.json (a project without them needs none), or package.json without \"type\": \"module\" (error); a tsconfig.test.json that matches no file, in place of tsc's TS18003 (warn: the project has no tests yet)"
         }
       ]
     },

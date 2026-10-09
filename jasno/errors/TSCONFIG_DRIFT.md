@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # TSCONFIG_DRIFT
 
-**error**, reported by jasno check: a required compiler option missing or changed in either config, esnext.disposable in lib, test files included in the browser program, types other than [] there, test or e2e files with no tsconfig.test.json (a project without them needs none), or package.json without "type": "module".
+**error / warn**, reported by jasno check: a required compiler option missing or changed in either config, esnext.disposable in lib, test files included in the browser program, types other than [] there, test or e2e files with no tsconfig.test.json (a project without them needs none), or package.json without "type": "module" (error); a tsconfig.test.json that matches no file, in place of tsc's TS18003 (warn: the project has no tests yet).
 
 <!-- /generated:catalogue -->
 
@@ -42,6 +42,7 @@ Set each option the message names, or copy the configs that `npm create @jasno` 
 
 - Keep `*.test.ts` out of the browser program. Keep `"types"` empty there. Then browser code cannot use Node APIs.
 - Create `tsconfig.test.json` as soon as there is a test, an e2e spec or a Playwright config.
+- With no tests yet, add one (`src/**/*.test.ts`) or delete `tsconfig.test.json` until there is one. A test config that matches no file is a warning.
 - Leave `esnext.disposable` out of `lib`. `using` is not part of jasno's syntax.
 - Set `"type": "module"` in `package.json`.
 
@@ -57,3 +58,4 @@ The right configs are the two above.
 ## Fixture
 
 `test/cli/check.test.ts` › TSCONFIG_DRIFT: options, lib, types, test files in the browser program, a missing test program, no "type": "module"
+`test/cli/check.test.ts` › TSCONFIG_DRIFT warns, in place of TS18003, when tsconfig.test.json matches no file
