@@ -1,7 +1,8 @@
 // Condition-aware package resolution (Node's PACKAGE_RESOLVE, PACKAGE_EXPORTS_RESOLVE, PACKAGE_IMPORTS_RESOLVE and
 // LEGACY_MAIN_RESOLVE) shared by jasno dev and jasno dist. Node resolves with the process's --conditions only, so
 // the CLI walks "exports"/"imports" itself: development for dev and tests, default (or --condition) for dist
-// (ADR-26, ADR-35). The browser must load the file Node picks for the same conditions.
+// (ADR-26, ADR-35). The browser must load the file Node picks for the same conditions, with one exception: a package
+// without "exports" resolves to its "module" file before "main", as bundlers do (Node never reads "module").
 import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -11,6 +12,7 @@ export interface PackageJson {
   version?: string;
   type?: string;
   main?: string;
+  module?: string;
   exports?: unknown;
   imports?: Record<string, unknown>;
   dependencies?: Record<string, string>;
@@ -134,11 +136,14 @@ function resolvePackage(spec: string, parentFile: string, conditions: ReadonlySe
   throw new ResolveError(`Package "${name}" is not installed (no node_modules/${name} above ${dirname(parentFile)}).`, 'not-installed');
 }
 
-/** LEGACY_MAIN_RESOLVE without the .json/.node candidates a browser cannot import as code. */
+/**
+ * LEGACY_MAIN_RESOLVE without the .json/.node candidates a browser cannot import as code, after "module" taken as an
+ * exact path (uPlot: "main" is CommonJS, "module" the ES build).
+ */
 function legacyMain(pkg: Pkg, spec: string): string {
-  const main = pkg.json.main;
+  const { main, module } = pkg.json;
   const tries = main ? [main, `${main}.js`, `${main}/index.js`] : [];
-  for (const t of [...tries, './index.js']) {
+  for (const t of [...(module ? [module] : []), ...tries, './index.js']) {
     const url = within(pkg.dir, t);
     if (isFile(fileURLToPath(url))) return finalize(url, spec);
   }

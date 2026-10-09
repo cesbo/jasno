@@ -21,7 +21,7 @@ jasno reports this error in these cases:
 
 ## Fix
 
-- Use a version of the package that ships ES modules for browsers (`"exports"` with a `browser` or `import` condition). Or use a different package that does.
+- Use a version of the package that ships ES modules for browsers (`"exports"` with a `browser` or `import` condition, or, with no `"exports"`, a `"module"` field). Or use a different package that does.
 - A `process.env` read: use the browser build of the package if it has one. A read behind `typeof process !== 'undefined'` is fine.
 - A bare import inside the package that does not resolve: install the package that the import names. It is often a peer dependency. A `node:` import means the package is for Node only.
 - jasno does not check optional peers that a package loads with `import()`.

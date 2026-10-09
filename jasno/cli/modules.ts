@@ -188,7 +188,7 @@ function browserEsmProblems(mod: Mod, pkg: Pkg): Problem[] {
   const name = pkg.json.name ?? dirname(mod.file);
   const at = (re: RegExp): { line: number; col: number } => lineCol(code, Math.max(0, code.search(re)));
   if (!hasModuleSyntax && /\brequire\s*\(|\bmodule\.exports\b|\bexports\.[A-Za-z_$]/.test(code)) {
-    out.push({ code: 'DEP_NOT_BROWSER_ESM', severity: 'error', message: `${name} ships CommonJS here; browsers load ES modules only.`, hint: 'Use a package or version with an ESM build ("exports" with an "import" or "browser" condition).', file: mod.file, ...at(/\brequire\s*\(|\bmodule\.exports\b|\bexports\./) });
+    out.push({ code: 'DEP_NOT_BROWSER_ESM', severity: 'error', message: `${name} ships CommonJS here; browsers load ES modules only.`, hint: 'Use a package or version with an ESM build ("exports" with an "import" or "browser" condition, or "module").', file: mod.file, ...at(/\brequire\s*\(|\bmodule\.exports\b|\bexports\./) });
   }
   // A read guarded by `typeof process` runs fine in browsers; mentions in comments are not reads.
   const read = [...code.matchAll(/\bprocess\.env\b/g)].find((m) => !inCommentOrString(code, m.index));

@@ -118,6 +118,11 @@ const app = project({
   'node_modules/dirmain/lib/index.js': '',
   'node_modules/extless/package.json': json({ name: 'extless', main: './entry' }),
   'node_modules/extless/entry.js': '',
+  'node_modules/modfield/package.json': json({ name: 'modfield', main: './dist/x.cjs.js', module: './dist/x.esm.js' }),
+  'node_modules/modfield/dist/x.cjs.js': '',
+  'node_modules/modfield/dist/x.esm.js': '',
+  'node_modules/modgone/package.json': json({ name: 'modgone', main: './x.cjs.js', module: './x.esm.js' }),
+  'node_modules/modgone/x.cjs.js': '',
   'node_modules/emptymain/package.json': json({ name: 'emptymain', main: '' }),
   'node_modules/emptymain/index.js': '',
 
@@ -279,6 +284,15 @@ test('"exports": null disables self-reference (the name resolves through node_mo
 
 test('legacy "main" is completed like Node (extension, /index.js, then index.js)', () => {
   same('probe.mjs', ['dirmain', 'extless', 'emptymain']);
+});
+
+test('no "exports": "module" (an exact path) before "main", as bundlers do; Node reads only "main"', () => {
+  const { ours, node } = compare('probe.mjs', ['modfield', 'modgone']);
+  assert.deepEqual(ours, {
+    'dev modfield': 'node_modules/modfield/dist/x.esm.js', 'dev modgone': 'node_modules/modgone/x.cjs.js',
+    'dist modfield': 'node_modules/modfield/dist/x.esm.js', 'dist modgone': 'node_modules/modgone/x.cjs.js',
+  });
+  assert.equal(node['dist modfield'], 'node_modules/modfield/dist/x.cjs.js');
 });
 
 test('targets with "..", "." or node_modules segments, and pattern matches containing them, are invalid', () => {
