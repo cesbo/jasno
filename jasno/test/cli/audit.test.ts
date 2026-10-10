@@ -25,7 +25,7 @@ async function build(files: Record<string, string | undefined>) {
   return { ...app, code, lines: r.lines };
 }
 
-test('CL-20: jasno dist reports FILE_NOT_PUBLISHED for a module outside src/, an imported test file, a symlink and a public/ name clash', async () => {
+test('CL-20: jasno build reports FILE_NOT_PUBLISHED for a module outside src/, an imported test file, a symlink and a public/ name clash', async () => {
   const outside = await build({ ...APP, 'src/main.ts': "import { x } from '../lib/x.ts';\nexport { x };\n", 'lib/x.ts': 'export const x = 1;\n' });
   assert.equal(outside.code, 1);
   assert.ok(outside.lines.some((l) => l.includes('FILE_NOT_PUBLISHED') && l.includes('outside src/')), outside.lines.join('\n'));
@@ -64,7 +64,7 @@ test('CL-24: a process.env read behind a typeof process guard is not DEP_NOT_BRO
   assert.equal(b.code, 0, b.lines.join('\n'));
 });
 
-test('CL-35: jasno dist reports IMPORT_NOT_MAPPED for a bare import that does not resolve', async () => {
+test('CL-35: jasno build reports IMPORT_NOT_MAPPED for a bare import that does not resolve', async () => {
   const b = await build({ ...APP, 'src/main.ts': "import pad from 'left-pad';\nexport { pad };\n" });
   assert.equal(b.code, 1);
   assert.ok(b.lines.some((l) => l.startsWith('src/main.ts:1:17 IMPORT_NOT_MAPPED')), b.lines.join('\n'));

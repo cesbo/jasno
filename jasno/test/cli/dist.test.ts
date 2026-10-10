@@ -1,4 +1,4 @@
-// jasno dist and jasno preview (design.md (e), ADR-29, ADR-35) against temp projects.
+// jasno build and jasno preview (design.md (e), ADR-29, ADR-35) against temp projects.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -152,7 +152,7 @@ test('the entry and the app\'s lazy view are hashed chunks under src/, shared co
     assert.ok(all.includes(`${f}.map`), `${f}.map`);
     assert.match(b.read(f), new RegExp(`sourceMappingURL=${f.split('/').pop()!.replace(/\./g, '\\.')}\\.map\\n?$`));
   }
-  assert.ok(b.lines.some((l) => /^jasno dist: \d+ files in dist\/ \(\d+ modules in \d+ chunks\)\.$/.test(l)), b.lines.join('\n'));
+  assert.ok(b.lines.some((l) => /^jasno build: \d+ files in dist\/ \(\d+ modules in \d+ chunks\)\.$/.test(l)), b.lines.join('\n'));
 });
 
 test('the import map maps the entry URL and pins every chunk with sha384; modulepreload is the entry\'s static chunk closure with integrity; the CSP hashes both inline scripts', async () => {

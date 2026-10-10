@@ -1,4 +1,4 @@
-// jasno <command>: check, dev, dist, preview, explain (design.md (e)). Exit 0 on success, 1 on failure.
+// jasno <command>: check, dev, build, preview, explain (design.md (e)). Exit 0 on success, 1 on failure.
 import { parseArgs } from 'node:util';
 import { check } from './check.ts';
 import { dev } from './dev.ts';
@@ -11,7 +11,7 @@ import { Reporter } from './report.ts';
 const USAGE = `usage: jasno <command> [options]
   check     type-check both programs and run jasno's rules   [--strict] [--json]
   dev       local dev server                                 [--port 5173] [--host <addr>] [--json]
-  dist      build dist/ (bundled, hashed names)              [--list] [--keep N] [--condition <name>] [--nonce]
+  build     bundle the app into dist/ (hashed names)         [--list] [--keep N] [--condition <name>] [--nonce]
                                                              [--prefix /control/assets/] [--json]
   preview   serve dist/ as a static host would               [--port 4173] [--json]
   explain   print what a diagnostic code means               <CODE> | --list [--json]
@@ -25,7 +25,7 @@ const COMMON = { json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' 
 const OPTIONS = {
   check: { ...COMMON, strict: { type: 'boolean' } },
   dev: { ...COMMON, port: { type: 'string' }, host: { type: 'string' } },
-  dist: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' }, prefix: { type: 'string' } },
+  build: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' }, prefix: { type: 'string' } },
   preview: { ...COMMON, port: { type: 'string' } },
   explain: { ...COMMON, list: { type: 'boolean' } },
 } as const;
@@ -71,11 +71,11 @@ export async function main(argv: readonly string[], cwd = process.cwd()): Promis
       if (p === undefined) return fail('jasno dev: --port must be 0-65535');
       return dev(project.root, { port: p, host: v.host as string | undefined }, reporter);
     }
-    case 'dist': {
+    case 'build': {
       const keep = v.keep === undefined ? 0 : Number(v.keep);
-      if (!Number.isInteger(keep) || keep < 0) return fail('jasno dist: --keep must be a whole number');
+      if (!Number.isInteger(keep) || keep < 0) return fail('jasno build: --keep must be a whole number');
       const prefix = v.prefix as string | undefined;
-      if (prefix !== undefined && !validPrefix(prefix)) return fail(`jasno dist: --prefix must be a URL path with a trailing slash, such as /control/assets/ (got "${prefix}")`);
+      if (prefix !== undefined && !validPrefix(prefix)) return fail(`jasno build: --prefix must be a URL path with a trailing slash, such as /control/assets/ (got "${prefix}")`);
       return dist(project.root, { list: v.list === true, keep, conditions: (v.condition as string[] | undefined) ?? [], nonce: v.nonce === true, prefix }, reporter);
     }
     case 'preview': {

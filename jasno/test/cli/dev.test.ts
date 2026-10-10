@@ -133,7 +133,7 @@ test('allowlist: .env*, dotfiles outside public/, package.json, tsconfig and nod
   }
 });
 
-test('public/ dotfiles are served at the root, as jasno dist publishes them (.well-known/)', async () => {
+test('public/ dotfiles are served at the root, as jasno build publishes them (.well-known/)', async () => {
   const res = await get('/.well-known/security.txt');
   assert.equal(res.status, 200);
   assert.match(res.body, /^Contact: /);

@@ -62,7 +62,7 @@
           "build": "dev + prod",
           "when": "mount() is called from a second copy of jasno, not the one that loaded first (B16.1)",
           "message": "Two copies of jasno are loaded: {first} and {second}.",
-          "hint": "Import jasno only as '@jasno/core' and never write an import map: jasno dev and jasno dist generate it."
+          "hint": "Import jasno only as '@jasno/core' and never write an import map: jasno dev and jasno build generate it."
         }
       ]
     },
@@ -169,7 +169,7 @@
           "hint": "Call it: ${count()}, count() + 1."
         },
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check (type-aware)",
           "when": "a value with a zero-parameter call signature (signal or Read) in + concatenation with a string or in String()"
@@ -484,7 +484,7 @@
           "build": "dev (the reload happens in both builds)",
           "when": "a view or layout module failed to load (B17.17)",
           "message": "The module for \"{route}\" failed to load ({error}); reloading {url}.",
-          "hint": "Usually a deploy replaced the files: keep previous deploys (npm run dist -- --keep 2)."
+          "hint": "Usually a deploy replaced the files: keep previous deploys (npm run build -- --keep 2)."
         }
       ]
     },
@@ -552,7 +552,7 @@
       "code": "TS<number>",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "any tsc diagnostic from either program, printed with its related information. Rewrites: TS2835's \"Did you mean './x.js'\" becomes ./x.ts; TS2554 on a component() value adds \"children go in the props object\"; TS7022 on the router export prints the COMPONENT_RETURN_TYPE findings first and drops the downstream title error"
@@ -563,7 +563,7 @@
       "code": "TS_VERSION_UNSUPPORTED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "the loaded TypeScript is outside the tested range (~7.0.2), or typescript is not installed"
@@ -574,7 +574,7 @@
       "code": "TYPE_RULES_UNAVAILABLE",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "warn (fails under --strict or CI)",
           "tool": "check",
           "when": "the TS API failed to load; tsc ran as a subprocess and the rules that need the syntax tree or types were skipped"
@@ -585,9 +585,9 @@
       "code": "TS_EXTENSION",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "check, dev, dist",
+          "tool": "check, dev, build",
           "when": "relative specifier not ending in .ts (.json for JSON modules; dev: 404 for x.js when x.ts exists, with the hint); check also for an entry in index.html ending in .js whose .ts exists"
         }
       ]
@@ -596,7 +596,7 @@
       "code": "NO_DECORATORS",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "syntax that passes tsc and the stripper, then fails in V8"
@@ -607,7 +607,7 @@
       "code": "NO_ACCESSOR",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "syntax that passes tsc and the stripper, then fails in V8"
@@ -618,7 +618,7 @@
       "code": "NO_TS_CLASS_MODIFIER",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "private/protected/public/readonly/abstract/override/declare members; use #private"
@@ -629,7 +629,7 @@
       "code": "NO_USING",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "using declarations (TS2318 has no location)"
@@ -640,7 +640,7 @@
       "code": "TLA_OUTSIDE_ENTRY",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "top-level await outside the entry named in index.html (Safari < 27 partial)"
@@ -651,10 +651,10 @@
       "code": "SYNTAX_REJECTED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "check, dev, dist",
-          "when": "the stripped file does not parse as a module (check parses all files in one process with vm.SourceTextModule and locates a failure with node --check; dev serves a module that throws with file:line:col; dev and dist also report syntax the type stripper refuses, such as enum)"
+          "tool": "check, dev, build",
+          "when": "the stripped file does not parse as a module (check parses all files in one process with vm.SourceTextModule and locates a failure with node --check; dev serves a module that throws with file:line:col; dev and build also report syntax the type stripper refuses, such as enum)"
         }
       ]
     },
@@ -662,10 +662,10 @@
       "code": "IMPORT_NOT_MAPPED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "check, dev, dist",
-          "when": "a bare specifier in a browser file that is not @jasno/core, @jasno/core/router, a dependencies package or a package.json \"imports\" key (dev and dist: one that does not resolve)"
+          "tool": "check, dev, build",
+          "when": "a bare specifier in a browser file that is not @jasno/core, @jasno/core/router, a dependencies package or a package.json \"imports\" key (dev and build: one that does not resolve)"
         }
       ]
     },
@@ -673,9 +673,9 @@
       "code": "IMPORT_MAP_HANDWRITTEN",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "check, dev, dist",
+          "tool": "check, dev, build",
           "when": "index.html contains a <script type=\"importmap\">; dev refuses to inject a second map and serves an error page naming this code"
         }
       ]
@@ -684,7 +684,7 @@
       "code": "NODE_TYPES_IN_BROWSER_CODE",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "/// <reference types=\"node\" /> or a node: import in a browser file"
@@ -695,7 +695,7 @@
       "code": "WORKER_UNSUPPORTED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "new Worker, new SharedWorker or serviceWorker.register of the DOM globals in a browser file (import maps do not apply to workers, and jasno has no worker recipe)"
@@ -706,7 +706,7 @@
       "code": "NO_HTML_SINK",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "assignment to innerHTML/outerHTML/srcdoc, insertAdjacentHTML, document.write/writeln, also through el['innerHTML'] (blocked by the production Trusted Types CSP)"
@@ -717,7 +717,7 @@
       "code": "USE_ROUTER",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error / warn",
           "tool": "check",
           "when": "the DOM's history.pushState/replaceState (error); reading the DOM's location.pathname/location.search in a browser file (warn); a local or parameter named history/location does not count"
@@ -728,7 +728,7 @@
       "code": "CURRENT_TARGET_AFTER_AWAIT",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check",
           "when": "<param>.currentTarget that an await or for await precedes on some path (an await in a block that returns or throws precedes only that block) in an on* handler: an on* prop or method of an h.*/svg.* props object, an addEventListener callback or an el.onx = ... assignment (the DOM sets it to null)"
@@ -739,7 +739,7 @@
       "code": "ASYNC_IN_EFFECT",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "warn",
           "tool": "check",
           "when": "a jasno effect() callback that, during its run, calls fetch, uses .then( or runs an async function (callbacks and listeners it only installs do not count): use resource()"
@@ -750,7 +750,7 @@
       "code": "SIGNAL_IN_TEMPLATE",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check (type-aware)",
           "when": "a value with a zero-parameter call signature (signal or Read) in a template literal"
@@ -761,7 +761,7 @@
       "code": "SNAPSHOT_TO_ACCESSOR",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "warn",
           "tool": "check (type-aware)",
           "when": "in a setup region (the function given to component(), a show/match/catchError callback, an each render; jasno's names resolved through the file's imports) a zero-argument call of a signal or Read whose value lands, through any expression, in a live slot: an h.* prop typed MaybeRead<T> or an h child (h.p(null, count()), step: SAT(sw()) ? '1' : 'any', h.p(null, 'IF ' + f())); reported once per call at the innermost such slot, with the slot named in the message. Nested functions are not entered: handlers and () => bindings read signals rightly, and helper functions called from setup are the runtime's STRICT_READ_UNTRACKED job. A route view's params and data (Fixed<T>, fixed for the view's lifetime, B17.5) are not reported"
@@ -772,7 +772,7 @@
       "code": "COMPONENT_NOT_WRAPPED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "warn",
           "tool": "check",
           "when": "exported PascalCase function returning Node without component()"
@@ -783,7 +783,7 @@
       "code": "ANONYMOUS_COMPONENT",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "warn",
           "tool": "check",
           "when": "component() given an arrow or anonymous function"
@@ -794,7 +794,7 @@
       "code": "COMPONENT_RETURN_TYPE",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "warn",
           "tool": "check",
           "when": "component function without a return type annotation (: Node) (ADR-06)"
@@ -805,7 +805,7 @@
       "code": "FOCUS_STYLE_REMOVED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "warn",
           "tool": "check",
           "when": "a css rule sets outline: none/0 or all: unset/initial/revert on a selector that reaches an interactive element (a button, a, input, select, textarea or summary tag, a [tabindex] or [contenteditable] attribute, *, a :focus* state (a selector part with :not(:focus-visible) keeps the keyboard ring and does not count), or a class the same file puts on an interactive h.* tag in a string class prop), and no css template in the program has a rule for :focus, :focus-visible or :focus-within that declares anything besides outline: none/0 (an outline, box-shadow, border, background, color or text-decoration change counts; sheets are global, ADR-23) (WCAG 2.4.7: programmatic focus moves need a visible indicator)"
@@ -816,10 +816,10 @@
       "code": "ASSET_OUTSIDE_ASSETS",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
           "tool": "check, dev",
-          "when": "new URL('<relative path>', import.meta.url) in a browser file resolves to a file under src/, or jasno dev gets a request for a non-module file under /src/: jasno dist publishes modules there only under hashed names and other files not at all, so the URL 404s in production (put the file in assets/ and use '/assets/<name>')"
+          "when": "new URL('<relative path>', import.meta.url) in a browser file resolves to a file under src/, or jasno dev gets a request for a non-module file under /src/: jasno build publishes modules there only under hashed names and other files not at all, so the URL 404s in production (put the file in assets/ and use '/assets/<name>')"
         }
       ]
     },
@@ -827,7 +827,7 @@
       "code": "TSCONFIG_DRIFT",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error / warn",
           "tool": "check",
           "when": "a required compiler option missing or changed in either config, esnext.disposable in lib, test files included in the browser program, types other than [] there, test or e2e files with no tsconfig.test.json (a project without them needs none), or package.json without \"type\": \"module\" (error); a tsconfig.test.json that matches no file, in place of tsc's TS18003 (warn: the project has no tests yet)"
@@ -838,10 +838,10 @@
       "code": "MODULE_NOT_FOUND",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "check, dev, dist",
-          "when": "the entry index.html imports names no file (check; a missing relative import inside src/ is tsc's TS2307 there); dev and dist: a relative or root-relative import in the module graph names no file (dev prints it when it builds the import map; dist fails), and dist also when index.html has no inline module script; a .js specifier whose .ts exists is TS_EXTENSION instead"
+          "tool": "check, dev, build",
+          "when": "the entry index.html imports names no file (check; a missing relative import inside src/ is tsc's TS2307 there); dev and build: a relative or root-relative import in the module graph names no file (dev prints it when it builds the import map; build fails), and build also when index.html has no inline module script; a .js specifier whose .ts exists is TS_EXTENSION instead"
         }
       ]
     },
@@ -849,9 +849,9 @@
       "code": "DEP_NOT_BROWSER_ESM",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "dev, dist",
+          "tool": "dev, build",
           "when": "a dependency's static closure contains CommonJS, an unguarded process.env read (a typeof process guard is fine) or an unresolvable bare import, or an installed dependency has no entry for the browser/import/default conditions (an optional peer behind import() inside a dependency is not checked)"
         }
       ]
@@ -860,9 +860,9 @@
       "code": "SECRET_FILE_IN_OUTPUT",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "dist",
+          "tool": "build",
           "when": "an allowlisted directory (src/, assets/, public/) contains .env*, *.pem or *.key, or src/ or assets/ contains a dotfile (public/ dotfiles such as .well-known/ are published)"
         }
       ]
@@ -871,10 +871,10 @@
       "code": "FILE_NOT_PUBLISHED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "check, dist",
-          "when": "browser code imports a module jasno dist does not publish (outside src/, or a *.test.ts file; check reports it at the import); dist also when src/, assets/ or public/ contains a symlink, or a public/ file takes a name dist generates"
+          "tool": "check, build",
+          "when": "browser code imports a module jasno build does not publish (outside src/, or a *.test.ts file; check reports it at the import); build also when src/, assets/ or public/ contains a symlink, or a public/ file takes a name jasno build generates"
         }
       ]
     },
@@ -882,10 +882,10 @@
       "code": "TAILWIND_FAILED",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "dev, dist",
-          "when": "a stylesheet under assets/ imports tailwindcss (@import \"tailwindcss\") and the project's @tailwindcss/cli is not installed (hint: npm install -D @tailwindcss/cli) or exits non-zero on it (its stderr is in the message); dev answers the request with 500, dist writes nothing (ADR-37)"
+          "tool": "dev, build",
+          "when": "a stylesheet under assets/ imports tailwindcss (@import \"tailwindcss\") and the project's @tailwindcss/cli is not installed (hint: npm install -D @tailwindcss/cli) or exits non-zero on it (its stderr is in the message); dev answers the request with 500, build writes nothing (ADR-37)"
         }
       ]
     },
@@ -893,9 +893,9 @@
       "code": "DYNAMIC_IMPORT_NOT_LITERAL",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error",
-          "tool": "dist",
+          "tool": "build",
           "when": "import(expr): the bundle holds only modules imported by string literals, so its target is not in dist/"
         }
       ]
@@ -904,9 +904,9 @@
       "code": "CSP_HASH_STRICT_DYNAMIC",
       "rows": [
         {
-          "source": "jasno check, jasno dev, jasno dist",
+          "source": "jasno check, jasno dev, jasno build",
           "severity": "error / warn",
-          "tool": "dist",
+          "tool": "build",
           "when": "index.html carries its own CSP <meta>: with 'strict-dynamic' (error), combined with jasno's hash sources it blocks imports in Chromium and Firefox; without it (warn), browsers enforce both policies and the stricter wins, so the app breaks only after deploy"
         }
       ]

@@ -8,7 +8,7 @@
     "explain": "jasno explain",
     "test": "node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
     "dev": "jasno dev",
-    "dist": "jasno dist",
+    "build": "jasno build",
     "preview": "jasno preview",
     "e2e": "playwright test"
   },

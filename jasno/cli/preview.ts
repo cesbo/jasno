@@ -1,6 +1,6 @@
 // jasno preview (design.md (e)): serves dist/ as a static host would: files first, then _redirects (200 rewrites,
 // the SPA fallback), 404.html, and the headers of every matching _headers rule. Used for the CI rung
-// "npm run dist && JASNO_E2E=preview npm run e2e", the only one that exercises the shipped artifact.
+// "npm run build && JASNO_E2E=preview npm run e2e", the only one that exercises the shipped artifact.
 import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -50,10 +50,10 @@ export interface PreviewServer { url: string; port: number; close(): Promise<voi
 export async function startPreview(root: string, opts: { port: number }, reporter: Reporter): Promise<PreviewServer> {
   const dir = join(root, 'dist');
   const read = (name: string): string => { try { return readFileSync(join(dir, name), 'utf8'); } catch { return ''; } };
-  if (!read('index.html')) throw new Error('no dist/index.html; run npm run dist first');
+  if (!read('index.html')) throw new Error('no dist/index.html; run npm run build first');
 
   const fileAt = (path: string): string | undefined => {
-    // Static hosts consume _headers and _redirects; they never serve them. .jasno/ is jasno dist's own state; other dot
+    // Static hosts consume _headers and _redirects; they never serve them. .jasno/ is jasno build's own state; other dot
     // paths are public/ files (.well-known/).
     const segs = path.split('/');
     if (segs.some((s) => s === '.' || s === '..') || segs[1] === '.jasno' || path === '/_headers' || path === '/_redirects') return undefined;
@@ -71,7 +71,7 @@ export async function startPreview(root: string, opts: { port: number }, reporte
     const headers = new Map<string, string>();
     for (const rule of parseHeaders(read('_headers'))) if (rule.pattern.test(path)) for (const [k, v] of rule.headers) headers.set(k, v);
     const reply = (status: number, file: string | undefined, extra: Record<string, string> = {}): void => {
-      // A weak ETag from size and mtime, so no-cache HTML revalidates with 304 as on a static host (dist 6).
+      // A weak ETag from size and mtime, so no-cache HTML revalidates with 304 as on a static host (build 6).
       const st = file ? statSync(file) : undefined;
       const etag = st ? `W/"${st.size.toString(16)}-${Math.floor(st.mtimeMs).toString(16)}"` : undefined;
       const base = { 'content-type': file ? (TYPES[extname(file)] ?? 'application/octet-stream') : 'text/plain', ...(etag ? { etag } : {}), ...Object.fromEntries(headers), ...extra };

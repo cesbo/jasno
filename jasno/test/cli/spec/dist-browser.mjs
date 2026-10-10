@@ -1,8 +1,8 @@
-// jasno dist + jasno preview in real browsers (Chromium, Firefox): node test/cli/spec/dist-browser.mjs
+// jasno build + jasno preview in real browsers (Chromium, Firefox): node test/cli/spec/dist-browser.mjs
 // A small app (jasno, a dependency with a scoped #import, a JSON module, a lazy route) is built, served by preview and
 // loaded: modules load from hashed URLs with integrity under the production CSP and Trusted Types; a tampered module is
 // blocked; a stale tab keeps loading its lazy route after a --keep 1 deploy; the --nonce variant as printed; a
-// --prefix /control/assets/ build (dist 10) loads its chunks and its stylesheet from under the prefix.
+// --prefix /control/assets/ build (build 10) loads its chunks and its stylesheet from under the prefix.
 // Each check prints "ok" or "FAIL".
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

@@ -1,6 +1,6 @@
 // Condition-aware package resolution (Node's PACKAGE_RESOLVE, PACKAGE_EXPORTS_RESOLVE, PACKAGE_IMPORTS_RESOLVE and
-// LEGACY_MAIN_RESOLVE) shared by jasno dev and jasno dist. Node resolves with the process's --conditions only, so
-// the CLI walks "exports"/"imports" itself: development for dev and tests, default (or --condition) for dist
+// LEGACY_MAIN_RESOLVE) shared by jasno dev and jasno build. Node resolves with the process's --conditions only, so
+// the CLI walks "exports"/"imports" itself: development for dev and tests, default (or --condition) for build
 // (ADR-26, ADR-35). The browser must load the file Node picks for the same conditions, with one exception: a package
 // without "exports" resolves to its "module" file before "main", as bundlers do (Node never reads "module").
 import { readFileSync, realpathSync, statSync } from 'node:fs';

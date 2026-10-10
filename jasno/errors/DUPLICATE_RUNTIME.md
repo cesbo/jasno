@@ -4,7 +4,7 @@
 **error (throws)**, runtime, dev and production builds: mount() is called from a second copy of jasno, not the one that loaded first.
 
 - Message: `Two copies of jasno are loaded: {first} and {second}.`
-- Hint: Import jasno only as '@jasno/core' and never write an import map: jasno dev and jasno dist generate it.
+- Hint: Import jasno only as '@jasno/core' and never write an import map: jasno dev and jasno build generate it.
 
 <!-- design.md: B16.1 -->
 <!-- /generated:catalogue -->
@@ -16,7 +16,7 @@ Each copy has its own scheduler and owner tree. Signals, context and components 
 ## Fix
 
 - Import jasno only by its package names: `'@jasno/core'`, `'@jasno/core/router'`, `'@jasno/core/testing'`. Never import a file inside the package (`/node_modules/@jasno/core/...`). Never import a copy from another URL.
-- Never write an import map. Delete any `<script type="importmap">` from `index.html`. Keep the `<!--jasno:head-->` slot. `jasno dev` and `jasno dist` put the generated import map there. `jasno check` reports a hand-written map as `IMPORT_MAP_HANDWRITTEN`.
+- Never write an import map. Delete any `<script type="importmap">` from `index.html`. Keep the `<!--jasno:head-->` slot. `jasno dev` and `jasno build` put the generated import map there. `jasno check` reports a hand-written map as `IMPORT_MAP_HANDWRITTEN`.
 - Compare the two URLs in the message. One URL is what `'@jasno/core'` maps to. The other URL shows which import loads the second copy.
 
 ## Example

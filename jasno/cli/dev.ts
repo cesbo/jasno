@@ -133,7 +133,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     return { graph: g, map: { imports, scopes } };
   };
 
-  /** Every response carries the production CSP (dist's _headers apply it to /*); index.html adds its script hashes. */
+  /** Every response carries the production CSP (the build's _headers apply it to /*); index.html adds its script hashes. */
   const BASE_CSP = productionCsp('');
   const send = (res: ServerResponse, req: IncomingMessage, status: number, type: string, body: string | Buffer, headers: Record<string, string> = {}): void => {
     res.writeHead(status, { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': BASE_CSP, ...headers });
@@ -156,7 +156,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     const mapAt = importMapIndex(html);
     if (mapAt >= 0) {
       reporter.add({ code: 'IMPORT_MAP_HANDWRITTEN', severity: 'error', message: 'index.html contains a <script type="importmap">; jasno generates the import map.', hint: 'Delete it and keep the <!--jasno:head--> slot.', file: join(root, 'index.html'), ...lineCol(html, mapAt) });
-      return errorPage(res, req, 500, 'IMPORT_MAP_HANDWRITTEN', 'index.html contains a <script type="importmap">. jasno dev and jasno dist generate the import map; delete yours and keep the <!--jasno:head--> slot.');
+      return errorPage(res, req, 500, 'IMPORT_MAP_HANDWRITTEN', 'index.html contains a <script type="importmap">. jasno dev and jasno build generate the import map; delete yours and keep the <!--jasno:head--> slot.');
     }
     const { map } = graph();
     const out = injectHead(html, `<script type="importmap">${scriptJson(map)}</script>\n  <script type="module" src="/__jasno/client.js"></script>`);
@@ -247,7 +247,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     try { path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname); } catch { return send(res, req, 400, TYPES['.txt']!, 'bad path'); }
     const segs = path.split('/');
     if (path.includes('\0') || path.includes('\\') || segs.some((s) => s === '.' || s === '..' || /^\.env/i.test(s))) return notFound(req, res, path);
-    // Other dot segments reach only public/, which jasno dist copies with its dotfiles (.well-known/).
+    // Other dot segments reach only public/, which jasno build copies with its dotfiles (.well-known/).
     const dotted = segs.some((s) => s.startsWith('.'));
     const isLog = path === '/__jasno/log' && req.method === 'POST';
     if (!isLog && req.method !== 'GET' && req.method !== 'HEAD') return send(res, req, 405, TYPES['.txt']!, 'GET only');
@@ -268,7 +268,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
       }
       if (ext !== '.ts' && ext !== '.json' && exact(file)) {
         const code = /\.(mts|cts|mjs|cjs|js|tsx|jsx)$/.test(ext);
-        return notFound(req, res, path, 'ASSET_OUTSIDE_ASSETS', `${path} is not a module; jasno dist does not publish other files under src/, so this URL would 404 in production.`, code ? `jasno modules are .ts files: rename it to ${path.split('/').pop()!.replace(/\.\w+$/, '.ts')}.` : `Move it to assets/ and use '/assets/${path.split('/').pop()}'.`, file);
+        return notFound(req, res, path, 'ASSET_OUTSIDE_ASSETS', `${path} is not a module; jasno build does not publish other files under src/, so this URL would 404 in production.`, code ? `jasno modules are .ts files: rename it to ${path.split('/').pop()!.replace(/\.\w+$/, '.ts')}.` : `Move it to assets/ and use '/assets/${path.split('/').pop()}'.`, file);
       }
       return notFound(req, res, path);
     }
@@ -282,7 +282,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
       }
       return send(res, req, 200, TYPES[extname(file)] ?? 'application/octet-stream', readFileSync(file));
     }
-    // public/ files are served at the root (robots.txt, favicon.ico), as jasno dist copies them.
+    // public/ files are served at the root (robots.txt, favicon.ico), as jasno build copies them.
     const pub = join(root, 'public', ...path.split('/'));
     if (!path.slice(1).split('/').includes('') && exact(pub)) return send(res, req, 200, TYPES[extname(pub)] ?? 'application/octet-stream', readFileSync(pub));
     // SPA fallback: an HTML navigation to an extension-less path that is not a file (design.md (e) dev); never

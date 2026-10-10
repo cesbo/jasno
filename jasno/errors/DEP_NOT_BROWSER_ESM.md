@@ -1,13 +1,13 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # DEP_NOT_BROWSER_ESM
 
-**error**, reported by jasno dev, jasno dist: a dependency's static closure contains CommonJS, an unguarded process.env read (a typeof process guard is fine) or an unresolvable bare import, or an installed dependency has no entry for the browser/import/default conditions (an optional peer behind import() inside a dependency is not checked).
+**error**, reported by jasno dev, jasno build: a dependency's static closure contains CommonJS, an unguarded process.env read (a typeof process guard is fine) or an unresolvable bare import, or an installed dependency has no entry for the browser/import/default conditions (an optional peer behind import() inside a dependency is not checked).
 
 <!-- /generated:catalogue -->
 
 A package that the app imports cannot run in the browser as installed.
 
-`jasno dev` does not bundle. It serves each file of the import closure of a dependency as an ES module, and the browser runs the file as it is. `jasno dist` bundles these files with Rolldown, but it checks them the same way. So a package that cannot run in dev also fails the build.
+`jasno dev` does not bundle. It serves each file of the import closure of a dependency as an ES module, and the browser runs the file as it is. `jasno build` bundles these files with Rolldown, but it checks them the same way. So a package that cannot run in dev also fails the build.
 
 jasno reports this error in these cases:
 
@@ -16,8 +16,8 @@ jasno reports this error in these cases:
 - A file in the closure imports something that does not resolve, such as a `node:` module or a package that is not installed.
 - The `"exports"` of the package has no entry for the `browser`, `import` or `default` condition.
 
-`jasno dev` prints the error. `jasno dist` fails. The message names the dependency file and position.
-<!-- design.md: (c) dev/dist, ADR-35 -->
+`jasno dev` prints the error. `jasno build` fails. The message names the dependency file and position.
+<!-- design.md: (c) dev/build, ADR-35 -->
 
 ## Fix
 

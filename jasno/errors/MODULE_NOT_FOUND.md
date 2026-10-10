@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # MODULE_NOT_FOUND
 
-**error**, reported by jasno check, jasno dev, jasno dist: the entry index.html imports names no file (check; a missing relative import inside src/ is tsc's TS2307 there); dev and dist: a relative or root-relative import in the module graph names no file (dev prints it when it builds the import map; dist fails), and dist also when index.html has no inline module script; a .js specifier whose .ts exists is TS_EXTENSION instead.
+**error**, reported by jasno check, jasno dev, jasno build: the entry index.html imports names no file (check; a missing relative import inside src/ is tsc's TS2307 there); dev and build: a relative or root-relative import in the module graph names no file (dev prints it when it builds the import map; build fails), and build also when index.html has no inline module script; a .js specifier whose .ts exists is TS_EXTENSION instead.
 
 <!-- /generated:catalogue -->
 
@@ -16,15 +16,15 @@ The browser would get a 404 for that module. It would then fail to load everythi
 Each command reports the problem in its own way:
 
 - `jasno dev` prints it when it builds the import map.
-- `jasno dist` fails.
+- `jasno build` fails.
 - `jasno check` reports it for the `index.html` entry. A missing import inside `src/` shows there as TypeScript's TS2307.
-<!-- design.md: (c) check/dev/dist, (e) dist 5 -->
+<!-- design.md: (c) check/dev/build, (e) build 5 -->
 
 ## Fix
 
 - Correct the path. Check the file name and its case, the directory and the number of `../`. A relative specifier names the real file, extension included (`./user-card.ts`).
 - If you renamed or moved the file, update every import of it.
-- The entry: `index.html` needs `<script type="module">import '/src/main.ts';</script>`. It must name a file that exists. `jasno dist` also reports this code when that inline script is missing.
+- The entry: `index.html` needs `<script type="module">import '/src/main.ts';</script>`. It must name a file that exists. `jasno build` also reports this code when that inline script is missing.
 - `./x.js` when `x.ts` exists is `TS_EXTENSION` instead. Write `./x.ts`.
 
 ## Example

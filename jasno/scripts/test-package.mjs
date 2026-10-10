@@ -2,7 +2,7 @@
 // check design.md (f) asks for. A copy of design/example depends on file:<tarball> (so jasno lands in node_modules as
 // JavaScript, not a symlink to the sources) and passes: the tarball file list, jasno check --strict, jasno explain
 // printing an installed repair guide, tsc without
-// skipLibCheck (the shipped .d.ts), npm test, and the browser probe under jasno dev and on jasno dist + preview in
+// skipLibCheck (the shipped .d.ts), npm test, and the browser probe under jasno dev and on jasno build + preview in
 // Chromium, Firefox and WebKit, all with the installed CLI.
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

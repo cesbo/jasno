@@ -205,7 +205,7 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
         if (rel && (rel.startsWith('./') || rel.startsWith('../')) && dotted(node.arguments[1]) === 'import.meta.url') {
           const target = resolve(dirname(ctx.file), rel);
           if (target.startsWith(join(ctx.root, 'src') + sep)) {
-            at(node, 'ASSET_OUTSIDE_ASSETS', 'error', `new URL('${rel}', import.meta.url) points into src/; jasno dist publishes only modules there (under hashed names), so this URL 404s in production.`, `Put the file in assets/ and use '/assets/${rel.split('/').pop()}'.`);
+            at(node, 'ASSET_OUTSIDE_ASSETS', 'error', `new URL('${rel}', import.meta.url) points into src/; jasno build publishes only modules there (under hashed names), so this URL 404s in production.`, `Put the file in assets/ and use '/assets/${rel.split('/').pop()}'.`);
           }
         }
       }

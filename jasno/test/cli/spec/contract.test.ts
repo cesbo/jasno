@@ -78,18 +78,18 @@ test('exit codes: help 0; no command, unknown command, unknown or stray option, 
   const root = app({ 'package.json': PKG, 'index.html': INDEX, 'src/main.ts': MAIN });
   const codes: Record<string, number> = {};
   for (const argv of [
-    [], ['--help'], ['-h'], ['help'], ['check', '--help'], ['explain', '--help'], ['nope'], ['check', '--nope'], ['dist', '--port', '1'],
-    ['check', 'stray'], ['dev', '--port', '99999'], ['preview', '--port', 'x'], ['dist', '--keep', '-1'], ['dist', '--keep', '1.5'],
+    [], ['--help'], ['-h'], ['help'], ['check', '--help'], ['explain', '--help'], ['nope'], ['check', '--nope'], ['build', '--port', '1'],
+    ['check', 'stray'], ['dev', '--port', '99999'], ['preview', '--port', 'x'], ['build', '--keep', '-1'], ['build', '--keep', '1.5'],
   ]) codes[argv.join(' ')] = (await run(argv, root)).code;
   assert.deepEqual(codes, {
-    '': 1, '--help': 0, '-h': 0, help: 0, 'check --help': 0, 'explain --help': 0, nope: 1, 'check --nope': 1, 'dist --port 1': 1,
-    'check stray': 1, 'dev --port 99999': 1, 'preview --port x': 1, 'dist --keep -1': 1, 'dist --keep 1.5': 1,
+    '': 1, '--help': 0, '-h': 0, help: 0, 'check --help': 0, 'explain --help': 0, nope: 1, 'check --nope': 1, 'build --port 1': 1,
+    'check stray': 1, 'dev --port 99999': 1, 'preview --port x': 1, 'build --keep -1': 1, 'build --keep 1.5': 1,
   });
 });
 
 test('a directory without package.json fails every project command with exit 1 and one message on stderr', async () => {
   const dir = bare();
-  for (const cmd of ['check', 'dev', 'dist', 'preview']) {
+  for (const cmd of ['check', 'dev', 'build', 'preview']) {
     const r = await run([cmd], dir);
     assert.equal(r.code, 1, cmd);
     assert.deepEqual(r.out, [], cmd);
@@ -99,17 +99,17 @@ test('a directory without package.json fails every project command with exit 1 a
 
 test('a package.json that is not valid JSON is reported as invalid, not as missing', async () => {
   const root = app({ 'package.json': '{ "name": "app", ', 'index.html': INDEX });
-  const r = await run(['dist', '--list'], root);
+  const r = await run(['build', '--list'], root);
   assert.equal(r.code, 1);
   assert.doesNotMatch(r.err.join('\n'), /No package\.json/);
   assert.match(r.err.join('\n'), /JSON|invalid|parse/i);
 });
 
-test('success 0, failure 1: dist --list on a clean project, dist with a problem', async () => {
+test('success 0, failure 1: build --list on a clean project, build with a problem', async () => {
   const ok = app({ 'package.json': PKG, 'index.html': INDEX, 'src/main.ts': MAIN });
-  assert.equal((await run(['dist', '--list'], ok)).code, 0);
+  assert.equal((await run(['build', '--list'], ok)).code, 0);
   const bad = app({ 'package.json': PKG, 'index.html': INDEX, 'src/main.ts': "import './nope.ts';\n" });
-  assert.equal((await run(['dist'], bad)).code, 1);
+  assert.equal((await run(['build'], bad)).code, 1);
   assert.ok(!existsSync(join(bad, 'dist')));
 });
 
@@ -133,9 +133,9 @@ test('a problem line is `file:line:col CODE message` with a root-relative / path
 
 test('end to end through main(): MODULE_NOT_FOUND as src/main.ts:1:col, and as JSON lines with --json', async () => {
   const root = app({ 'package.json': PKG, 'index.html': INDEX, 'src/main.ts': "import './nope.ts';\n" });
-  const text = await run(['dist'], root);
+  const text = await run(['build'], root);
   assert.ok(text.out.some((l) => /^src\/main\.ts:1:\d+ MODULE_NOT_FOUND /.test(l)), text.out.join('\n'));
-  const json = await run(['dist', '--json'], root);
+  const json = await run(['build', '--json'], root);
   assert.equal(json.code, 1);
   assert.ok(json.out.length > 0 && json.out.every(isJson), json.out.join('\n'));
   const p = json.out.map((l) => JSON.parse(l) as Record<string, unknown>).find((o) => o.code === 'MODULE_NOT_FOUND');
@@ -150,7 +150,7 @@ test('problem paths are relative with / also for files above the project root (a
     'packages/web/index.html': INDEX,
     'packages/web/src/main.ts': "import x from 'cjs';\nexport { x };\n",
   });
-  const r = await run(['dist', '--json'], join(ws, 'packages', 'web'));
+  const r = await run(['build', '--json'], join(ws, 'packages', 'web'));
   const p = r.out.map((l) => JSON.parse(l) as Record<string, unknown>).find((o) => o.code === 'DEP_NOT_BROWSER_ESM');
   assert.ok(p, r.out.join('\n'));
   assert.equal(p.file, '../../node_modules/cjs/index.js');
@@ -158,13 +158,13 @@ test('problem paths are relative with / also for files above the project root (a
 
 // ------------------------------------------------ bin/jasno.js as a child process
 
-test('bin/jasno.js in a project: dist --list exits 0, stdout only; --json makes every stdout line an object', () => {
+test('bin/jasno.js in a project: build --list exits 0, stdout only; --json makes every stdout line an object', () => {
   const root = app({ 'package.json': PKG, 'index.html': INDEX, 'src/main.ts': MAIN });
-  const r = bin(['dist', '--list'], root);
+  const r = bin(['build', '--list'], root);
   assert.equal(r.status, 0, r.err);
   assert.equal(r.err, '');
   assert.ok(lines(r.out).some((l) => /^dist\/src\/main\.[0-9a-z]{8}\.js {2}<- src\/main\.ts$/.test(l)), r.out); // bundled by default
-  const j = bin(['dist', '--list', '--json'], root);
+  const j = bin(['build', '--list', '--json'], root);
   assert.equal(j.status, 0);
   assert.ok(lines(j.out).length > 0 && lines(j.out).every(isJson));
 });
@@ -196,7 +196,7 @@ test('--json output is JSON lines on every path, including fatal errors (no pack
   const dir = bare();
   const root = app({ 'package.json': PKG, 'index.html': INDEX, 'src/main.ts': MAIN });
   const bad: string[] = [];
-  for (const [args, cwd] of [[['check', '--json'], dir], [['dist', '--json', '--nope'], root], [['explain', 'NOPE', '--json'], dir]] as const) {
+  for (const [args, cwd] of [[['check', '--json'], dir], [['build', '--json', '--nope'], root], [['explain', 'NOPE', '--json'], dir]] as const) {
     const r = bin([...args], cwd);
     assert.equal(r.status, 1);
     const all = [...lines(r.out), ...lines(r.err)];
@@ -214,11 +214,11 @@ test('check, dist --list and explain write nothing; dist writes only under dist/
   });
   link(root, 'typescript');
   const before = tree(root);
-  for (const argv of [['check'], ['dist', '--list'], ['explain', '--list']]) {
+  for (const argv of [['check'], ['build', '--list'], ['explain', '--list']]) {
     await run(argv, root);
     assert.deepEqual(tree(root), before, argv.join(' '));
   }
-  assert.equal((await run(['dist'], root)).code, 0);
+  assert.equal((await run(['build'], root)).code, 0);
   const added = Object.keys(tree(root)).filter((f) => !(f in before));
   assert.ok(added.length > 0 && added.every((f) => f.startsWith('dist/')), added.join('\n'));
   assert.deepEqual(Object.fromEntries(Object.entries(tree(root)).filter(([f]) => !f.startsWith('dist/'))), before);

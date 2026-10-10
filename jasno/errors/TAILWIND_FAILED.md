@@ -1,20 +1,20 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # TAILWIND_FAILED
 
-**error**, reported by jasno dev, jasno dist: a stylesheet under assets/ imports tailwindcss (@import "tailwindcss") and the project's @tailwindcss/cli is not installed (hint: npm install -D @tailwindcss/cli) or exits non-zero on it (its stderr is in the message); dev answers the request with 500, dist writes nothing.
+**error**, reported by jasno dev, jasno build: a stylesheet under assets/ imports tailwindcss (@import "tailwindcss") and the project's @tailwindcss/cli is not installed (hint: npm install -D @tailwindcss/cli) or exits non-zero on it (its stderr is in the message); dev answers the request with 500, build writes nothing.
 
 <!-- design.md: ADR-37 -->
 <!-- /generated:catalogue -->
 
-A stylesheet under `assets/` imports tailwindcss (`@import "tailwindcss"`). `jasno dev` and `jasno dist` compile it with the project's `@tailwindcss/cli` (ADR-37). That compile failed.
+A stylesheet under `assets/` imports tailwindcss (`@import "tailwindcss"`). `jasno dev` and `jasno build` compile it with the project's `@tailwindcss/cli` (ADR-37). That compile failed.
 
 There are two causes:
 
 - The package is not installed.
 - The CLI exited non-zero on the sheet: an unknown utility in `@apply`, a syntax error, a missing `@source` path.
 
-`jasno dev` answers the request with a 500 and prints the problem. `jasno dist` writes nothing.
-<!-- design.md: (c) dev/dist, (e) dev and dist 2, ADR-37 -->
+`jasno dev` answers the request with a 500 and prints the problem. `jasno build` writes nothing.
+<!-- design.md: (c) dev/build, (e) dev and build 2, ADR-37 -->
 
 ## Fix
 
@@ -25,7 +25,7 @@ There are two causes:
 ## Example
 
 ```css
-/* assets/app.css: the project's @tailwindcss/cli compiles it in dev and dist. Link it from index.html. */
+/* assets/app.css: the project's @tailwindcss/cli compiles it in dev and build. Link it from index.html. */
 @import "tailwindcss";
 
 /* Wrong: no such utility, so the CLI exits 1 and TAILWIND_FAILED names this file */

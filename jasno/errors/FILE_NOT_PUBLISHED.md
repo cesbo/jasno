@@ -1,19 +1,19 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # FILE_NOT_PUBLISHED
 
-**error**, reported by jasno check, jasno dist: browser code imports a module jasno dist does not publish (outside src/, or a *.test.ts file; check reports it at the import); dist also when src/, assets/ or public/ contains a symlink, or a public/ file takes a name dist generates.
+**error**, reported by jasno check, jasno build: browser code imports a module jasno build does not publish (outside src/, or a *.test.ts file; check reports it at the import); build also when src/, assets/ or public/ contains a symlink, or a public/ file takes a name jasno build generates.
 
 <!-- /generated:catalogue -->
 
 One of two things is wrong:
 
-- Browser code imports a module that `jasno dist` does not publish. This is a file outside `src/`, or a `*.test.ts` file.
-- A published directory holds something dist cannot publish as it is. This is a symlink, or a `public/` file that takes a name dist generates.
+- Browser code imports a module that `jasno build` does not publish. This is a file outside `src/`, or a `*.test.ts` file.
+- A published directory holds something jasno build cannot publish as it is. This is a symlink, or a `public/` file that takes a name jasno build generates.
 
-In production, the import fails, the linked file is missing, or the `public/` file would replace what dist writes.
+In production, the import fails, the linked file is missing, or the `public/` file would replace what jasno build writes.
 
-`jasno check` reports the import cases at the import. `jasno dist` reports all of them and writes nothing.
-<!-- design.md: (c) check/dist, (e) dist 1 and 2 -->
+`jasno check` reports the import cases at the import. `jasno build` reports all of them and writes nothing.
+<!-- design.md: (c) check/build, (e) build 1 and 2 -->
 
 ## Fix
 
@@ -32,10 +32,10 @@ my-app/
     views/user.ts        must not import user.test.ts
     views/user.test.ts
   public/
-    _redirects           Wrong: jasno dist generates /_redirects
+    _redirects           Wrong: jasno build generates /_redirects
     robots.txt           fine: published as /robots.txt
 ```
 
 ## Fixture
 
-`test/cli/audit.test.ts` › CL-20: jasno dist reports FILE_NOT_PUBLISHED for a module outside src/, an imported test file, a symlink and a public/ name clash
+`test/cli/audit.test.ts` › CL-20: jasno build reports FILE_NOT_PUBLISHED for a module outside src/, an imported test file, a symlink and a public/ name clash

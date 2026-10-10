@@ -1,5 +1,5 @@
-// Conformance probes for jasno dist and jasno preview against design.md (e) dist 1-9, (e) preview, ADR-29, ADR-35 and
-// the (c) dist rows. Tests named "open:" are the deliberate gaps, kept as todo.
+// Conformance probes for jasno build and jasno preview against design.md (e) build 1-9, (e) preview, ADR-29, ADR-35 and
+// the (c) build rows. Tests named "open:" are the deliberate gaps, kept as todo.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
@@ -80,7 +80,7 @@ test('open: a type-only statement whose ";" sits on the next line keeps that ";"
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// Naming and hashing (dist 2).
+// Naming and hashing (build 2).
 
 test('names carry a content hash; rebuilds are byte-identical; an edit renames the chunk it lands in, not the others; assets keep their names', async () => {
   const files: Files = {
@@ -108,7 +108,7 @@ test('names carry a content hash; rebuilds are byte-identical; an edit renames t
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// Import map (dist 3, ADR-35).
+// Import map (build 3, ADR-35).
 
 const GRAPH: Files = {
   'package.json': PKG({ dependencies: { a: '1', b: '1', c: '2' } }),
@@ -128,14 +128,14 @@ const GRAPH: Files = {
 };
 
 // ---------------------------------------------------------------------------------------------------------------
-// modulepreload and the manifest (dist 4, 9).
+// modulepreload and the manifest (build 4, 9).
 
 // ---------------------------------------------------------------------------------------------------------------
-// CSP, _headers, SPA fallback (dist 5-7).
+// CSP, _headers, SPA fallback (build 5-7).
 
 const SIMPLE: Files = { 'package.json': PKG(), 'index.html': INDEX, 'src/main.ts': "import { mount } from '@jasno/core';\nexport const lazy = () => import('./views/v.ts');\nexport { mount };\n", 'src/views/v.ts': 'export default 1;\n', 'assets/logo.svg': '<svg/>' };
 
-test('CSP meta and _headers are exactly the (e) dist 6 policy: map hash, then entry hash; cache rules per path; --nonce prints the nonce variant without hashes', async () => {
+test('CSP meta and _headers are exactly the (e) build 6 policy: map hash, then entry hash; cache rules per path; --nonce prints the nonce variant without hashes', async () => {
   const b = await build(SIMPLE, { nonce: true });
   assert.equal(b.code, 0, b.lines.join('\n'));
   const html = b.read('index.html');
@@ -162,7 +162,7 @@ test('CSP_HASH_STRICT_DYNAMIC: index.html carrying its own CSP with \'strict-dyn
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// Allowlist and SECRET_FILE_IN_OUTPUT (dist 1).
+// Allowlist and SECRET_FILE_IN_OUTPUT (build 1).
 
 test('allowlist: a file reachable through a development target ships when production code also imports it; dev-only files do not', async () => {
   const b = await build({
@@ -240,7 +240,7 @@ test('a symlinked asset (assets/logo.png → ../brand/logo.png) is published or 
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// --keep, --list, nothing written on error (dist 1, 8).
+// --keep, --list, nothing written on error (build 1, 8).
 
 test('--keep 2 over four deploys keeps exactly the previous two deploys\' hashed files, byte-identical; --keep 0 then 2 keeps only what dist/ still has', async () => {
   const b = await build(SIMPLE);
@@ -281,7 +281,7 @@ test('an error build leaves the previous dist/ untouched', async () => {
   b.edit('src/main.ts', "import './missing.ts';\n");
   const r = await b.again();
   assert.equal(r.code, 1);
-  assert.ok(r.lines.includes('jasno dist: nothing written.'));
+  assert.ok(r.lines.includes('jasno build: nothing written.'));
   assert.deepEqual(listAll(join(b.root, 'dist')), before);
 });
 
@@ -298,7 +298,7 @@ function fanOut(n: number, depModules: number, extra: Files = {}): Files {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// DEP_NOT_BROWSER_ESM, MODULE_NOT_FOUND, DYNAMIC_IMPORT_NOT_LITERAL ((c) dist rows).
+// DEP_NOT_BROWSER_ESM, MODULE_NOT_FOUND, DYNAMIC_IMPORT_NOT_LITERAL ((c) build rows).
 
 test('DEP_NOT_BROWSER_ESM (not IMPORT_NOT_MAPPED) when a dependency the app imports has no browser ESM entry ("exports" with require/node only)', async () => {
   const b = await build({
@@ -425,7 +425,7 @@ test('preview does not serve _headers and _redirects as files (static hosts cons
   } finally { await s.server.close(); }
 });
 
-test('no-cache HTML is revalidated by ETag ("revalidated by ETag", (e) dist 6): preview sends an ETag and answers If-None-Match with 304', async () => {
+test('no-cache HTML is revalidated by ETag ("revalidated by ETag", (e) build 6): preview sends an ETag and answers If-None-Match with 304', async () => {
   const s = await served();
   try {
     const first = await s.get('/');
@@ -464,7 +464,7 @@ test('root files a site needs (/robots.txt) can be published; today assets/ reac
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// --prefix (dist 10): src/ and assets/ under one URL path, index.html at the root (Astra serves /control/assets/).
+// --prefix (build 10): src/ and assets/ under one URL path, index.html at the root (Astra serves /control/assets/).
 
 const PREFIXED: Files = {
   ...SIMPLE,
@@ -479,7 +479,7 @@ const PREFIXED: Files = {
   'assets/app.css': '@font-face{font-family:x;src:url(font.woff2)}', 'assets/i.png': 'png',
 };
 
-test('dist 10 --prefix: src/ and assets/ move under the prefix; the import map, integrity, preloads and index.html links follow', async () => {
+test('build 10 --prefix: src/ and assets/ move under the prefix; the import map, integrity, preloads and index.html links follow', async () => {
   const b = await build(PREFIXED, { prefix: '/control/assets/' });
   assert.equal(b.code, 0, b.lines.join('\n'));
   const all = listAll(join(b.root, 'dist'));
@@ -512,7 +512,7 @@ test('dist 10 --prefix: src/ and assets/ move under the prefix; the import map, 
   assert.equal(b.read('control/assets/assets/app.css'), PREFIXED['assets/app.css'], 'assets are copied as they are');
 });
 
-test('dist 10 --prefix: preview serves the prefixed paths with their cache rules; a public/ file may not take the prefix\'s first segment', async () => {
+test('build 10 --prefix: preview serves the prefixed paths with their cache rules; a public/ file may not take the prefix\'s first segment', async () => {
   const b = await build(PREFIXED, { prefix: '/control/assets/' });
   assert.equal(b.code, 0, b.lines.join('\n'));
   const server = await startPreview(b.root, { port: 0 }, reporter(b.root).reporter);
@@ -533,7 +533,7 @@ test('dist 10 --prefix: preview serves the prefixed paths with their cache rules
   assert.ok(clash.lines.some((l) => l.includes('FILE_NOT_PUBLISHED') && l.includes('public/control')), clash.lines.join('\n'));
 });
 
-test('dist 10 --prefix: only a URL path with a trailing slash is accepted; jasno dist refuses anything else and writes nothing', async () => {
+test('build 10 --prefix: only a URL path with a trailing slash is accepted; jasno build refuses anything else and writes nothing', async () => {
   for (const p of ['/', '/control/assets/', '/a.b/', '/v_1/~x-y/']) assert.ok(validPrefix(p), p);
   for (const p of ['', 'control/', '/control', '//x/', '/./', '/../', '/a/../b/', '/a//b/', '/a b/', '/%2e%2e/', '/.hidden/', '/a?b/', '/a#b/', 'https://x/']) assert.ok(!validPrefix(p), p);
   const app = project(SIMPLE);
@@ -541,7 +541,7 @@ test('dist 10 --prefix: only a URL path with a trailing slash is accepted; jasno
   const err: string[] = [];
   const { error } = console;
   console.error = (...a: unknown[]) => { err.push(a.join(' ')); };
-  try { assert.equal(await main(['dist', '--prefix', '../x/'], app.root), 1); } finally { console.error = error; }
+  try { assert.equal(await main(['build', '--prefix', '../x/'], app.root), 1); } finally { console.error = error; }
   assert.match(err.join('\n'), /--prefix must be a URL path with a trailing slash/);
   assert.ok(!existsSync(join(app.root, 'dist')), 'nothing written');
 });

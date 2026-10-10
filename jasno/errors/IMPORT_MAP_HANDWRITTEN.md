@@ -1,13 +1,13 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # IMPORT_MAP_HANDWRITTEN
 
-**error**, reported by jasno check, jasno dev, jasno dist: index.html contains a <script type="importmap">; dev refuses to inject a second map and serves an error page naming this code.
+**error**, reported by jasno check, jasno dev, jasno build: index.html contains a <script type="importmap">; dev refuses to inject a second map and serves an error page naming this code.
 
 <!-- /generated:catalogue -->
 
-`index.html` contains its own `<script type="importmap">`. `jasno dev` and `jasno dist` generate the import map and put it at `<!--jasno:head-->`. In dev, the generated map covers source files, packages and `#imports` keys. In dist, Rolldown bundles the packages and the keys into the chunks. There the map holds the hashed name of the entry and the integrity of every chunk.
+`index.html` contains its own `<script type="importmap">`. `jasno dev` and `jasno build` generate the import map and put it at `<!--jasno:head-->`. In dev, the generated map covers source files, packages and `#imports` keys. In the build, Rolldown bundles the packages and the keys into the chunks. There the map holds the hashed name of the entry and the integrity of every chunk.
 
-With a handwritten map in the page, `jasno dev` injects nothing. It serves an error page instead of the app. `jasno check` and `jasno dist` fail.
+With a handwritten map in the page, `jasno dev` injects nothing. It serves an error page instead of the app. `jasno check` and `jasno build` fail.
 <!-- design.md: (c) check/dev, (e) dev, (f) -->
 
 ## Fix

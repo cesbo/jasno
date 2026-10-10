@@ -1,16 +1,16 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # DYNAMIC_IMPORT_NOT_LITERAL
 
-**error**, reported by jasno dist: import(expr): the bundle holds only modules imported by string literals, so its target is not in dist/.
+**error**, reported by jasno build: import(expr): the bundle holds only modules imported by string literals, so its target is not in dist/.
 
 <!-- /generated:catalogue -->
 
-Your code calls `import()` with a computed specifier. That is a variable, or a template literal with `${}`. `jasno dist` cannot tell which module it loads.
+Your code calls `import()` with a computed specifier. That is a variable, or a template literal with `${}`. `jasno build` cannot tell which module it loads.
 
 The bundle contains only modules imported by string literals. The target would not be in `dist/`, and the import would fail in the browser. So the build fails and writes nothing.
 
 A literal import also lets the build check the path (`MODULE_NOT_FOUND`). It also gives the view its own chunk.
-<!-- design.md: (c) dist, (e) dist 4 -->
+<!-- design.md: (c) build, (e) build 4 -->
 
 ## Fix
 
@@ -22,7 +22,7 @@ Write one `import()` with a string literal for each module. Then choose among th
 ## Example
 
 ```ts no-check
-// Wrong: jasno dist cannot see which modules this loads
+// Wrong: jasno build cannot see which modules this loads
 const loadWrong = (name: string) => import(`./widgets/${name}.ts`);
 
 // Right: one literal import per module

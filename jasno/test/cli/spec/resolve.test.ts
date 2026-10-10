@@ -1,5 +1,5 @@
-// Conformance: cli/resolve.ts (shared by jasno dev and jasno dist) against Node's own ESM resolver for the same
-// condition sets (ADR-35, design.md (e) dev and dist 3). Node's answer comes from import.meta.resolve in a child
+// Conformance: cli/resolve.ts (shared by jasno dev and jasno build) against Node's own ESM resolver for the same
+// condition sets (ADR-35, design.md (e) dev and build 3). Node's answer comes from import.meta.resolve in a child
 // process run from a probe file in the parent directory; a URL whose file does not exist counts as an error, since
 // Node fails to load it. Fixture packages avoid the conditions Node always adds (node, module-sync, node-addons).
 import assert from 'node:assert/strict';
@@ -22,7 +22,7 @@ process.stdout.write(JSON.stringify(out));
 
 const SETS = [
   { name: 'dev', ours: DEV_CONDITIONS, node: ['browser', 'development'] },
-  { name: 'dist', ours: prodConditions(), node: ['browser'] },
+  { name: 'build', ours: prodConditions(), node: ['browser'] },
 ] as const;
 
 const json = (v: unknown): string => JSON.stringify(v);
@@ -290,9 +290,9 @@ test('no "exports": "module" (an exact path) before "main", as bundlers do; Node
   const { ours, node } = compare('probe.mjs', ['modfield', 'modgone']);
   assert.deepEqual(ours, {
     'dev modfield': 'node_modules/modfield/dist/x.esm.js', 'dev modgone': 'node_modules/modgone/x.cjs.js',
-    'dist modfield': 'node_modules/modfield/dist/x.esm.js', 'dist modgone': 'node_modules/modgone/x.cjs.js',
+    'build modfield': 'node_modules/modfield/dist/x.esm.js', 'build modgone': 'node_modules/modgone/x.cjs.js',
   });
-  assert.equal(node['dist modfield'], 'node_modules/modfield/dist/x.cjs.js');
+  assert.equal(node['build modfield'], 'node_modules/modfield/dist/x.cjs.js');
 });
 
 test('targets with "..", "." or node_modules segments, and pattern matches containing them, are invalid', () => {
@@ -317,6 +317,6 @@ test('an "exports" object mixing "." keys with condition keys, or with array-ind
 
 test('"#/…" imports keys resolve as in current Node (24.21 and 26); Node 24.12 and 25.1 still reject them', () => {
   const { ours, node } = compare('probe.mjs', ['#/x']);
-  assert.deepEqual(ours, { 'dev #/x': 'src/a.js', 'dist #/x': 'src/a.js' });
+  assert.deepEqual(ours, { 'dev #/x': 'src/a.js', 'build #/x': 'src/a.js' });
   if (Object.values(node).every((v) => v !== 'error')) assert.deepEqual(ours, node); // where this Node accepts them
 });

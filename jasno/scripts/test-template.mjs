@@ -1,6 +1,6 @@
 // node scripts/test-template.mjs: scaffolds an app with create-jasno against the packed jasno tarball and runs every
 // rung the template promises with its own scripts and config: npm run check -- --strict, npm test, npm run e2e
-// (Chromium, Firefox, WebKit under jasno dev) and npm run dist && JASNO_E2E=preview npm run e2e. Also checks that
+// (Chromium, Firefox, WebKit under jasno dev) and npm run build && JASNO_E2E=preview npm run e2e. Also checks that
 // create-jasno packs every template file, shares jasno's version, and has an AGENTS.md that points to the guide the
 // installed package ships.
 import { execFileSync } from 'node:child_process';
@@ -40,7 +40,7 @@ try {
   run('npm', ['run', 'check', '--', '--strict'], app);
   run('npm', ['test'], app);
   run('npm', ['run', 'e2e'], app, { CI: '1' });
-  run('npm', ['run', 'dist'], app);
+  run('npm', ['run', 'build'], app);
   run('npm', ['run', 'e2e'], app, { CI: '1', JASNO_E2E: 'preview' });
   console.log('\ntemplate check passed');
 } finally {

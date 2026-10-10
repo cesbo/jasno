@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # TS_EXTENSION
 
-**error**, reported by jasno check, jasno dev, jasno dist: relative specifier not ending in .ts (.json for JSON modules; dev: 404 for x.js when x.ts exists, with the hint); check also for an entry in index.html ending in .js whose .ts exists.
+**error**, reported by jasno check, jasno dev, jasno build: relative specifier not ending in .ts (.json for JSON modules; dev: 404 for x.js when x.ts exists, with the hint); check also for an entry in index.html ending in .js whose .ts exists.
 
 <!-- /generated:catalogue -->
 
@@ -9,7 +9,7 @@ An import names a relative module without its real extension: `./format.js` or `
 
 jasno ships your `.ts` files as the modules the browser loads. jasno never rewrites import specifiers. So the browser (and Node, in tests) requests exactly the path you wrote.
 
-`jasno dev` answers that request with a 404. `jasno dist` refuses to build.
+`jasno dev` answers that request with a 404. `jasno build` refuses to build.
 <!-- design.md: (c) jasno check table; (e) jasno check 5, jasno dev; (f) conventions -->
 
 ## Fix

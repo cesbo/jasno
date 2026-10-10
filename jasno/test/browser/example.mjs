@@ -1,6 +1,6 @@
 // The design example in Chromium, Firefox and WebKit: node test/browser/example.mjs [preview | history]
 // dev: under jasno dev (Navigation API adapter). history: the same with the Navigation API hidden, so the router
-// runs its History adapter. preview: jasno dist (with the mock API: --condition development) served by jasno
+// runs its History adapter. preview: jasno build (with the mock API: --condition development) served by jasno
 // preview, the CI rung that exercises the shipped artifact (hashed files, integrity, CSP, _headers, SPA fallback).
 import { spawn, spawnSync } from 'node:child_process';
 import { chromium, firefox, webkit } from 'playwright';
@@ -12,7 +12,7 @@ const base = `http://127.0.0.1:${PORT}`;
 const jasno = process.env.JASNO_BIN ?? new URL('../../bin/jasno.js', import.meta.url).pathname;
 const cwd = process.env.EXAMPLE_DIR ?? new URL('../../../design/example', import.meta.url).pathname;
 if (preview) {
-  const built = spawnSync('node', [jasno, 'dist', '--condition', 'development'], { cwd, stdio: 'inherit' });
+  const built = spawnSync('node', [jasno, 'build', '--condition', 'development'], { cwd, stdio: 'inherit' });
   if (built.status !== 0) process.exit(1);
 }
 const server = spawn('node', [jasno, preview ? 'preview' : 'dev', '--port', String(PORT)], { cwd, stdio: ['ignore', 'pipe', 'inherit'] });
@@ -83,7 +83,7 @@ for (const [name, type] of [['chromium', chromium], ['firefox', firefox], ['webk
     ok(true, 'retry re-runs the navigation');
     if (preview) {
       ok(await page.evaluate(() => window.__JASNO__ === undefined), 'production build: no __JASNO__');
-      // jasno dist bundles by default: the entry, the lazy views and shared chunks, all hashed under /src/.
+      // jasno build bundles by default: the entry, the lazy views and shared chunks, all hashed under /src/.
       const hashed = await page.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname).filter((p) => /\.[0-9a-z]{8}\.js$/.test(p)));
       ok(hashed.some((p) => p.startsWith('/src/views/user.')) && hashed.every((p) => p.startsWith('/src/')), `chunks load from hashed URLs (${hashed.length})`);
       ok(!(await page.evaluate(() => performance.getEntriesByType('resource').some((e) => new URL(e.name).pathname.endsWith('.ts')))), 'no .ts request');

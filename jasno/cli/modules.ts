@@ -1,5 +1,5 @@
 // Strip (the pinned amaro, positions preserved), scan imports (es-module-lexer) and walk the module graph from the
-// entry with a condition set. jasno dev maps the graph to /src, /@jasno and /@dep URLs; jasno dist to hashed files.
+// entry with a condition set. jasno dev maps the graph to /src, /@jasno and /@dep URLs; jasno build to hashed files.
 import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, sep } from 'node:path';
@@ -13,7 +13,7 @@ export const ready: Promise<void> = init();
 
 export interface StripFailure { message: string; line: number; col: number }
 
-/** Types replaced by whitespace; same line and column (design.md (e) dist). */
+/** Types replaced by whitespace; same line and column (design.md (e) build). */
 export function strip(code: string): string {
   return transformSync(code, { mode: 'strip-only' }).code;
 }
@@ -110,7 +110,7 @@ export interface Graph { mods: Map<string, Mod>; problems: Problem[] }
 
 /**
  * The static and literal dynamic import closure of roots. Packages resolve with conditions; the app's own "imports"
- * keys with appConditions (jasno dist --condition applies to them only, design.md (e) dist 3).
+ * keys with appConditions (jasno build --condition applies to them only, design.md (e) build 3).
  */
 export function walk(roots: readonly string[], root: string, conditions: ReadonlySet<string>, appConditions = conditions): Graph {
   const mods = new Map<string, Mod>();
@@ -226,7 +226,7 @@ export function injectHead(html: string, markup: string): string {
 /** JSON for an inline <script>: "<" escaped so no value can close the element. */
 export const scriptJson = (value: unknown, space?: number): string => JSON.stringify(value, null, space).replaceAll('<', '\\u003c');
 
-/** The production CSP (design.md (e) dist 6), with every inline script of html allowed by its sha256 hash. */
+/** The production CSP (design.md (e) build 6), with every inline script of html allowed by its sha256 hash. */
 export function productionCsp(html: string): string {
   const hashes = inlineScripts(html).map((s) => `'sha256-${createHash('sha256').update(s).digest('base64')}'`);
   return `script-src 'self' ${hashes.join(' ')}; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'`;

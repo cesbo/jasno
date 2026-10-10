@@ -86,7 +86,7 @@ jasno disposes what it creates in setup (computeds, effects, resources, children
 <body><div id="app"></div><script type="module">import '/src/main.ts';</script></body></html>
 ```
 
-Never write an import map: `jasno dev`/`dist` put one at `<!--jasno:head-->`. `src/main.ts`: `mount(App, document.getElementById('app'))`. `package.json`: `"type": "module"`, scripts as in Verify. Relative imports end in `.ts`; npm packages by name. `tsconfig.json` covers `src` minus tests; `tsconfig.test.json` adds `"types": ["node"]` for `*.test.ts`.
+Never write an import map: `jasno dev`/`build` put one at `<!--jasno:head-->`. `src/main.ts`: `mount(App, document.getElementById('app'))`. `package.json`: `"type": "module"`, scripts as in Verify. Relative imports end in `.ts`; npm packages by name. `tsconfig.json` covers `src` minus tests; `tsconfig.test.json` adds `"types": ["node"]` for `*.test.ts`.
 
 ## Testing
 

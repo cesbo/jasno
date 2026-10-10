@@ -7,9 +7,9 @@
 
 Browser code writes an HTML string into the page. It assigns `innerHTML`, `outerHTML` or an iframe's `srcdoc`. Or it calls `insertAdjacentHTML`, `document.write` or `document.writeln`.
 
-The CSP that `jasno dist` writes requires Trusted Types and allows no policy (`require-trusted-types-for 'script'; trusted-types 'none'`). In production, the browser throws at that line. `jasno dev` sends the same policy, so it throws there too.
+The CSP that `jasno build` writes requires Trusted Types and allows no policy (`require-trusted-types-for 'script'; trusted-types 'none'`). In production, the browser throws at that line. `jasno dev` sends the same policy, so it throws there too.
 
-<!-- design.md: (c) jasno check table; (e) jasno check 3, jasno dev, jasno dist 6; ADR-34 -->
+<!-- design.md: (c) jasno check table; (e) jasno check 3, jasno dev, jasno build 6; ADR-34 -->
 
 ## Fix
 

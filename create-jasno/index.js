@@ -37,6 +37,6 @@ Next:
   npm run dev
 
 Verify in order: npm run check, npm test, npm run e2e (once before it: npx playwright install, which downloads
-the browsers), npm run dist && JASNO_E2E=preview npm run e2e.
+the browsers), npm run build && JASNO_E2E=preview npm run e2e.
 Commit package-lock.json after the first install, so CI runs npm ci.
 AGENTS.md points coding agents to node_modules/@jasno/core/AGENTS.md.`);

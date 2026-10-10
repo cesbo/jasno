@@ -1,7 +1,7 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # SYNTAX_REJECTED
 
-**error**, reported by jasno check, jasno dev, jasno dist: the stripped file does not parse as a module (check parses all files in one process with vm.SourceTextModule and locates a failure with node --check; dev serves a module that throws with file:line:col; dev and dist also report syntax the type stripper refuses, such as enum).
+**error**, reported by jasno check, jasno dev, jasno build: the stripped file does not parse as a module (check parses all files in one process with vm.SourceTextModule and locates a failure with node --check; dev serves a module that throws with file:line:col; dev and build also report syntax the type stripper refuses, such as enum).
 
 <!-- /generated:catalogue -->
 
@@ -12,7 +12,7 @@ There are two causes:
 - The stripper refused TypeScript syntax that needs a code transform: `enum`, a `namespace` with code, constructor parameter properties, `import x = require()`, `<T>value` assertions.
 - The stripped text does not parse in V8: a duplicate export name, a decorator, an `accessor` field, a plain syntax error.
 
-When the stripper refuses a file, `jasno dev` serves a module that throws `SyntaxError("[SYNTAX_REJECTED] /src/x.ts:3:7 ...")`. `jasno dev` also prints the same line. `jasno dist` stops.
+When the stripper refuses a file, `jasno dev` serves a module that throws `SyntaxError("[SYNTAX_REJECTED] /src/x.ts:3:7 ...")`. `jasno dev` also prints the same line. `jasno build` stops.
 <!-- design.md: (c) jasno check table; (e) jasno check 4, jasno dev -->
 
 ## Fix

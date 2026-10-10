@@ -269,12 +269,12 @@ test('HEAD is served like GET without a body, CSP included', async () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// CSP ((e) dev "Sends the production CSP"; (e) dist 6 for the exact policy)
+// CSP ((e) dev "Sends the production CSP"; (e) build 6 for the exact policy)
 
 const sha = (s: string): string => `'sha256-${createHash('sha256').update(s).digest('base64')}'`;
 const inline = (html: string): string[] => [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
 
-test('index.html: the CSP is exactly dist 6, map hash then entry hash', () => {
+test('index.html: the CSP is exactly build 6, map hash then entry hash', () => {
   const [mapText, entry] = inline(index.body);
   assert.equal(index.headers['content-security-policy'],
     `script-src 'self' ${sha(mapText!)} ${sha(entry!)}; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'`);
@@ -294,7 +294,7 @@ test('every inline script of a richer index.html gets its hash (classic, module,
   for (const s of [...res.body.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]!)) assert.ok(csp.includes(sha(s)), s);
 });
 
-test('files under /assets/ get the production CSP too (dist _headers applies it to /*)', async () => {
+test('files under /assets/ get the production CSP too (the build\'s _headers applies it to /*)', async () => {
   for (const path of ['/assets/page.html', '/assets/logo.svg']) {
     const res = await get(path);
     assert.equal(res.status, 200, path);
@@ -435,7 +435,7 @@ test('no SPA fallback for /src, /@dep and /@jasno themselves', async () => {
   for (const path of ['/src', '/@dep', '/@jasno']) assert.equal((await get(path, HTML)).status, 404, path);
 });
 
-test('an extension-less miss under /assets/ is a missing file (404), as in dist\'s _redirects', async () => {
+test('an extension-less miss under /assets/ is a missing file (404), as in the build\'s _redirects', async () => {
   const res = await get('/assets/docs', HTML);
   assert.equal(res.status, 404);
 });

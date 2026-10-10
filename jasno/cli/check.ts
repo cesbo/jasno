@@ -200,9 +200,9 @@ function importRules(root: string, pkg: PackageJson, file: string, browser: bool
   return out;
 }
 
-// ------------------------------------------------ FILE_NOT_PUBLISHED at rung 1 (what jasno dist would refuse)
+// ------------------------------------------------ FILE_NOT_PUBLISHED at rung 1 (what jasno build would refuse)
 
-/** Browser code that imports a module jasno dist does not publish: outside src/, or a test file. */
+/** Browser code that imports a module jasno build does not publish: outside src/, or a test file. */
 function unpublished(root: string, graphs: readonly Graph[]): Problem[] {
   const out: Problem[] = [];
   const src = join(root, 'src') + sep;
@@ -214,7 +214,7 @@ function unpublished(root: string, graphs: readonly Graph[]): Problem[] {
         if (!target || target.owner.kind !== 'app' || (target.file.startsWith(src) && !isTestFile(target.file))) continue;
         out.push({
           code: 'FILE_NOT_PUBLISHED', severity: 'error', file: mod.file, ...lineCol(mod.scan.code, e.start),
-          message: `"${e.specifier}" is ${isTestFile(target.file) ? 'a test file' : 'outside src/'}; jasno dist does not publish it, so this import fails in production.`,
+          message: `"${e.specifier}" is ${isTestFile(target.file) ? 'a test file' : 'outside src/'}; jasno build does not publish it, so this import fails in production.`,
           hint: 'Browser modules live under src/ and are not *.test.ts files.',
         });
       }
@@ -312,7 +312,7 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
   const problems: Problem[] = [];
   const mapAt = importMapIndex(html);
   if (mapAt >= 0) {
-    problems.push({ code: 'IMPORT_MAP_HANDWRITTEN', severity: 'error', message: 'index.html contains a <script type="importmap">; jasno dev and jasno dist generate the import map.', hint: 'Delete it and keep the <!--jasno:head--> slot.', file: join(root, 'index.html'), ...lineCol(html, mapAt) });
+    problems.push({ code: 'IMPORT_MAP_HANDWRITTEN', severity: 'error', message: 'index.html contains a <script type="importmap">; jasno dev and jasno build generate the import map.', hint: 'Delete it and keep the <!--jasno:head--> slot.', file: join(root, 'index.html'), ...lineCol(html, mapAt) });
   }
   problems.push(...entryProblems(root, html), ...unpublished(root, graphs));
   problems.push(...syntaxGate([...browser, ...nodeFiles]));

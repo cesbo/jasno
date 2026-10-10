@@ -1,5 +1,5 @@
 // Development stand-in for api.ts: package.json "imports" maps '#api' here under the "development" condition, so
-// jasno dev and npm test run without a backend, while jasno dist ships api.ts. Same exports, typed by the real module.
+// jasno dev and npm test run without a backend, while jasno build ships api.ts. Same exports, typed by the real module.
 import type * as Api from './api.ts';
 import type { User } from './api.ts';
 

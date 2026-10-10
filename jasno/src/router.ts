@@ -499,7 +499,7 @@ export function createRouter(routes: readonly RouteDef[], options: {
         // B17.17: usually a deploy replaced the view or layout module; one full document navigation.
         if (DEV) {
           warn('VIEW_IMPORT_FAILED', `The module for "${r.path}" failed to load (${lost.reason.message}); reloading ${nav.url.href}.`,
-            'Usually a deploy replaced the files: keep previous deploys (npm run dist -- --keep 2).', { node: r.path });
+            'Usually a deploy replaced the files: keep previous deploys (npm run build -- --keep 2).', { node: r.path });
         }
         markReloaded(nav.url);
         finish(nav, 'failed');

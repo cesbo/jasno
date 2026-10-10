@@ -1,4 +1,4 @@
-// jasno dist (design.md (e), ADR-29, ADR-35): Rolldown bundles the module graph jasno resolved. The entry and each lazy
+// jasno build (design.md (e), ADR-29, ADR-35): Rolldown bundles the module graph jasno resolved. The entry and each lazy
 // view of the app become hashed chunks under src/, shared code goes to src/chunk.<hash>.js; one inline import map (the
 // entry URL, integrity for every chunk), modulepreload for the entry's static chunks, the production CSP and the SPA
 // fallback files.
@@ -13,7 +13,7 @@ import { namedPackageOf, prodConditions, readPackage, type PackageJson } from '.
 
 export interface DistOptions {
   list: boolean; keep: number; conditions: readonly string[]; nonce: boolean;
-  /** URL path that src/ and assets/ are published under ('/control/assets/'); '/' when omitted (dist 10). */
+  /** URL path that src/ and assets/ are published under ('/control/assets/'); '/' when omitted (build 10). */
   prefix?: string | undefined;
 }
 
@@ -21,7 +21,7 @@ export interface DistOptions {
 export const validPrefix = (p: string): boolean => /^\/(?:[A-Za-z0-9_~-][A-Za-z0-9._~-]*\/)*$/.test(p);
 
 const IMMUTABLE = 'public, max-age=31536000, immutable';
-/** Names jasno dist generates at the root of dist/: public/ files may not take them. */
+/** Names jasno build generates at the root of dist/: public/ files may not take them. */
 const RESERVED = new Set(['index.html', '404.html', '_headers', '_redirects', 'src', 'assets', '.jasno']);
 
 const integrityOf = (s: Buffer): string => 'sha384-' + createHash('sha384').update(s).digest('base64');
@@ -60,7 +60,7 @@ function filesOfTarget(root: string, target: string, candidates: readonly string
 /**
  * Files reachable only through a package.json "imports" target the build does not select (config.dev.ts,
  * api.mock.ts, "#api/*" → "./src/api/*.mock.ts" under "development"): not roots, so they ship only if production
- * code imports them (dist 1).
+ * code imports them (build 1).
  */
 function unselectedFiles(root: string, pkg: PackageJson, appConditions: ReadonlySet<string>): Set<string> {
   const candidates = filesUnder(join(root, 'src'));
@@ -79,7 +79,7 @@ function unselectedFiles(root: string, pkg: PackageJson, appConditions: Readonly
 /**
  * SECRET_FILE_IN_OUTPUT: .env*, *.pem or *.key in a published directory, or any dotfile in src/ or assets/ (ADR-29,
  * C3); public/ is copied as is, so its dotfiles (.well-known/) are published. A symlink there is FILE_NOT_PUBLISHED
- * (dist publishes regular files only, so a link would silently drop or leak its target).
+ * (the build publishes regular files only, so a link would silently drop or leak its target).
  */
 function secrets(root: string): Problem[] {
   const out: Problem[] = [];
@@ -89,9 +89,9 @@ function secrets(root: string): Problem[] {
     for (const e of entries) {
       const p = join(d, e.name);
       if (/^\.env/i.test(e.name) || /\.(pem|key)$/i.test(e.name) || (!dotfiles && e.name.startsWith('.'))) {
-        out.push({ code: 'SECRET_FILE_IN_OUTPUT', severity: 'error', message: `${posixRel(root, p)} is in a published directory; jasno dist never ships .env*, *.pem or *.key, nor dotfiles from src/ and assets/.`, hint: 'Move it out of src/, assets/ and public/.', file: p });
+        out.push({ code: 'SECRET_FILE_IN_OUTPUT', severity: 'error', message: `${posixRel(root, p)} is in a published directory; jasno build never ships .env*, *.pem or *.key, nor dotfiles from src/ and assets/.`, hint: 'Move it out of src/, assets/ and public/.', file: p });
       } else if (e.isSymbolicLink()) {
-        out.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', message: `${posixRel(root, p)} is a symlink; jasno dist publishes regular files only.`, hint: 'Copy the file into the directory instead of linking it.', file: p });
+        out.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', message: `${posixRel(root, p)} is a symlink; jasno build publishes regular files only.`, hint: 'Copy the file into the directory instead of linking it.', file: p });
       } else if (e.isDirectory()) visit(p, dotfiles);
     }
   };
@@ -117,13 +117,13 @@ function headersFile(csp: string, prefix: string): string {
 
 /**
  * A miss under a module or asset directory is a missing file (404), not the app: a stale tab past --keep must not
- * get index.html as JavaScript cached for a year. Everything else falls back to index.html (dist 7).
+ * get index.html as JavaScript cached for a year. Everything else falls back to index.html (build 7).
  */
 const redirectsFile = (prefix: string): string =>
   [`${prefix}src/*`, `${prefix}assets/*`].map((p) => `${p} /404.html 404\n`).join('') + '/* /index.html 200\n';
 
 /**
- * index.html's own href/src values under /assets/ move with the prefix (dist 10). Only start tags are touched:
+ * index.html's own href/src values under /assets/ move with the prefix (build 10). Only start tags are touched:
  * comments and script bodies stay as written (the entry's import '/src/main.ts' goes through the import map).
  */
 const prefixAssets = (html: string, prefix: string): string =>
@@ -137,7 +137,7 @@ const prefixAssets = (html: string, prefix: string): string =>
 interface Manifest { stripper: string; deploys: string[][] }
 
 /**
- * Rolldown bundles the graph jasno already resolved, so dev, check and dist agree on every import (the graph answers
+ * Rolldown bundles the graph jasno already resolved, so dev, check and build agree on every import (the graph answers
  * resolveId, the stripped source answers load; Rolldown neither resolves nor parses TypeScript). The entry and the
  * app's lazy targets keep their paths under src/ with a content hash; shared code, a package's lazy targets included,
  * goes to src/chunk.<hash>.js. Identifiers are not mangled, so stack traces keep their names, and linked source maps
@@ -211,7 +211,7 @@ async function bundle(g: Graph, root: string, html: string, dir: string) {
 export async function dist(root: string, opts: DistOptions, reporter: Reporter): Promise<number> {
   await ready;
   const html = readIndex(root);
-  if (html === undefined) { reporter.info(`jasno dist: no index.html in ${root}.`); return 1; }
+  if (html === undefined) { reporter.info(`jasno build: no index.html in ${root}.`); return 1; }
   const prefix = opts.prefix ?? '/';
   const dir = prefix.slice(1); // where src/ and assets/ go inside dist/: '' or 'control/assets/'
   const pkg = readPackage(root) ?? {};
@@ -223,9 +223,9 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   }
   const csp = /<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>/i.exec(withoutComments(html));
   if (csp && /'strict-dynamic'/i.test(csp[0])) {
-    problems.push({ code: 'CSP_HASH_STRICT_DYNAMIC', severity: 'error', message: "index.html carries its own CSP with 'strict-dynamic': combined with jasno's hash sources it blocks the imports (Chromium, Firefox).", hint: 'Delete the meta tag; jasno dist writes the policy. For a nonce policy, see jasno dist --nonce.', file: index, ...lineCol(html, csp.index) });
+    problems.push({ code: 'CSP_HASH_STRICT_DYNAMIC', severity: 'error', message: "index.html carries its own CSP with 'strict-dynamic': combined with jasno's hash sources it blocks the imports (Chromium, Firefox).", hint: 'Delete the meta tag; jasno build writes the policy. For a nonce policy, see jasno build --nonce.', file: index, ...lineCol(html, csp.index) });
   } else if (csp) {
-    problems.push({ code: 'CSP_HASH_STRICT_DYNAMIC', severity: 'warn', message: "index.html carries its own CSP <meta>: browsers enforce it together with jasno's policy, so the stricter of the two wins and the app can break only after deploy.", hint: 'Delete the meta tag; jasno dist writes the policy (a server can send more headers).', file: index, ...lineCol(html, csp.index) });
+    problems.push({ code: 'CSP_HASH_STRICT_DYNAMIC', severity: 'warn', message: "index.html carries its own CSP <meta>: browsers enforce it together with jasno's policy, so the stricter of the two wins and the app can break only after deploy.", hint: 'Delete the meta tag; jasno build writes the policy (a server can send more headers).', file: index, ...lineCol(html, csp.index) });
   }
   const entries = entryFiles(root, html);
   if (!entries.length && !problems.some((p) => p.file === index)) {
@@ -237,7 +237,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   problems.push(...g.problems);
   for (const mod of g.mods.values()) {
     if (mod.owner.kind === 'app' && (!mod.file.startsWith(join(root, 'src') + sep) || isTestFile(mod.file))) {
-      problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: mod.file, message: `Browser code imports ${posixRel(root, mod.file)}, which jasno dist does not publish (${isTestFile(mod.file) ? 'a test file' : 'outside src/'}).`, hint: 'Browser modules live under src/ and are not *.test.ts files.' });
+      problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: mod.file, message: `Browser code imports ${posixRel(root, mod.file)}, which jasno build does not publish (${isTestFile(mod.file) ? 'a test file' : 'outside src/'}).`, hint: 'Browser modules live under src/ and are not *.test.ts files.' });
     }
     for (const e of mod.edges) {
       if (e.dynamic && e.specifier === undefined) {
@@ -251,7 +251,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   const reserved = dir ? new Set([...RESERVED, dir.split('/')[0]!]) : RESERVED;
   for (const f of publicFiles) {
     const top = posixRel(join(root, 'public'), f).split('/')[0]!;
-    if (reserved.has(top)) problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: f, message: `public/${top} would replace what jasno dist generates at /${top}.`, hint: 'Rename it.' });
+    if (reserved.has(top)) problems.push({ code: 'FILE_NOT_PUBLISHED', severity: 'error', file: f, message: `public/${top} would replace what jasno build generates at /${top}.`, hint: 'Rename it.' });
   }
   // assets/ stylesheets that import tailwindcss ship compiled and minified by the project's @tailwindcss/cli (ADR-37).
   const assets = filesUnder(join(root, 'assets'));
@@ -262,11 +262,11 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
     if (r.problem) problems.push(r.problem); else compiled.set(f, r.css);
   }
   for (const p of problems) reporter.add(p);
-  if (problems.some((p) => p.severity === 'error')) { reporter.info('jasno dist: nothing written.'); return 1; }
+  if (problems.some((p) => p.severity === 'error')) { reporter.info('jasno build: nothing written.'); return 1; }
 
   const built = await bundle(g, root, html, dir);
 
-  // index.html: CSP meta, import map, modulepreload with integrity; the entry script stays inline (dist 3-6).
+  // index.html: CSP meta, import map, modulepreload with integrity; the entry script stays inline (build 3-6).
   const preloads = built.preloads.map((p) => `<link rel="modulepreload" href="${p.url}" integrity="${p.integrity}">`).join('\n  ');
   const withMap = injectHead(prefixAssets(html, prefix), `<!--jasno:csp-->\n  <script type="importmap">${scriptJson(built.map)}</script>\n  ${preloads}`);
   const policy = productionCsp(withMap);
@@ -281,7 +281,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   files.set('_redirects', { content: redirectsFile(prefix) });
   files.set('_headers', { content: headersFile(policy, prefix) });
 
-  // --keep N: the previous N deploys' hashed files stay, so open tabs keep loading their chunks (dist 8).
+  // --keep N: the previous N deploys' hashed files stay, so open tabs keep loading their chunks (build 8).
   const out = join(root, 'dist');
   let previous: string[][] = [];
   try { previous = (JSON.parse(readFileSync(join(out, '.jasno', 'manifest.json'), 'utf8')) as Manifest).deploys ?? []; } catch { /* first build */ }
@@ -324,7 +324,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
     rmSync(tmp, { recursive: true, force: true });
   }
   const chunks = [...built.chunks.keys()].filter((p) => p.endsWith('.js')).length;
-  reporter.info(`jasno dist: ${files.size} files in dist/ (${built.modules} modules in ${chunks} chunks)${kept.size ? `, ${kept.size} kept from previous deploys` : ''}.`, { files: files.size, modules: built.modules, chunks });
+  reporter.info(`jasno build: ${files.size} files in dist/ (${built.modules} modules in ${chunks} chunks)${kept.size ? `, ${kept.size} kept from previous deploys` : ''}.`, { files: files.size, modules: built.modules, chunks });
   if (opts.nonce) {
     reporter.info(`Nonce variant for servers (put nonce="<nonce>" on both inline scripts in index.html): script-src 'nonce-<nonce>' 'strict-dynamic'; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'`);
   }
