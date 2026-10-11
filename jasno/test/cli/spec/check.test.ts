@@ -140,7 +140,14 @@ const FP: Record<string, string> = {
     '',
   ].join('\n'),
   'src/fp-focus.ts': "import { css, h } from '@jasno/core';\nexport const sheet = css`\n  button:focus:not(:focus-visible) { outline: none; }\n`;\nexport const b = h.button(null, 'x');\n",
-  'src/fp-location.ts': 'export function label(location: { pathname: string; search: string }): string { return location.pathname + location.search; }\n',
+  'src/router.ts': "import { createRouter } from '@jasno/core/router';\nexport { createRouter };\n",
+  'src/fp-location.ts': [
+    'export function label(location: { pathname: string; search: string }): string { return location.pathname + location.search; }',
+    "export function login(): void { location.href = '/login'; window.location.hash = ''; }",
+    "export function socket(): string { const { protocol, host } = location; return `${protocol === 'https:' ? 'wss' : 'ws'}://${host}/api/`; }",
+    "export const dom = typeof location === 'object' && location.origin !== 'null';",
+    '',
+  ].join('\n'),
   'src/fp-history.ts': [
     'export class UndoHistory { pushState(s: string): void { void s; } replaceState(s: string): void { void s; } }',
     'const history = new UndoHistory();',
@@ -207,8 +214,13 @@ test('FOCUS_STYLE_REMOVED does not fire on `button:focus:not(:focus-visible) { o
   clean(fp, 'src/fp-focus.ts');
 });
 
-test('USE_ROUTER (warn) does not fire on a parameter named location that is not window.location (ADR-24 policy)', () => {
+test('USE_ROUTER (warn) does not fire on a parameter named location, a write (location.href = ...), or reads of no URL part (host, origin, typeof) (ADR-24 policy)', () => {
   clean(fp, 'src/fp-location.ts');
+});
+
+test('USE_ROUTER stays silent in an app without a router: pushState and a location.search read', async () => {
+  const r = await run({ ...BASE, 'src/url.ts': "history.pushState(null, '', '/x');\nexport const q = new URLSearchParams(location.search).get('q');\n" });
+  clean(r, 'src/url.ts');
 });
 
 test('USE_ROUTER (error) does not fire on pushState/replaceState of an object that is not window.history', () => {
@@ -287,6 +299,18 @@ const FN: Record<string, string> = {
   'src/tla.ts': 'for await (const x of [Promise.resolve(1)]) void x;\nexport {};\n',
   'src/strip.ts': 'export namespace N { export const x = 1; }\n',
   'src/nodeimp.ts': "export * from 'node:path';\nexport type T = typeof import('node:fs');\nexport const load = () => import('node:fs');\n",
+  'src/router.ts': "import { createRouter } from '@jasno/core/router';\nexport { createRouter };\n",
+  'src/urls.ts': [
+    'export function urls() {',
+    "  const a = new URL(location.href).searchParams.get('q');",
+    '  const b = location.hash;',
+    '  const c = String(location);',
+    '  const { search } = window.location;',
+    '  const d = document.URL;',
+    '  return [a, b, c, search, d];',
+    '}',
+    '',
+  ].join('\n'),
   'src/sinks.ts': [
     'export function sinks(el: HTMLElement, frame: HTMLIFrameElement) {',
     "  el.outerHTML = '<b>';",
@@ -426,6 +450,10 @@ test('NO_HTML_SINK: outerHTML, srcdoc, innerHTML +=, document.write; USE_ROUTER:
   assert.ok(fn.lines.some((l) => l.startsWith('src/sinks.ts:8:13 USE_ROUTER')), dump(fn));
   assert.ok(fn.lines.some((l) => l.startsWith('src/sinks.ts:9:13 USE_ROUTER')), dump(fn));
   has(fn, 'src/sinks.ts:12:13 WORKER_UNSUPPORTED');
+});
+
+test('USE_ROUTER (warn) on every read of the URL: location.href, location.hash, location as a value and destructured, document.URL', () => {
+  for (const at of ['2:21', '3:13', '4:20', '5:22', '6:13']) has(fn, `src/urls.ts:${at} USE_ROUTER`);
 });
 
 test('el[\'innerHTML\'] = (NO_HTML_SINK), globalThis.location.search (USE_ROUTER), new window.Worker (WORKER_UNSUPPORTED) are missed', () => {

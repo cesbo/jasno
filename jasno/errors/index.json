@@ -720,7 +720,7 @@
           "source": "jasno check, jasno dev, jasno build",
           "severity": "error / warn",
           "tool": "check",
-          "when": "the DOM's history.pushState/replaceState (error); reading the DOM's location.pathname/location.search in a browser file (warn); a local or parameter named history/location does not count"
+          "when": "only when a browser file imports @jasno/core/router: the DOM's history.pushState/replaceState (error); reading the URL in a browser file (warn): location.href/pathname/search/hash/toString(), location itself as a value (String(location), destructuring a URL part), document.URL; writes (location.href = ...), other parts (origin, host) and a local or parameter named history/location do not count"
         }
       ]
     },

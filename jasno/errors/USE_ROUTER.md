@@ -1,15 +1,17 @@
 <!-- generated:catalogue from design.md (c) by tools/gen-errors.mjs; do not edit by hand -->
 # USE_ROUTER
 
-**error / warn**, reported by jasno check: the DOM's history.pushState/replaceState (error); reading the DOM's location.pathname/location.search in a browser file (warn); a local or parameter named history/location does not count.
+**error / warn**, reported by jasno check: only when a browser file imports @jasno/core/router: the DOM's history.pushState/replaceState (error); reading the URL in a browser file (warn): location.href/pathname/search/hash/toString(), location itself as a value (String(location), destructuring a URL part), document.URL; writes (location.href = ...), other parts (origin, host) and a local or parameter named history/location do not count.
 
 <!-- /generated:catalogue -->
 
-Browser code changes the URL with `history.pushState` or `replaceState`. This is an error. Browser code reads `location.pathname` or `location.search`. This is a warning.
+The rule runs only in an app with a router: some browser file imports `@jasno/core/router`. An app without one reads and changes the URL as it needs to.
+
+Browser code changes the URL with `history.pushState` or `replaceState`. This is an error. Browser code reads the URL: `location.href`, `pathname`, `search` or `hash`, `location` itself (`String(location)`, `const { search } = location`), or `document.URL`. This is a warning. Every way to read the URL counts the same.
 
 The router does not see a URL that you push yourself. Its `url()`, the rendered view, the title and focus go stale. A `location` read gives the value of one moment, and it never updates your view.
 
-Only the browser's own `history` and `location` count. A local variable or parameter with that name is not reported.
+Only the browser's own `history` and `location` count. A local variable or parameter with that name is not reported. A write such as `location.href = '/login'` is a full page load, not a read. Parts that do not change with navigation (`location.origin`, `location.host`) are not reported.
 
 <!-- design.md: (c) jasno check table; (e) jasno check 3; ADR-21 -->
 

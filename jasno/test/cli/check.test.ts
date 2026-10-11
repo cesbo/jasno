@@ -44,6 +44,7 @@ before(async () => {
     'src/decorated.ts': 'function dec(v: unknown, _c: unknown) { return v; }\nexport class B {\n  @dec m() {}\n}\n',
     'src/accessor.ts': 'export class C {\n  accessor x = 1;\n}\n',
     'src/using.ts': 'export function f() {\n  using r = { [Symbol.dispose]() {} };\n  return r;\n}\n',
+    'src/router.ts': "import { createRouter } from '@jasno/core/router';\nexport { createRouter };\n",
     'src/sinks.ts': [
       'export function sinks(el: HTMLElement) {',
       "  el.innerHTML = '<b>x</b>';",

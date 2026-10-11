@@ -15,6 +15,8 @@ export interface FileContext {
   text: string;
   browser: boolean;
   entry: boolean;
+  /** Some browser module imports @jasno/core/router: USE_ROUTER applies only then. */
+  router: boolean;
 }
 
 export interface CssTemplate { file: string; text: string; offset: number; content: string; classes: ReadonlySet<string> }
@@ -22,6 +24,8 @@ export interface CssTemplate { file: string; text: string; offset: number; conte
 export interface FileResult { problems: Problem[]; css: CssTemplate[] }
 
 const INTERACTIVE_TAGS = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary']);
+/** The parts of location that change with navigation; router.url() has each of them (USE_ROUTER). */
+const URL_PARTS = new Set(['href', 'pathname', 'search', 'hash', 'toString']);
 /** A declaration in TypeScript's DOM lib: the name is the browser global, not a local of the same name. */
 const DOM_LIB = /[\\/]lib\.dom(\.[\w-]+)?\.d\.ts$/;
 
@@ -223,7 +227,7 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
       const methodName = name(method);
       if (ctx.browser) {
         if (methodName === 'insertAdjacentHTML' || callee === 'document.write' || callee === 'document.writeln') at(node.expression, 'NO_HTML_SINK', 'error', `${methodName === 'insertAdjacentHTML' ? 'insertAdjacentHTML' : callee}() is blocked by the production Trusted Types CSP.`, 'Build nodes with h.*.');
-        if (method && (methodName === 'pushState' || methodName === 'replaceState')) {
+        if (ctx.router && method && (methodName === 'pushState' || methodName === 'replaceState')) {
           ifDom(method, problem(node.expression, 'USE_ROUTER', 'error', `${callee ?? `history.${methodName}`}() bypasses the router: its url, data, title and focus go stale.`, 'Use router.navigate(url, { replace }).'));
         }
         if (method && methodName === 'register' && node.expression.expression?.kind === K.PropertyAccessExpression && name(node.expression.expression.name) === 'serviceWorker') {
@@ -255,12 +259,27 @@ export function fileRules(sf: SourceFile, ctx: FileContext, ast: AstModule, chec
         }
       }
     }
-    if (ctx.browser && k === K.PropertyAccessExpression && (name(node.name) === 'pathname' || name(node.name) === 'search')) {
+    if (ctx.browser && ctx.router && (k === K.PropertyAccessExpression || k === K.Identifier)) {
+      // USE_ROUTER (warn): any read of the URL: a part of location, location itself as a value, document.URL.
+      // Writes (location.href = ...) are navigations, not reads.
+      const p = node.parent as N;
+      const written = p.kind === K.BinaryExpression && p.left === node && p.operatorToken.kind >= K.FirstAssignment && p.operatorToken.kind <= K.LastAssignment;
+      const prop = k === K.PropertyAccessExpression ? name(node.name) : undefined;
       const obj = node.expression as N;
-      const loc = obj.kind === K.Identifier ? obj : obj.kind === K.PropertyAccessExpression ? obj.name as N : undefined;
-      if (name(loc) === 'location') {
-        ifDom(loc!, problem(node, 'USE_ROUTER', 'warn', `${dotted(obj) ?? 'location'}.${name(node.name)} is read outside the router: it does not update your view.`, 'Read router.url() (a signal).'));
+      let id: N | undefined;
+      if (prop && URL_PARTS.has(prop)) {
+        const loc = obj.kind === K.Identifier ? obj : obj.kind === K.PropertyAccessExpression ? obj.name as N : undefined;
+        if (name(loc) === 'location') id = loc;
+      } else if (prop === 'URL') {
+        if (name(obj) === 'document') id = obj;
+      } else if ((prop ?? node.text) === 'location' && !(p.kind === K.PropertyAccessExpression && (p.expression === node || p.name === node))
+        && p.kind !== K.TypeOfExpression && p.kind !== K.TypeQuery
+        // const { host } = location reads no URL part
+        && !(p.kind === K.VariableDeclaration && p.name.kind === K.ObjectBindingPattern
+          && !(p.name.elements as N[]).some((e) => URL_PARTS.has(name(e.propertyName ?? e.name) ?? '')))) {
+        id = prop ? node.name as N : node;
       }
+      if (id && !written) ifDom(id, problem(node, 'USE_ROUTER', 'warn', `${node.getText(sf)} is read outside the router: it does not update your view.`, 'Read router.url() (a signal).'));
     }
     if (k === K.TaggedTemplateExpression && isJasno(node.tag, 'css') && node.template.kind === K.NoSubstitutionTemplateLiteral) {
       const start = node.template.getStart(sf) + 1;

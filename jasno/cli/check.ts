@@ -317,6 +317,8 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
   problems.push(...entryProblems(root, html), ...unpublished(root, graphs));
   problems.push(...syntaxGate([...browser, ...nodeFiles]));
   const withAst = !!(ts.sync && ts.ast);
+  // USE_ROUTER applies to apps whose browser code imports the router.
+  const router = graphs.some((g) => [...g.mods.values()].some((m) => m.owner.kind === 'app' && m.edges.some((e) => e.specifier === '@jasno/core/router')));
   const nodeSet = new Set(nodeFiles);
   for (const f of browser) problems.push(...importRules(root, pkg, f, true, withAst));
   for (const f of nodeFiles) problems.push(...importRules(root, pkg, f, false, withAst));
@@ -369,7 +371,7 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
         for (const file of files) {
           const sf = program.getSourceFile(file);
           if (!sf) continue;
-          const ctx = { file, root, text: textOf(file), browser: isBrowser, entry: entries.includes(file) };
+          const ctx = { file, root, text: textOf(file), browser: isBrowser, entry: entries.includes(file), router };
           const checker = snap.getProject(isBrowser ? join(root, 'tsconfig.json') : join(root, 'tsconfig.test.json'))!.checker;
           const r = fileRules(sf, ctx, ts.ast, checker);
           problems.push(...r.problems);
@@ -380,7 +382,7 @@ export async function check(root: string, opts: CheckOptions, reporter: Reporter
       if (browserProgram) {
         for (const file of declarations) {
           const sf = browserProgram.getSourceFile(file);
-          if (sf) problems.push(...referenceRule(sf, { file, root, text: textOf(file), browser: true, entry: false }));
+          if (sf) problems.push(...referenceRule(sf, { file, root, text: textOf(file), browser: true, entry: false, router }));
         }
       }
       problems.push(...focusStyleRule(css));
