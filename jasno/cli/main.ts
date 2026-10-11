@@ -1,4 +1,4 @@
-// jasno <command>: check, dev, build, preview, explain (design.md (e)). Exit 0 on success, 1 on failure.
+// jasno <command>: check, test, dev, build, preview, explain (design.md (e)). Exit 0 on success, 1 on failure.
 import { parseArgs } from 'node:util';
 import { check } from './check.ts';
 import { dev } from './dev.ts';
@@ -7,9 +7,12 @@ import { explain } from './explain.ts';
 import { preview } from './preview.ts';
 import { loadProject, ProjectError } from './project.ts';
 import { Reporter } from './report.ts';
+import { test } from './test.ts';
 
 const USAGE = `usage: jasno <command> [options]
   check     type-check both programs and run jasno's rules   [--strict] [--json]
+  test      node:test over src/**/*.test.ts in happy-dom     [<files>] [node --test flags, as is]
+                                                             [--test-name-pattern=save] (values after =)
   dev       local dev server                                 [--port 5173] [--host <addr>] [--json]
                                                              [--proxy /api/=http://127.0.0.1:8000]
   build     bundle the app into dist/ (hashed names)         [--list] [--keep N] [--condition <name>] [--nonce]
@@ -27,6 +30,7 @@ const USAGE = `usage: jasno <command> [options]
 const COMMON = { json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' } } as const;
 const OPTIONS = {
   check: { ...COMMON, strict: { type: 'boolean' } },
+  test: {},
   dev: { ...COMMON, port: { type: 'string' }, host: { type: 'string' }, proxy: { type: 'string', multiple: true } },
   build: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' }, prefix: { type: 'string' } },
   preview: { ...COMMON, port: { type: 'string' } },
@@ -56,12 +60,13 @@ export async function main(argv: readonly string[], cwd = process.cwd()): Promis
   if (!Object.hasOwn(OPTIONS, cmd)) return fail(`jasno: unknown command "${cmd}"`, true);
   let parsed;
   try {
-    parsed = parseArgs({ args: [...rest], options: OPTIONS[cmd as Command], allowPositionals: cmd === 'explain', strict: true });
+    // jasno test hands every argument to node's test runner.
+    parsed = parseArgs({ args: cmd === 'test' ? [] : [...rest], options: OPTIONS[cmd as Command], allowPositionals: cmd === 'explain', strict: true });
   } catch (e) {
     return fail(`jasno ${cmd}: ${(e as Error).message}`, true);
   }
   const v = parsed.values as Record<string, string | boolean | string[] | undefined>;
-  if (v.help) { console.log(USAGE); return 0; }
+  if (v.help || (cmd === 'test' && (rest.includes('--help') || rest.includes('-h')))) { console.log(USAGE); return 0; }
   const port = (fallback: number): number | undefined => {
     if (v.port === undefined) return fallback;
     const n = Number(v.port);
@@ -77,6 +82,8 @@ export async function main(argv: readonly string[], cwd = process.cwd()): Promis
   switch (cmd as Command) {
     case 'check':
       return check(project.root, { strict: v.strict === true }, reporter);
+    case 'test':
+      return test(project.root, rest);
     case 'dev': {
       const p = port(5173);
       if (p === undefined) return fail('jasno dev: --port must be 0-65535');

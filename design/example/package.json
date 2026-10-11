@@ -8,7 +8,7 @@
   },
   "scripts": {
     "check": "jasno check",
-    "test": "node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none \"src/**/*.test.ts\"",
+    "test": "jasno test",
     "dev": "jasno dev",
     "build": "jasno build",
     "preview": "jasno preview"

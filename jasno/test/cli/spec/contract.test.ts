@@ -182,6 +182,20 @@ test('bin/jasno.js without package.json: check exits 1 with a stderr message; ex
   assert.equal(bin(['explain', '--list'], dir).status, 0);
 });
 
+test('bin/jasno.js test: src/**/*.test.ts with the development build and happy-dom; named files only; exit 1 on a failure', () => {
+  const root = app({
+    'package.json': PKG,
+    'src/ok.test.ts': "import { test } from 'node:test';\nimport { mountTest } from '@jasno/core/testing';\nimport { h } from '@jasno/core';\ntest('ok', (t) => { mountTest(t, () => h.p(null, 'hi')); if (document.body.textContent !== 'hi') throw new Error('no dom'); });\n",
+    'src/views/bad.test.ts': "import { test } from 'node:test';\ntest('bad', () => { throw new Error('boom'); });\n",
+  });
+  const all = bin(['test'], root);
+  assert.equal(all.status, 1, all.out + all.err);
+  assert.match(all.out, /pass 1\n.*fail 1\n/s);
+  const one = bin(['test', 'src/ok.test.ts', '--test-name-pattern=ok'], root);
+  assert.equal(one.status, 0, one.out + one.err);
+  assert.match(one.out, /pass 1\n.*fail 0\n/s);
+});
+
 test('bin/jasno.js hides ExperimentalWarning and still prints other warnings', () => {
   const dir = bare();
   // Fires after bin/jasno.js has installed its handler (the timer keeps the process alive until then).

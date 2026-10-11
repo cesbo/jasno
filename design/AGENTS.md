@@ -112,7 +112,7 @@ Warnings, uncaught effect errors and leaked effects fail the test: fix them. Mod
 ## Verify in order (non-zero exit = fail)
 
 1. `npm run check` (`jasno check`): tsc for both configs plus its rules.
-2. `npm test`: `node --conditions=development --import @jasno/core/testing/happy-dom --test --test-isolation=none "src/**/*.test.ts"`.
+2. `npm test` (`jasno test`): node:test over `src/**/*.test.ts` in happy-dom; one file: `npm test -- src/views/user.test.ts`.
 3. `npx playwright test` against `npm run dev`: `getByRole`, focus, keyboard.
 
 If a rung cannot run, say so; never claim it passed. State: `window.__JASNO__.diagnostics()`; fixes: `npm run explain CODE`.
