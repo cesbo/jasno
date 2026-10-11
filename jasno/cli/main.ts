@@ -11,6 +11,7 @@ import { Reporter } from './report.ts';
 const USAGE = `usage: jasno <command> [options]
   check     type-check both programs and run jasno's rules   [--strict] [--json]
   dev       local dev server                                 [--port 5173] [--host <addr>] [--json]
+                                                             [--proxy /api/=http://127.0.0.1:8000]
   build     bundle the app into dist/ (hashed names)         [--list] [--keep N] [--condition <name>] [--nonce]
                                                              [--prefix /control/assets/] [--json]
   preview   serve dist/ as a static host would               [--port 4173] [--json]
@@ -19,18 +20,28 @@ const USAGE = `usage: jasno <command> [options]
   --strict        warnings fail too (CI)
   --condition     an extra condition for the app's package.json "imports" only (#api -> the mock with
                   development); jasno itself ships its production build, so window.__JASNO__ is undefined
-  --prefix        the URL path src/ and assets/ are published under (index.html stays at the root)`;
+  --prefix        the URL path src/ and assets/ are published under (index.html stays at the root)
+  --proxy         forward requests and WebSockets under a path to a backend, path and query unchanged
+                  (repeatable)`;
 
 const COMMON = { json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' } } as const;
 const OPTIONS = {
   check: { ...COMMON, strict: { type: 'boolean' } },
-  dev: { ...COMMON, port: { type: 'string' }, host: { type: 'string' } },
+  dev: { ...COMMON, port: { type: 'string' }, host: { type: 'string' }, proxy: { type: 'string', multiple: true } },
   build: { ...COMMON, list: { type: 'boolean' }, keep: { type: 'string' }, condition: { type: 'string', multiple: true }, nonce: { type: 'boolean' }, prefix: { type: 'string' } },
   preview: { ...COMMON, port: { type: 'string' } },
   explain: { ...COMMON, list: { type: 'boolean' } },
 } as const;
 
 type Command = keyof typeof OPTIONS;
+
+/** A --proxy target: an http(s) origin, nothing after it. */
+const origin = (target: string): string | undefined => {
+  try {
+    const u = new URL(target);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && !u.username && !u.password && u.pathname === '/' && !u.search && !u.hash ? u.origin : undefined;
+  } catch { return undefined; }
+};
 
 export async function main(argv: readonly string[], cwd = process.cwd()): Promise<number> {
   const [cmd, ...rest] = argv;
@@ -69,7 +80,16 @@ export async function main(argv: readonly string[], cwd = process.cwd()): Promis
     case 'dev': {
       const p = port(5173);
       if (p === undefined) return fail('jasno dev: --port must be 0-65535');
-      return dev(project.root, { port: p, host: v.host as string | undefined }, reporter);
+      const proxy: Record<string, string> = {};
+      for (const value of (v.proxy as string[] | undefined) ?? []) {
+        const at = value.indexOf('=');
+        const target = at < 0 ? undefined : origin(value.slice(at + 1));
+        const prefix = value.slice(0, at);
+        // '/' and /__jasno/ would take index.html and the dev server's own endpoints (ping, live reload, log).
+        if (!target || !validPrefix(prefix) || prefix === '/' || prefix.startsWith('/__jasno/')) return fail(`jasno dev: --proxy must be <path>=<target>, such as /api/=http://127.0.0.1:8000 (got "${value}")`);
+        proxy[prefix] = target;
+      }
+      return dev(project.root, { port: p, host: v.host as string | undefined, proxy }, reporter);
     }
     case 'build': {
       const keep = v.keep === undefined ? 0 : Number(v.keep);

@@ -265,6 +265,8 @@
      import type * as Api from './api.ts';
      export const listUsers: typeof Api.listUsers = async () => [{ id: '1', name: 'Ada' }];
    api.ts functions take an AbortSignal and validate res.json() (typed any) before returning it.
+   A real backend in dev: npm run dev -- --proxy=/api/=http://127.0.0.1:8000 (or put it in the dev script). The app
+   stays same-origin, so relative URLs, cookies and new WebSocket(`ws://${location.host}/api/`) work as in production.
 */
 
 declare module '@jasno/core' {

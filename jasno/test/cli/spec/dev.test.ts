@@ -2,12 +2,13 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
-import { request } from 'node:http';
-import { connect } from 'node:net';
+import { createServer, request } from 'node:http';
+import { connect, type AddressInfo, type Socket } from 'node:net';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { dev, startDev, type DevServer } from '../../../cli/dev.ts';
+import { dev, startDev, type DevOptions, type DevServer } from '../../../cli/dev.ts';
+import { main as cli } from '../../../cli/main.ts';
 import { http, INDEX, project, reporter, type Res } from '../fixture.ts';
 
 interface Running { root: string; port: number; base: string; lines: string[]; server: DevServer }
@@ -16,11 +17,11 @@ const cleanups: (() => Promise<void> | void)[] = [];
 after(async () => { for (const c of cleanups.reverse()) await c(); });
 
 /** A fresh project root with its own server (two servers in one root would share .jasno/dev.json). */
-async function start(files: Record<string, string | undefined>, setup?: (root: string) => void): Promise<Running> {
+async function start(files: Record<string, string | undefined>, setup?: (root: string) => void, opts: Omit<DevOptions, 'port'> = {}): Promise<Running> {
   const app = project(files);
   setup?.(app.root);
   const r = reporter(app.root);
-  const server = await startDev(app.root, { port: 0 }, r.reporter);
+  const server = await startDev(app.root, { port: 0, ...opts }, r.reporter);
   cleanups.push(() => app.remove(), () => server.close());
   return { root: app.root, port: server.port, base: server.url.replace(/\/$/, ''), lines: r.lines, server };
 }
@@ -663,4 +664,166 @@ test('dev.json: when another root\'s server holds the port, jasno dev fails with
   const { code, lines } = await runDev(app.root, other.port, other.server.url);
   assert.equal(code, 1);
   assert.deepEqual(lines, [`jasno dev: port ${other.port} is in use; pass --port.`]);
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// --proxy ((e) dev: "paths under a --proxy prefix are forwarded with any method, WebSocket upgrades included")
+
+/** A backend: a request echoes { method, url, host, body } with two cookies; an upgrade gets a real WebSocket handshake
+ * and one text frame holding its URL (under /api/refuse/ a 401 instead). */
+async function backend(): Promise<{ origin: string; host: string }> {
+  const sockets = new Set<Socket>();
+  const server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c: Buffer) => { body += String(c); });
+    req.on('end', () => {
+      res.writeHead(201, { 'content-type': 'application/json', 'set-cookie': ['a=1; Path=/', 'b=2; Path=/; HttpOnly'] });
+      res.end(JSON.stringify({ method: req.method, url: req.url, host: req.headers.host, body }));
+    });
+  });
+  server.on('connection', (s) => { sockets.add(s); s.on('close', () => sockets.delete(s)); });
+  server.on('upgrade', (req, socket) => {
+    socket.on('error', () => socket.destroy());
+    if (req.url?.startsWith('/api/refuse/')) return void socket.end('HTTP/1.1 401 Unauthorized\r\ncontent-length: 4\r\n\r\nnope');
+    const accept = createHash('sha1').update(`${req.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    const payload = Buffer.from(req.url ?? '');
+    socket.write(Buffer.concat([Buffer.from([0x81, payload.length]), payload]));
+  });
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  cleanups.push(() => new Promise<void>((r) => { for (const s of sockets) s.destroy(); server.close(() => r()); }));
+  const host = `127.0.0.1:${(server.address() as AddressInfo).port}`;
+  return { origin: `http://${host}`, host };
+}
+
+/** A port nothing listens on. */
+const closedPort = async (): Promise<number> => {
+  const s = createServer();
+  await new Promise<void>((r) => s.listen(0, '127.0.0.1', r));
+  const { port } = s.address() as AddressInfo;
+  await new Promise<void>((r) => s.close(() => r()));
+  return port;
+};
+
+/** An upgrade request: the status the client sees (101 when the tunnel opened). */
+const upgrade = (port: number, path: string, host = `127.0.0.1:${port}`): Promise<number> => new Promise((resolve, reject) => {
+  const req = request({ host: '127.0.0.1', port, path, headers: { host, connection: 'Upgrade', upgrade: 'websocket', 'sec-websocket-version': '13', 'sec-websocket-key': 'dGhlIHNhbXBsZSBub25jZQ==' } });
+  req.on('upgrade', (_res, socket) => { socket.destroy(); resolve(101); });
+  req.on('response', (res) => { res.resume(); resolve(res.statusCode ?? 0); });
+  req.on('error', reject);
+  req.end();
+});
+
+/** A dev() run expected to return by itself: if it starts a server instead, stop it as Ctrl-C would, and fail. */
+async function returns(run: Promise<number>): Promise<number> {
+  const code = await Promise.race([run, sleep(3000, undefined, { ref: false })]);
+  if (code !== undefined) return code;
+  process.emit('SIGTERM');
+  await run;
+  assert.fail('jasno dev started a server instead of returning');
+}
+
+const SIMPLE = { 'package.json': '{"type":"module"}', 'index.html': INDEX, 'src/main.ts': 'export {};\n' };
+const api = await backend();
+const v2 = await backend();
+const downPort = await closedPort();
+const proxied = await start(SIMPLE, undefined, { proxy: { '/api/': api.origin, '/api/v2/': v2.origin, '/down/': `http://127.0.0.1:${downPort}` } });
+
+test('proxy: any method, the body, the path and query reach the backend with its own Host; its response passes untouched', async () => {
+  // the query byte for byte (a WHATWG URL would re-encode ' as %27)
+  const res = await raw(proxied.port, "/api/save?id=1&q='a%20b'", { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"a":1}' });
+  assert.equal(res.status, 201);
+  assert.deepEqual(JSON.parse(res.body), { method: 'POST', url: "/api/save?id=1&q='a%20b'", host: api.host, body: '{"a":1}' });
+  assert.deepEqual(res.headers['set-cookie'], ['a=1; Path=/', 'b=2; Path=/; HttpOnly']);
+  assert.equal(res.headers['content-security-policy'], undefined);
+  assert.equal(res.headers['cache-control'], undefined);
+  assert.equal(JSON.parse((await raw(proxied.port, '/api/', { method: 'DELETE' })).body).method, 'DELETE');
+});
+
+test('proxy: other paths are still served locally, GET only', async () => {
+  const index = await raw(proxied.port, '/');
+  assert.equal(index.status, 200);
+  assert.match(String(index.headers['content-security-policy']), /trusted-types 'none'/);
+  assert.equal((await raw(proxied.port, '/src/main.ts')).status, 200);
+  assert.equal((await raw(proxied.port, '/apix', { method: 'POST' })).status, 405);
+  assert.equal((await raw(proxied.port, '/api', { method: 'POST' })).status, 405);
+  assert.equal((await raw(proxied.port, '/api/%2e%2e/.env')).status, 404);
+});
+
+test('proxy: the longest prefix wins', async () => {
+  assert.equal(JSON.parse((await raw(proxied.port, '/api/v2/users')).body).host, v2.host);
+  assert.equal(JSON.parse((await raw(proxied.port, '/api/v1/users')).body).host, api.host);
+});
+
+test('proxy: a WebSocket opens through the prefix and receives frames; close() resolves while it is open', async () => {
+  const app = await start(SIMPLE, undefined, { proxy: { '/api/': api.origin } });
+  const ws = new WebSocket(`ws://127.0.0.1:${app.port}/api/ws?x=1`);
+  ws.onerror = () => {};
+  const message = await Promise.race([
+    new Promise<string>((resolve) => { ws.onmessage = (e) => resolve(String(e.data)); }),
+    sleep(3000).then(() => 'timeout'),
+  ]);
+  assert.equal(message, '/api/ws?x=1');
+  assert.equal(ws.readyState, WebSocket.OPEN);
+  assert.equal(await Promise.race([app.server.close().then(() => 'closed'), sleep(2000).then(() => 'hung')]), 'closed');
+});
+
+test('proxy: an upgrade the backend refuses gets its answer; upgrades outside the prefixes are 404', async () => {
+  assert.equal(await upgrade(proxied.port, '/api/ws'), 101);
+  assert.equal(await upgrade(proxied.port, '/api/refuse/x'), 401);
+  for (const path of ['/', '/src/main.ts', '/__jasno/events', '/apix', '/api/../src/main.ts']) assert.equal(await upgrade(proxied.port, path), 404, path);
+});
+
+test('proxy: a path that normalizes to //host/x still goes to the target, not to that host', async () => {
+  const app = await start(SIMPLE, undefined, { proxy: { '/': api.origin } });
+  for (const path of [`/.//${v2.host}/secret`, `/%2e//${v2.host}/secret`]) {
+    assert.deepEqual(JSON.parse((await raw(app.port, path)).body), { method: 'GET', url: `//${v2.host}/secret`, host: api.host, body: '' }, path);
+  }
+});
+
+test('proxy: a backend that is down is a 502 naming it, printed, and the server keeps serving', async () => {
+  const res = await raw(proxied.port, '/down/x');
+  assert.equal(res.status, 502);
+  assert.ok(res.body.includes(`http://127.0.0.1:${downPort}`), res.body);
+  assert.ok(proxied.lines.some((l) => l.startsWith(`jasno dev: proxy /down/ -> http://127.0.0.1:${downPort}: `)), proxied.lines.join('\n'));
+  assert.equal(await upgrade(proxied.port, '/down/ws'), 502);
+  assert.equal((await raw(proxied.port, '/__jasno/ping')).status, 200);
+  assert.equal((await raw(proxied.port, '/api/x')).status, 201);
+});
+
+test('proxy: a forged Host is 403 on proxied paths too, for requests and upgrades', async () => {
+  const host = `evil.example:${proxied.port}`;
+  assert.equal((await raw(proxied.port, '/api/x', { method: 'POST', headers: { host } })).status, 403);
+  assert.equal(await upgrade(proxied.port, '/api/ws', host), 403);
+});
+
+test('--proxy parsing: <path> needs a leading and a trailing slash, <target> must be a bare http(s) origin', async () => {
+  const app = project(SIMPLE);
+  cleanups.push(() => app.remove());
+  const err: string[] = [];
+  const { error } = console;
+  console.error = (...a: unknown[]) => { err.push(a.join(' ')); };
+  try {
+    for (const value of ['api=http://x', '/api=http://x', '/api/', '=http://x', '/=http://x', '/__jasno/=http://x', '/__jasno/x/=http://x', '/api/=', '/api/=ftp://x', '/api/=http://u:p@x', '/api/=http://x/base', '/api/=http://x?q=1', '/api/=nope']) {
+      err.length = 0;
+      assert.equal(await returns(cli(['dev', '--port', '0', `--proxy=${value}`], app.root)), 1, value);
+      assert.deepEqual(err, [`jasno dev: --proxy must be <path>=<target>, such as /api/=http://127.0.0.1:8000 (got "${value}")`], value);
+    }
+  } finally { console.error = error; }
+});
+
+test('reuse: /__jasno/ping reports --proxy; the same proxy reuses the server, a different one is refused', async () => {
+  const app = await start(SIMPLE, undefined, { proxy: { '/api/': api.origin, '/control/': v2.origin } });
+  assert.deepEqual(JSON.parse((await raw(app.port, '/__jasno/ping')).body).proxy, { '/api/': api.origin, '/control/': v2.origin });
+  const log: string[] = [];
+  const { log: original } = console;
+  console.log = (...a: unknown[]) => { log.push(a.join(' ')); };
+  try {
+    // through main(): parsing normalizes the target to its origin, and the order of the flags does not matter
+    assert.equal(await returns(cli(['dev', '--port', '0', '--proxy', `/control/=${v2.origin}/`, `--proxy=/api/=${api.origin}`], app.root)), 0);
+    assert.equal(await returns(cli(['dev', '--port', '0'], app.root)), 1);
+  } finally { console.log = original; }
+  assert.deepEqual(log, [`jasno dev: already running at ${app.server.url}`, `jasno dev: already running at ${app.server.url} with different --proxy settings; stop it first.`]);
+  const r = reporter(app.root);
+  assert.equal(await returns(dev(app.root, { port: 0, proxy: { '/api/': api.origin } }, r.reporter)), 1);
 });

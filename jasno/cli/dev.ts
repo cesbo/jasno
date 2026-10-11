@@ -2,10 +2,12 @@
 // request, generates the import map from the module graph (development condition), reloads on change and prints
 // browser errors and diagnostics in the terminal.
 import { mkdirSync, readFileSync, realpathSync, rmSync, statSync, watch, writeFileSync, type FSWatcher } from 'node:fs';
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createServer, request, STATUS_CODES, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import type { AddressInfo } from 'node:net';
 import { hostname } from 'node:os';
 import { extname, join, sep } from 'node:path';
+import { pipeline, type Duplex } from 'node:stream';
 import {
   importMapIndex, injectHead, isRelative, productionCsp, ready, scanFile, scriptJson, walk, type Graph, type Mod,
 } from './modules.ts';
@@ -13,7 +15,8 @@ import { browserModules, entryFiles, entryProblems, importsTailwind, posixRel, r
 import { clean, lineCol, type Reporter } from './report.ts';
 import { clearPackageCache, DEV_CONDITIONS, type Pkg } from './resolve.ts';
 
-export interface DevOptions { port: number; host?: string | undefined }
+/** proxy: URL prefix (/api/) → backend origin. */
+export interface DevOptions { port: number; host?: string | undefined; proxy?: Record<string, string> | undefined }
 
 export const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -73,16 +76,24 @@ export function allowedHost(host: string | undefined, hostOptIn?: string): boole
 
 
 /** A reusable server recorded in .jasno/dev.json: the one answering /__jasno/ping for this root. */
-async function running(root: string): Promise<string | undefined> {
+async function running(root: string): Promise<{ url: string; proxy: Record<string, string> } | undefined> {
   try {
     const rec = JSON.parse(readFileSync(join(root, '.jasno', 'dev.json'), 'utf8')) as { url: string };
     const res = await fetch(new URL('/__jasno/ping', rec.url), { signal: AbortSignal.timeout(800) });
-    const body = (await res.json()) as { root?: string };
-    return body.root === root ? rec.url : undefined;
+    const body = (await res.json()) as { root?: string; proxy?: Record<string, string> };
+    return body.root === root ? { url: rec.url, proxy: body.proxy ?? {} } : undefined;
   } catch {
     return undefined;
   }
 }
+
+const unsafe = (path: string): boolean => path.includes('\0') || path.includes('\\') || path.split('/').some((s) => s === '.' || s === '..' || /^\.env/i.test(s));
+
+const headerLines = (raw: string[], skip?: RegExp): string => {
+  let out = '';
+  for (let i = 0; i < raw.length; i += 2) if (!skip?.test(raw[i]!)) out += `${raw[i]}: ${raw[i + 1]}\r\n`;
+  return out;
+};
 
 export async function startDev(root: string, opts: DevOptions, reporter: Reporter): Promise<DevServer> {
   await ready;
@@ -105,6 +116,15 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     } catch { /* ignore */ }
   }
   let port = opts.port;
+  /** --proxy rules, longest prefix first. */
+  const rules = Object.entries(opts.proxy ?? {}).sort((a, b) => b[0].length - a[0].length);
+  const ruleFor = (path: string): [string, string] | undefined => rules.find(([prefix]) => path.startsWith(prefix));
+  /** The backend request for a proxied URL: the normalized path, the raw query, Host rewritten to the target. `path`
+   * is sent as is, never resolved against the target, where a path starting with // would name another host. */
+  const upstream = (req: IncomingMessage, url: URL, target: string) => (target.startsWith('https:') ? httpsRequest : request)(
+    target, { path: url.pathname + (req.url ?? '').replace(/^[^?]*/, ''), method: req.method, headers: { ...req.headers, host: new URL(target).host } });
+  /** Upgraded sockets (WebSocket tunnels and raw refusals): closeAllConnections() does not see them. */
+  const tunnels = new Set<Duplex>();
 
   const urlOf = (file: string, mod?: Mod): string => {
     const owner = mod?.owner;
@@ -199,7 +219,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
 
   const internal = async (req: IncomingMessage, res: ServerResponse, path: string): Promise<void> => {
     if (path === '/__jasno/client.js') return send(res, req, 200, TYPES['.js']!, CLIENT);
-    if (path === '/__jasno/ping') return send(res, req, 200, TYPES['.json']!, JSON.stringify({ root, pid: process.pid }));
+    if (path === '/__jasno/ping') return send(res, req, 200, TYPES['.json']!, JSON.stringify({ root, pid: process.pid, proxy: opts.proxy ?? {} }));
     if (path === '/__jasno/events') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       res.write(': jasno dev\n\n');
@@ -239,14 +259,33 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     serveModule(req, res, file, path);
   };
 
+  /** Proxied responses pass through untouched: no dev CSP or no-store, every set-cookie kept. */
+  const forward = (req: IncomingMessage, res: ServerResponse, url: URL, [prefix, target]: [string, string]): void => {
+    const up = upstream(req, url, target);
+    up.on('response', (r) => { res.writeHead(r.statusCode ?? 502, r.headers); pipeline(r, res, () => {}); });
+    up.on('error', (e: NodeJS.ErrnoException) => {
+      if (res.destroyed) return; // the browser left first
+      const why = e.message || e.code || 'error';
+      reporter.info(`jasno dev: proxy ${prefix} -> ${target}: ${why}`);
+      if (res.headersSent) res.destroy();
+      else send(res, req, 502, TYPES['.txt']!, `jasno dev: the backend ${target} for ${prefix} did not answer (${why}).`);
+    });
+    res.on('close', () => { if (!res.writableFinished) up.destroy(); });
+    req.pipe(up);
+  };
+
+  const hostRefused = (req: IncomingMessage): string | undefined => allowedHost(req.headers.host, opts.host) ? undefined
+    : `jasno dev answers only loopback names (Host "${clean(req.headers.host ?? '')}" refused: DNS rebinding protection). Open http://127.0.0.1:${port}/, or start it with --host.`;
+
   const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-    if (!allowedHost(req.headers.host, opts.host)) {
-      return send(res, req, 403, TYPES['.txt']!, `jasno dev answers only loopback names (Host "${clean(req.headers.host ?? '')}" refused: DNS rebinding protection). Open http://127.0.0.1:${port}/, or start it with --host.`);
-    }
-    let path: string;
-    try { path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname); } catch { return send(res, req, 400, TYPES['.txt']!, 'bad path'); }
+    const refused = hostRefused(req);
+    if (refused) return send(res, req, 403, TYPES['.txt']!, refused);
+    let url: URL, path: string;
+    try { url = new URL(req.url ?? '/', 'http://localhost'); path = decodeURIComponent(url.pathname); } catch { return send(res, req, 400, TYPES['.txt']!, 'bad path'); }
+    if (unsafe(path)) return notFound(req, res, path);
+    const rule = ruleFor(path);
+    if (rule) return forward(req, res, url, rule); // any method: POST /api/ never reaches the GET-only gate
     const segs = path.split('/');
-    if (path.includes('\0') || path.includes('\\') || segs.some((s) => s === '.' || s === '..' || /^\.env/i.test(s))) return notFound(req, res, path);
     // Other dot segments reach only public/, which jasno build copies with its dotfiles (.well-known/).
     const dotted = segs.some((s) => s.startsWith('.'));
     const isLog = path === '/__jasno/log' && req.method === 'POST';
@@ -300,16 +339,62 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
     });
   };
 
+  /** A raw answer on an upgrade socket (no ServerResponse there); end() flushes it before closing. */
+  const reply = (socket: Duplex, status: number, text: string): void => {
+    socket.end(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\ncontent-type: text/plain; charset=utf-8\r\ncontent-length: ${Buffer.byteLength(text)}\r\nconnection: close\r\n\r\n${text}`);
+  };
+
+  /** WebSocket (any upgrade) under a --proxy prefix: tunneled to the backend; every other upgrade is refused. */
+  const onUpgrade = (req: IncomingMessage, socket: Duplex, head: Buffer): void => {
+    tunnels.add(socket);
+    socket.on('close', () => tunnels.delete(socket));
+    socket.on('error', () => socket.destroy());
+    const refused = hostRefused(req);
+    if (refused) return reply(socket, 403, refused);
+    let url: URL, path: string;
+    try { url = new URL(req.url ?? '/', 'http://localhost'); path = decodeURIComponent(url.pathname); } catch { return reply(socket, 400, 'bad path'); }
+    const rule = unsafe(path) ? undefined : ruleFor(path);
+    if (!rule) return reply(socket, 404, `404 ${path}: only paths under --proxy accept upgrades`);
+    const [prefix, target] = rule;
+    const up = upstream(req, url, target);
+    up.on('upgrade', (r, upSocket, upHead) => {
+      tunnels.add(upSocket);
+      // A FIN closes the socket (node:http sockets stay half-open), and a close closes the other side once what is still
+      // buffered (a close frame) is flushed: a peer that ignores a FIN would otherwise keep both open until close().
+      socket.allowHalfOpen = upSocket.allowHalfOpen = false;
+      upSocket.on('close', () => { tunnels.delete(upSocket); socket.end(() => socket.destroy()); });
+      upSocket.on('error', () => upSocket.destroy());
+      socket.on('close', () => upSocket.end(() => upSocket.destroy()));
+      socket.write(`HTTP/1.1 101 Switching Protocols\r\n${headerLines(r.rawHeaders)}\r\n`);
+      if (upHead.length) socket.write(upHead);
+      if (head.length) upSocket.write(head);
+      upSocket.pipe(socket).pipe(upSocket);
+    });
+    // The backend refused the upgrade: its answer, de-chunked by node:http, ends with the connection.
+    up.on('response', (r) => {
+      socket.write(`HTTP/1.1 ${r.statusCode ?? 502} ${r.statusMessage ?? ''}\r\n${headerLines(r.rawHeaders, /^(connection|keep-alive|transfer-encoding)$/i)}connection: close\r\n\r\n`);
+      pipeline(r, socket, () => socket.destroy());
+    });
+    up.on('error', (e: NodeJS.ErrnoException) => {
+      if (socket.destroyed) return;
+      const why = e.message || e.code || 'error';
+      reporter.info(`jasno dev: proxy ${prefix} -> ${target}: ${why}`);
+      reply(socket, 502, `jasno dev: the backend ${target} for ${prefix} did not answer (${why}).`);
+    });
+    socket.on('close', () => up.destroy());
+    up.end();
+  };
+
   const listen = (server: Server, p: number, host: string): Promise<void> => new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(p, host, () => { server.off('error', reject); resolve(); });
   });
 
-  const servers: Server[] = [createServer(handler)];
+  const servers: Server[] = [createServer(handler).on('upgrade', onUpgrade)];
   await listen(servers[0]!, opts.port, opts.host ?? '127.0.0.1');
   port = (servers[0]!.address() as AddressInfo).port;
   if (!opts.host) {
-    const v6 = createServer(handler);
+    const v6 = createServer(handler).on('upgrade', onUpgrade);
     try { await listen(v6, port, '::1'); servers.push(v6); } catch { /* no IPv6 loopback */ }
   }
   const host = opts.host ? (opts.host.includes(':') ? `[${opts.host}]` : opts.host) : '127.0.0.1';
@@ -349,6 +434,7 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
       clearTimeout(timer);
       for (const w of [...watchers, ...packageWatchers]) w.close();
       for (const c of clients) c.end();
+      for (const s of tunnels) s.destroy();
       await Promise.all(servers.map((s) => new Promise<void>((r) => { s.close(() => r()); s.closeAllConnections(); })));
       try { if ((JSON.parse(readFileSync(record, 'utf8')) as { pid: number }).pid === process.pid) rmSync(record); } catch { /* gone */ }
     },
@@ -357,7 +443,12 @@ export async function startDev(root: string, opts: DevOptions, reporter: Reporte
 
 export async function dev(root: string, opts: DevOptions, reporter: Reporter): Promise<number> {
   const existing = await running(root);
-  if (existing) { reporter.info(`jasno dev: already running at ${existing}`, { url: existing }); return 0; }
+  if (existing) {
+    const key = (proxy: Record<string, string> = {}): string => JSON.stringify(Object.entries(proxy).sort());
+    if (key(existing.proxy) !== key(opts.proxy)) { reporter.info(`jasno dev: already running at ${existing.url} with different --proxy settings; stop it first.`); return 1; }
+    reporter.info(`jasno dev: already running at ${existing.url}`, { url: existing.url });
+    return 0;
+  }
   let server: DevServer;
   try {
     server = await startDev(root, opts, reporter);
@@ -368,6 +459,7 @@ export async function dev(root: string, opts: DevOptions, reporter: Reporter): P
   }
   if (opts.host) reporter.info(`jasno dev: listening on ${opts.host}: other machines can reach it, and everything under src/ is public.`);
   reporter.info(`jasno dev: ${server.url}`, { url: server.url });
+  for (const [prefix, target] of Object.entries(opts.proxy ?? {})) reporter.info(`jasno dev: proxy ${prefix} -> ${target}`);
   await new Promise<void>((resolve) => {
     const stop = (): void => { void server.close().then(resolve); };
     process.once('SIGINT', stop);
