@@ -106,14 +106,17 @@ function stripperVersion(): string {
   try { return `amaro@${namedPackageOf(fileURLToPath(import.meta.resolve('amaro')))?.json.version ?? '?'}`; } catch { return 'amaro@?'; }
 }
 
-function headersFile(csp: string, prefix: string): string {
-  const rule = (path: string, headers: Record<string, string>): string => `${path}\n${Object.entries(headers).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n`;
-  return [
-    rule('/*', { 'Content-Security-Policy': csp, 'X-Content-Type-Options': 'nosniff' }),
-    ...['/', '/index.html', '/404.html', `${prefix}assets/*`].map((p) => rule(p, { 'Cache-Control': 'no-cache' })),
-    rule(`${prefix}src/*`, { 'Cache-Control': IMMUTABLE }),
-  ].join('');
-}
+type HeaderRules = Record<string, Record<string, string>>;
+
+/** The _headers rules, path pattern → header → value; the manifest carries them as JSON (build 6, 9). */
+const headerRules = (csp: string, prefix: string): HeaderRules => ({
+  '/*': { 'Content-Security-Policy': csp, 'X-Content-Type-Options': 'nosniff' },
+  ...Object.fromEntries(['/', '/index.html', '/404.html', `${prefix}assets/*`].map((p) => [p, { 'Cache-Control': 'no-cache' }])),
+  [`${prefix}src/*`]: { 'Cache-Control': IMMUTABLE },
+});
+
+const headersFile = (rules: HeaderRules): string =>
+  Object.entries(rules).map(([path, headers]) => `${path}\n${Object.entries(headers).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n`).join('');
 
 /**
  * A miss under a module or asset directory is a missing file (404), not the app: a stale tab past --keep must not
@@ -279,7 +282,8 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
   files.set('index.html', { content: page });
   files.set('404.html', { content: page });
   files.set('_redirects', { content: redirectsFile(prefix) });
-  files.set('_headers', { content: headersFile(policy, prefix) });
+  const headers = headerRules(policy, prefix);
+  files.set('_headers', { content: headersFile(headers) });
 
   // --keep N: the previous N deploys' hashed files stay, so open tabs keep loading their chunks (build 8).
   const out = join(root, 'dist');
@@ -294,6 +298,7 @@ export async function dist(root: string, opts: DistOptions, reporter: Reporter):
     stripper: stripperVersion(),
     bundler: built.bundler,
     conditions: { dependencies: [...prodConditions()], imports: [...appConditions] },
+    headers,
     deploys: [[...built.chunks.keys()].sort(byCodePoint), ...previous.slice(0, opts.keep)],
   };
   files.set('.jasno/manifest.json', { content: JSON.stringify(manifest, null, 2) + '\n' });

@@ -149,6 +149,12 @@ test('CSP meta and _headers are exactly the (e) build 6 policy: map hash, then e
   for (const p of ['/', '/index.html', '/404.html', '/assets/*']) assert.ok(headers.includes(`\n${p}\n  Cache-Control: no-cache\n`), p);
   assert.ok(headers.includes('\n/src/*\n  Cache-Control: public, max-age=31536000, immutable\n'));
   assert.ok(!headers.includes('/_deps/') && !headers.includes('/jasno/'), 'chunks live under /src/ only');
+  const noCache = { 'Cache-Control': 'no-cache' };
+  assert.deepEqual(JSON.parse(b.read('.jasno/manifest.json')).headers, {
+    '/*': { 'Content-Security-Policy': csp, 'X-Content-Type-Options': 'nosniff' },
+    '/': noCache, '/index.html': noCache, '/404.html': noCache, '/assets/*': noCache,
+    '/src/*': { 'Cache-Control': 'public, max-age=31536000, immutable' },
+  }, 'the manifest carries the _headers rules as JSON');
   const nonce = b.lines.find((l) => l.includes("'strict-dynamic'"))!;
   assert.ok(nonce.includes("script-src 'nonce-<nonce>' 'strict-dynamic'; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'"), nonce);
   assert.ok(!nonce.includes('sha256-'), 'no hash sources next to strict-dynamic');
@@ -508,7 +514,9 @@ test('build 10 --prefix: src/ and assets/ move under the prefix; the import map,
   assert.equal(b.read('_redirects'), '/control/assets/src/* /404.html 404\n/control/assets/assets/* /404.html 404\n/* /index.html 200\n');
   const mod = await import(b.at(entry.slice(1)));
   assert.equal(typeof (await mod.lazy()).default, 'number', 'the entry and its lazy chunk load from under the prefix');
-  assert.ok(JSON.parse(b.read('.jasno/manifest.json')).deploys[0].every((p: string) => p.startsWith('control/assets/src/')));
+  const manifest = JSON.parse(b.read('.jasno/manifest.json'));
+  assert.ok(manifest.deploys[0].every((p: string) => p.startsWith('control/assets/src/')));
+  assert.deepEqual(Object.keys(manifest.headers), ['/*', '/', '/index.html', '/404.html', '/control/assets/assets/*', '/control/assets/src/*']);
   assert.equal(b.read('control/assets/assets/app.css'), PREFIXED['assets/app.css'], 'assets are copied as they are');
 });
 
